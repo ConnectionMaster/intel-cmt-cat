@@ -7,8 +7,9 @@ name = "pypi"
 jsonschema = "*"
 pexpect = "*"
 flask = "*"
-flask-httpauth = "*"
 flask-restful = "*"
+gevent = "*"
+psutil = "*"
 
 [dev-packages]
 bandit = "*"

@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -45,6 +44,7 @@ import ssl
 from time import sleep
 from flask import Flask
 from flask_restful import Api
+from gevent.pywsgi import WSGIServer
 from werkzeug.exceptions import HTTPException
 
 import caps
@@ -55,12 +55,17 @@ from rest.rest_power import Power, Powers
 from rest.rest_app import App, Apps
 from rest.rest_pool import Pool, Pools
 from rest.rest_misc import Stats, Caps, Sstbf, Reset
-from rest.rest_rdt import CapsRdtIface, CapsMba, CapsMbaCtrl
+from rest.rest_rdt import CapsRdtIface, CapsMba, CapsMbaCtrl, CapsL3ca, CapsL2ca
 
+TLS_CERT_FILE = 'ca/appqos.crt'
+TLS_KEY_FILE = 'ca/appqos.key'
+TLS_CA_CERT_FILE = 'ca/ca.crt'
 
-TLS_CERT_FILE = 'appqos.crt'
-TLS_KEY_FILE = 'appqos.key'
-
+TLS_CIPHERS = [
+    'AES128-GCM-SHA256',
+    'AES256-GCM-SHA384',
+    'ECDHE-RSA-AES128-GCM-SHA256',
+]
 
 class Server:
     """
@@ -72,10 +77,13 @@ class Server:
         self.process = None
         self.app = Flask(__name__)
         self.app.config['MAX_CONTENT_LENGTH'] = 2 * 1024
+        self.app.url_map.strict_slashes = False
         self.api = Api(self.app)
 
         # initialize SSL context
-        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        self.context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.context.verify_mode = ssl.CERT_REQUIRED
+        self.context.set_ciphers(':'.join(TLS_CIPHERS))
 
         # allow TLS 1.2 and later
         self.context.options |= ssl.OP_NO_SSLv2
@@ -83,21 +91,42 @@ class Server:
         self.context.options |= ssl.OP_NO_TLSv1
         self.context.options |= ssl.OP_NO_TLSv1_1
 
+        # Apps and Pools API
         self.api.add_resource(Apps, '/apps')
         self.api.add_resource(App, '/apps/<int:app_id>')
         self.api.add_resource(Pools, '/pools')
         self.api.add_resource(Pool, '/pools/<int:pool_id>')
+
+        # SST-CP API
         if caps.sstcp_enabled():
             self.api.add_resource(Powers, '/power_profiles')
             self.api.add_resource(Power, '/power_profiles/<int:profile_id>')
+
+        # Stats and Capabilities API
         self.api.add_resource(Stats, '/stats')
         self.api.add_resource(Caps, '/caps')
+
+        # SST-BF API
         if caps.sstbf_enabled():
             self.api.add_resource(Sstbf, '/caps/sstbf')
+
+        # RDT interface API
         self.api.add_resource(CapsRdtIface, '/caps/rdt_iface')
+
+        # MBA API
         if caps.mba_supported():
            self.api.add_resource(CapsMba, '/caps/mba')
            self.api.add_resource(CapsMbaCtrl, '/caps/mba_ctrl')
+
+        # L3 CAT API
+        if caps.cat_l3_supported():
+            self.api.add_resource(CapsL3ca, '/caps/' + common.CAT_L3_CAP)
+
+        # L2 CAT API
+        if caps.cat_l2_supported():
+            self.api.add_resource(CapsL2ca, '/caps/' + common.CAT_L2_CAP)
+
+        # Reset API
         self.api.add_resource(Reset, '/reset')
 
         self.app.register_error_handler(HTTPException, Server.error_handler)
@@ -127,13 +156,27 @@ class Server:
             log.error("SSL cert or key file, {}".format(str(ex)))
             return -1
 
-        self.process = multiprocessing.Process(target=self.app.run,
-                                               kwargs={'host': host,
-                                                       'port': port,
-                                                       'ssl_context': self.context,
-                                                       'debug': debug,
-                                                       'use_reloader': False,
-                                                       'processes': 1})
+        # loading CA crt file - it is needed for mTLS verification of client certificates
+        try:
+            with open(TLS_CA_CERT_FILE, opener=common.check_link):
+                pass
+            self.context.load_verify_locations(cafile=TLS_CA_CERT_FILE)
+
+        except (FileNotFoundError, PermissionError) as ex:
+            log.error("CA certificate file, {}".format(str(ex)))
+            return -1
+
+        self.http_server = WSGIServer((host, port), self.app, ssl_context=self.context, spawn=1)
+        def handle_gevent_stop(signum, frame):
+            log.info("Stopping gevent server loop")
+            self.http_server.stop()
+            self.http_server.close()
+
+        # dedicated handler for gevent server is needed to stop it gracefully
+        # before process will be terminated
+        signal.signal(signal.SIGINT, handle_gevent_stop)
+
+        self.process = multiprocessing.Process(target=self.http_server.serve_forever)
         self.process.start()
         return 0
 

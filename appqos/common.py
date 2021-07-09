@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -45,7 +44,9 @@ import stats # pylint: disable=cyclic-import
 
 
 CONFIG_FILENAME = "appqos.conf"
-CAT_CAP = "cat"
+CAT_L3_CAP = "l3cat"
+CAT_L2_CAP = "l2cat"
+DEFAULT_ADDRESS = "127.0.0.1"
 MBA_CAP = "mba"
 SSTBF_CAP = "sstbf"
 POWER_CAP = "power"

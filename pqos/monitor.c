@@ -1,8 +1,7 @@
 /*
  * BSD LICENSE
  *
- * Copyright(c) 2014-2020 Intel Corporation. All rights reserved.
- * All rights reserved.
+ * Copyright(c) 2014-2021 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -175,7 +174,7 @@ struct proc_stats {
         pid_t pid; /**< process pid */
         unsigned long ticks_delta; /**< current cpu_time - previous ticks */
         double cpu_avg_ratio; /**< cpu usage/running time ratio*/
-        int valid; /**< marks if statisctics are fully processed */
+        int valid; /**< marks if statistics are fully processed */
 };
 
 /**

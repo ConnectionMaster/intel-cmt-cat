@@ -1,8 +1,7 @@
 /*
  * BSD LICENSE
  *
- * Copyright(c) 2014-2020 Intel Corporation. All rights reserved.
- * All rights reserved.
+ * Copyright(c) 2014-2021 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,7 +76,7 @@ struct cpuid_out {
  * @return Operation status
  * @retval MACHINE_RETVAL_OK on success
  */
-int machine_init(const unsigned max_core_id);
+PQOS_LOCAL int machine_init(const unsigned max_core_id);
 
 /**
  * @brief Shuts down machine module
@@ -85,7 +84,7 @@ int machine_init(const unsigned max_core_id);
  * @return Operation status
  * @retval MACHINE_RETVAL_OK on success
  */
-int machine_fini(void);
+PQOS_LOCAL int machine_fini(void);
 
 /**
  * @brief Executes CPUID.leaf.sbuleaf on current core
@@ -94,7 +93,8 @@ int machine_fini(void);
  * @param [in] subleaf CPUID sub-leaf number
  * @param [out] out structure to write CPUID results into
  */
-void lcpuid(const unsigned leaf, const unsigned subleaf, struct cpuid_out *out);
+PQOS_LOCAL void
+lcpuid(const unsigned leaf, const unsigned subleaf, struct cpuid_out *out);
 
 /**
  * @brief Executes RDMSR on \a lcore logical core
@@ -106,7 +106,8 @@ void lcpuid(const unsigned leaf, const unsigned subleaf, struct cpuid_out *out);
  * @return Operation status
  * @retval MACHINE_RETVAL_OK on success
  */
-int msr_read(const unsigned lcore, const uint32_t reg, uint64_t *value);
+PQOS_LOCAL int
+msr_read(const unsigned lcore, const uint32_t reg, uint64_t *value);
 
 /**
  * @brief Executes WRMSR on \a lcore logical core
@@ -118,7 +119,8 @@ int msr_read(const unsigned lcore, const uint32_t reg, uint64_t *value);
  * @return Operation status
  * @retval MACHINE_RETVAL_OK on success
  */
-int msr_write(const unsigned lcore, const uint32_t reg, const uint64_t value);
+PQOS_LOCAL int
+msr_write(const unsigned lcore, const uint32_t reg, const uint64_t value);
 
 #ifdef __cplusplus
 }

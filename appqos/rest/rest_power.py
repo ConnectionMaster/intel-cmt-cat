@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -44,7 +43,6 @@ import jsonschema
 from power import AdmissionControlError
 
 from rest.rest_exceptions import NotFound, BadRequest, MethodNotAllowed
-from rest.rest_auth import auth
 
 import sstbf
 
@@ -76,7 +74,6 @@ class Power(Resource):
     method_decorators = {'delete': [check_allowed], 'put' : [check_allowed]}
 
     @staticmethod
-    @auth.login_required
     def get(profile_id):
         """
         Handles HTTP GET /power_profiles/<profile_id> request.
@@ -104,7 +101,6 @@ class Power(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def delete(profile_id):
         """
         Handles HTTP DELETE /power_profiles/<profile_id> request.
@@ -145,7 +141,6 @@ class Power(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def put(profile_id):
         # pylint: disable=too-many-branches
         """
@@ -166,7 +161,7 @@ class Power(Resource):
         try:
             schema, resolver = common.CONFIG_STORE.load_json_schema('modify_power.json')
             jsonschema.validate(json_data, schema, resolver=resolver)
-        except jsonschema.ValidationError as error:
+        except (jsonschema.ValidationError, OverflowError) as error:
             raise BadRequest("Request validation failed - %s" % (str(error)))
 
         admission_control_check = json_data.pop('verify', True)
@@ -203,7 +198,6 @@ class Powers(Resource):
     method_decorators = {'post': [check_allowed]}
 
     @staticmethod
-    @auth.login_required
     def get():
         """
         Handles HTTP GET /power_profiles request.
@@ -221,7 +215,6 @@ class Powers(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def post():
         """
         Handles HTTP POST /power_profiles request.
@@ -238,7 +231,7 @@ class Powers(Resource):
         try:
             schema, resolver = common.CONFIG_STORE.load_json_schema('add_power.json')
             jsonschema.validate(json_data, schema, resolver=resolver)
-        except jsonschema.ValidationError as error:
+        except (jsonschema.ValidationError, OverflowError) as error:
             raise BadRequest("Request validation failed - %s" % (str(error)))
 
         json_data['id'] = common.CONFIG_STORE.get_new_power_profile_id()

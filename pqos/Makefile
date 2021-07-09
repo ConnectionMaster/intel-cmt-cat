@@ -4,8 +4,7 @@
 # @par
 # BSD LICENSE
 #
-# Copyright(c) 2014-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2014-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -147,7 +146,7 @@ checkpatch:
 CLANGFORMAT?=clang-format
 .PHONY: clang-format
 clang-format:
-	@for file in "cap.c" "cap.h" "common.c"; do \
+	@for file in "cap.c" "cap.h" "common.c" "alloc.c" "profiles.c" "profiles.h" "main.h"; do \
 		echo "Checking style $$file"; \
 		$(CLANGFORMAT) -style=file "$$file" | diff "$$file" - | tee /dev/stderr | [ $$(wc -c) -eq 0 ] || \
 		{ echo "ERROR: $$file has style problems"; exit 1; } \

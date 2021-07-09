@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,12 +35,11 @@ Cache Ops module.
 Provides RDT related helper functions used to configure RDT.
 """
 
-import os
-
 import caps
 import common
 import log
 import power
+from pid_ops import set_affinity
 
 class Apps:
     """
@@ -75,28 +73,9 @@ class Apps:
             if not app_cores:
                 continue
 
-            Apps.set_affinity(app['pids'], app_cores)
+            set_affinity(app['pids'], app_cores)
 
         return 0
-
-
-    @staticmethod
-    def set_affinity(pids, cores):
-        """
-        Sets PIDs' core affinity
-
-        Parameters:
-            pids: PIDs to set core affinity for
-            cores: cores to set to
-        """
-
-        # set core affinity for each PID,
-        # even if operation fails for one PID, continue with other PIDs
-        for pid in pids:
-            try:
-                os.sched_setaffinity(pid, cores)
-            except OSError:
-                log.error("Failed to set {} PID affinity".format(pid))
 
 
 class Pool:
@@ -192,7 +171,7 @@ class Pool:
         cores = config.get_pool_attr('cores', self.pool)
         self.cores_set(cores)
 
-        if caps.cat_supported():
+        if caps.cat_l3_supported():
             cbm = config.get_pool_attr('cbm', self.pool)
             self.cbm_set(cbm)
 
@@ -260,11 +239,7 @@ class Pool:
 
             # get cores for Default Pool #0
             cores = common.CONFIG_STORE.get_pool_attr('cores', 0)
-            for pid in removed_pids:
-                try:
-                    os.sched_setaffinity(pid, cores)
-                except OSError:
-                    pass
+            set_affinity(removed_pids, cores)
 
 
     def pids_get(self):

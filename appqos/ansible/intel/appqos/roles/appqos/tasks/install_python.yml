@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2020-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +31,18 @@
 ################################################################################
 
 ---
-- name: Install python - Debian
+- name: Install python and pip - Debian
   apt:
-    name: python3
+    name:
+      - python3
+      - python3-pip
     state: present
   when: ansible_os_family == 'Debian'
 
-- name: Install python - RedHat
+- name: Install python and pip - RedHat
   yum:
-    name: python3
+    name:
+      - python3
+      - python3-pip
     state: present
   when: ansible_os_family == 'RedHat'

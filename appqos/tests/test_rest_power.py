@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -207,7 +206,7 @@ class TestRestPowerProfiles:
 
     @mock.patch("caps.sstcp_enabled", mock.MagicMock(return_value=True))
     @mock.patch("rest.rest_power._get_power_profiles_expert_mode", mock.MagicMock(return_value=True))
-    @pytest.mark.parametrize("invalid_id", ["", "a", "test", "-1"])
+    @pytest.mark.parametrize("invalid_id", ["a", "test", "-1"])
     def test_invalid_index(self, invalid_id):
 
         response = Rest().get("/power_profiles/{}".format(invalid_id))

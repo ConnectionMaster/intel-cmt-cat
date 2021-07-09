@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -46,7 +45,6 @@ import common
 import sstbf
 
 from rest.rest_exceptions import NotFound, BadRequest, InternalError
-from rest.rest_auth import auth
 
 from config import ConfigStore
 
@@ -58,7 +56,6 @@ class Pool(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def get(pool_id):
         """
         Handles HTTP GET /pools/<pool_id> request.
@@ -85,7 +82,6 @@ class Pool(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def delete(pool_id):
         """
         Handles HTTP DELETE /pool/<pull_id> request.
@@ -124,7 +120,6 @@ class Pool(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def put(pool_id):
         # pylint: disable=too-many-branches
         """
@@ -140,9 +135,9 @@ class Pool(Resource):
         """
         def check_alloc_tech(pool_id, json_data):
             if 'cbm' in json_data:
-                if not caps.cat_supported():
+                if not caps.cat_l3_supported():
                     raise BadRequest("System does not support CAT!")
-                if pool_id > common.PQOS_API.get_max_cos_id([common.CAT_CAP]):
+                if pool_id > common.PQOS_API.get_max_cos_id([common.CAT_L3_CAP]):
                     raise BadRequest("Pool {} does not support CAT".format(pool_id))
 
             if 'mba' in json_data or 'mba_bw' in json_data:
@@ -164,7 +159,7 @@ class Pool(Resource):
         try:
             schema, resolver = ConfigStore.load_json_schema('modify_pool.json')
             jsonschema.validate(json_data, schema, resolver=resolver)
-        except jsonschema.ValidationError as error:
+        except (jsonschema.ValidationError, OverflowError) as error:
             raise BadRequest("Request validation failed - %s" % (str(error)))
 
         admission_control_check = json_data.pop('verify', True) and\
@@ -229,7 +224,6 @@ class Pools(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def get():
         """
         Handles HTTP GET /pools request.
@@ -247,7 +241,6 @@ class Pools(Resource):
 
 
     @staticmethod
-    @auth.login_required
     def post():
         """
         Handles HTTP POST /pools request.
@@ -263,7 +256,7 @@ class Pools(Resource):
         try:
             schema, resolver = ConfigStore.load_json_schema('add_pool.json')
             jsonschema.validate(json_data, schema, resolver=resolver)
-        except jsonschema.ValidationError as error:
+        except (jsonschema.ValidationError, OverflowError) as error:
             raise BadRequest("Request validation failed - %s" % (str(error)))
 
         admission_control_check = json_data.pop('verify', True) and\

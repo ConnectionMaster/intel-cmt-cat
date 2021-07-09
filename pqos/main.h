@@ -1,8 +1,7 @@
 /*
  * BSD LICENSE
  *
- * Copyright(c) 2014-2020 Intel Corporation. All rights reserved.
- * All rights reserved.
+ * Copyright(c) 2014-2021 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,17 +49,18 @@ extern "C" {
  * Macros
  */
 #ifndef DIM
-#define DIM(x) (sizeof(x)/sizeof(x[0]))
+#define DIM(x) (sizeof(x) / sizeof(x[0]))
 #endif
 #ifndef MAX
 /**
  * Macro to return the maximum of two numbers
  */
-#define MAX(a, b) ({ \
-        typeof(a) _a = (a); \
-        typeof(b) _b = (b); \
-        _a > _b ? _a : _b; \
-})
+#define MAX(a, b)                                                              \
+        ({                                                                     \
+                typeof(a) _a = (a);                                            \
+                typeof(b) _b = (b);                                            \
+                _a > _b ? _a : _b;                                             \
+        })
 #endif /* !MAX */
 
 #ifdef DEBUG
@@ -72,9 +72,9 @@ extern "C" {
 #define UNUSED_ARG(_x) ((void)(_x))
 
 #define PQOS_MAX_SOCKETS      8
-#define PQOS_MAX_L2IDS        32
-#define PQOS_MAX_SOCKET_CORES 64
-#define PQOS_MAX_CORES        (PQOS_MAX_SOCKET_CORES*PQOS_MAX_SOCKETS)
+#define PQOS_MAX_SOCKET_CORES 128
+#define PQOS_MAX_CORES        (PQOS_MAX_SOCKET_CORES * PQOS_MAX_SOCKETS)
+#define PQOS_MAX_L2IDS        PQOS_MAX_CORES
 
 /**
  * Maintains alloc option - allocate cores or task id's
@@ -97,8 +97,7 @@ extern enum pqos_interface sel_interface;
  *
  * @return Numeric value of the string representing the number
  */
-uint64_t
-strtouint64(const char *s);
+uint64_t strtouint64(const char *s);
 
 /**
  * @brief Converts string of characters representing list of
@@ -119,8 +118,7 @@ strtouint64(const char *s);
  *
  * @return Number of elements placed into \a tab
  */
-unsigned
-strlisttotab(char *s, uint64_t *tab, const unsigned max);
+unsigned strlisttotab(char *s, uint64_t *tab, const unsigned max);
 
 /**
  * @brief Common function to handle string parsing errors
@@ -130,7 +128,7 @@ strlisttotab(char *s, uint64_t *tab, const unsigned max);
  * @param arg string that caused error when parsing
  * @param note context and information about encountered error
  */
-void parse_error(const char *arg, const char *note) __attribute__ ((noreturn));
+void parse_error(const char *arg, const char *note) __attribute__((noreturn));
 
 /**
  * @brief Duplicates \a arg and stores at \a sel
@@ -139,7 +137,6 @@ void parse_error(const char *arg, const char *note) __attribute__ ((noreturn));
  * @param arg string passed through command line option
  */
 void selfn_strdup(char **sel, const char *arg);
-
 
 #ifdef __cplusplus
 }

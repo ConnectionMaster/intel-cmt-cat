@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -77,7 +76,7 @@ class TestApps:
     @mock.patch("common.CONFIG_STORE.get_config", new=get_config)
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
     @mock.patch("pid_ops.is_pid_valid", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     @mock.patch("power.validate_power_profiles", mock.MagicMock(return_value=True))
     @pytest.mark.parametrize("app_config", [
@@ -220,7 +219,7 @@ class TestApp_2:
     @mock.patch("common.CONFIG_STORE.get_config", new=get_config)
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
     @mock.patch("pid_ops.is_pid_valid", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     @mock.patch("power.validate_power_profiles", mock.MagicMock(return_value=True))
     def test_put_pool(self):
@@ -241,7 +240,7 @@ class TestApp_2:
     @mock.patch("common.CONFIG_STORE.get_config", new=get_config)
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
     @mock.patch("pid_ops.is_pid_valid", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     @mock.patch("power.validate_power_profiles", mock.MagicMock(return_value=True))
     def test_put_cores(self):

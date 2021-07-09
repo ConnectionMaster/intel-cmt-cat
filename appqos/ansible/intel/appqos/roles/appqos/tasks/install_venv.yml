@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2020-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,6 +34,10 @@
 - import_tasks: clone_appqos_repo.yml
 - import_tasks: install_python.yml
 
+- name: Install pipenv
+  pip:
+    name: ['pipenv']
+
 - name: Install virtualenv
   pip:
     name: ['virtualenv']
@@ -42,4 +45,4 @@
 - name: Making python3 virtualized env
   make:
     chdir: "{{ appqos_dir }}"
-    target: "env_{{ ansible_hostname }}"
+    target: setup

@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -67,10 +66,6 @@ CONFIG = {
             "pids": [4]
         }
     ],
-    "auth": {
-        "password": "password",
-        "username": "admin"
-    },
     "pools": [
         {
             "apps": [1],
@@ -117,10 +112,6 @@ CONFIG_NO_MBA = {
             "pids": [4]
         }
     ],
-    "auth": {
-        "password": "password",
-        "username": "admin"
-    },
     "pools": [
         {
             "apps": [1],
@@ -186,9 +177,9 @@ def test_config_pid_to_pool(mock_get_config, pid, pool_id):
     assert config_store.pid_to_pool(pid) == pool_id
 
 
-@mock.patch('common.PQOS_API.get_num_cores')
-def test_config_default_pool(mock_get_num_cores):
-    mock_get_num_cores.return_value = 16
+@mock.patch('common.PQOS_API.get_cores')
+def test_config_default_pool(mock_get_cores):
+    mock_get_cores.return_value = range(16)
     config_store = ConfigStore()
     config = CONFIG.copy()
 
@@ -206,7 +197,7 @@ def test_config_default_pool(mock_get_num_cores):
     assert config_store.is_default_pool_defined(config)
 
     # test that config now contains all cores (cores configured + default pool cores)
-    all_cores = range(common.PQOS_API.get_num_cores())
+    all_cores = range(16)
     for pool in config['pools']:
         all_cores = [core for core in all_cores if core not in pool['cores']]
     assert not all_cores
@@ -221,9 +212,9 @@ def test_config_default_pool(mock_get_num_cores):
     assert not config_store.is_default_pool_defined(config)
 
 
-@mock.patch('common.PQOS_API.get_num_cores', mock.MagicMock(return_value=8))
+@mock.patch('common.PQOS_API.get_cores', mock.MagicMock(return_value=range(8)))
 @mock.patch('common.PQOS_API.get_max_l3_cat_cbm', mock.MagicMock(return_value=0xDEADBEEF))
-@mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+@mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
 @mock.patch("caps.mba_supported", mock.MagicMock(return_value=False))
 def test_config_default_pool_cat():
     config_store = ConfigStore()
@@ -255,9 +246,9 @@ def test_config_default_pool_cat():
     assert pool_cbm == 0xDEADBEEF
 
 
-@mock.patch('common.PQOS_API.get_num_cores', mock.MagicMock(return_value=8))
+@mock.patch('common.PQOS_API.get_cores', mock.MagicMock(return_value=range(8)))
 @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
-@mock.patch("caps.cat_supported", mock.MagicMock(return_value=False))
+@mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=False))
 @mock.patch("caps.mba_bw_enabled", mock.MagicMock(return_value=False))
 def test_config_default_pool_mba():
     config_store = ConfigStore()
@@ -288,10 +279,10 @@ def test_config_default_pool_mba():
     assert pool_mba == 100
 
 
-@mock.patch('common.PQOS_API.get_num_cores', mock.MagicMock(return_value=8))
+@mock.patch('common.PQOS_API.get_cores', mock.MagicMock(return_value=range(8)))
 @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
 @mock.patch("caps.mba_bw_enabled", mock.MagicMock(return_value=True))
-@mock.patch("caps.cat_supported", mock.MagicMock(return_value=False))
+@mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=False))
 def test_config_default_pool_mba_bw():
     config_store = ConfigStore()
     config = deepcopy(CONFIG)
@@ -442,16 +433,16 @@ def test_config_get_new_pool_id(mock_get_config):
 def test_config_reset():
     from copy import deepcopy
 
-    with mock.patch('common.PQOS_API.get_num_cores') as mock_get_num_cores,\
+    with mock.patch('common.PQOS_API.get_cores') as mock_get_cores,\
          mock.patch('config.ConfigStore.load') as mock_load,\
          mock.patch('caps.mba_supported', return_value = True) as mock_mba,\
-         mock.patch('caps.cat_supported', return_value = True),\
+         mock.patch('caps.cat_l3_supported', return_value = True),\
          mock.patch('common.PQOS_API.get_max_l3_cat_cbm', return_value = 0xFFF),\
          mock.patch('common.PQOS_API.check_core', return_value = True),\
          mock.patch('pid_ops.is_pid_valid', return_value = True):
 
         mock_load.return_value = deepcopy(CONFIG)
-        mock_get_num_cores.return_value = 8
+        mock_get_cores.return_value = range(8)
 
         config_store = ConfigStore()
         config_store.from_file("/tmp/appqos_test.config")
@@ -466,8 +457,8 @@ def test_config_reset():
 
         # reset mock and change return values
         # more cores this time (8 vs. 16)
-        mock_get_num_cores.return_value = 16
-        mock_get_num_cores.reset_mock()
+        mock_get_cores.return_value = range(16)
+        mock_get_cores.reset_mock()
 
         # use CONFIG_NO_MBA this time, as MBA is reported as not supported
         mock_load.return_value = deepcopy(CONFIG_NO_MBA)
@@ -480,7 +471,7 @@ def test_config_reset():
         config_store.reset()
 
         mock_load.assert_called_once_with("/tmp/appqos_test.config")
-        mock_get_num_cores.assert_called_once()
+        mock_get_cores.assert_called_once()
 
         assert len(config_store.get_pool_attr('cores', None)) == 16
         assert config_store.get_pool_attr('cbm', 0) == 0xFFF
@@ -525,16 +516,12 @@ def test_get_global_attr_power_profiles_verify(mock_get_config, cfg, default, re
 
 class TestConfigValidate:
 
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_pool_invalid_core(self):
         def check_core(core):
             return core != 3
 
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "cbm": 0xf0,
@@ -557,13 +544,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_pool_duplicate_core(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "cbm": 0xf0,
@@ -585,13 +568,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_pool_same_ids(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "cbm": 0xf0,
@@ -613,13 +592,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_pool_invalid_app(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1, 3],
@@ -644,13 +619,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_pool_invalid_cbm(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [],
@@ -671,13 +642,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=False))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=False))
     def test_pool_cat_not_supported(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [],
@@ -694,14 +661,10 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=False))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=False))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     def test_pool_cat_not_supported_mba(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [],
@@ -722,10 +685,6 @@ class TestConfigValidate:
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     def test_pool_invalid_mba(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "mba": 101,
@@ -748,10 +707,6 @@ class TestConfigValidate:
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=False))
     def test_pool_mba_not_supported(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "mba": 50,
@@ -767,15 +722,11 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_bw_supported", mock.MagicMock(return_value=False))
     def test_pool_mba_bw_not_supported(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "mba_bw": 5000,
@@ -791,14 +742,10 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=False))
     def test_pool_mba_not_supported_cat(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "cbm": 0xf,
@@ -815,15 +762,11 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_bw_supported", mock.MagicMock(return_value=False))
     def test_pool_mba_bw_not_supported_cat(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "cbm": 0xf,
@@ -840,15 +783,11 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_supported", mock.MagicMock(return_value=True))
     @mock.patch("caps.mba_bw_supported", mock.MagicMock(return_value=True))
     def test_pool_mba_mba_bw_enabled(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "rdt_iface": {"interface": "os"},
             "mba_ctrl": {"enabled": True},
             "pools": [
@@ -873,16 +812,12 @@ class TestConfigValidate:
             ConfigStore.validate(data)
 
 
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_invalid_core(self):
         def check_core(core):
             return core != 3
 
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1],
@@ -908,13 +843,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_core_does_not_match_pool(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1],
@@ -939,14 +870,10 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_without_pool(self):
 
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1],
@@ -983,13 +910,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_without_pool(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1],
@@ -1027,13 +950,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_same_ids(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1],
@@ -1064,13 +983,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_same_pid(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1, 2],
@@ -1101,13 +1016,9 @@ class TestConfigValidate:
 
 
     @mock.patch("common.PQOS_API.check_core", mock.MagicMock(return_value=True))
-    @mock.patch("caps.cat_supported", mock.MagicMock(return_value=True))
+    @mock.patch("caps.cat_l3_supported", mock.MagicMock(return_value=True))
     def test_app_invalid_pid(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [
                 {
                     "apps": [1, 2],
@@ -1139,10 +1050,6 @@ class TestConfigValidate:
 
     def test_power_profile_expert_mode_invalid(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [],
             "apps": [],
             "power_profiles_expert_mode": None
@@ -1162,10 +1069,6 @@ class TestConfigValidate:
 
     def test_power_profile_verify_invalid(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [],
             "apps": [],
             "power_profiles_verify": None
@@ -1185,10 +1088,6 @@ class TestConfigValidate:
 
     def test_rdt_iface_invalid(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [],
             "apps": [],
             "rdt_iface": "os"
@@ -1216,10 +1115,6 @@ class TestConfigValidate:
 
     def test_mba_ctrl_invalid(self):
         data = {
-            "auth": {
-                "password": "password",
-                "username": "admin"
-            },
             "pools": [],
             "apps": [],
             "mba_ctrl": True

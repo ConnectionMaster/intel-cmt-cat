@@ -4,8 +4,7 @@
 # @par
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -61,7 +60,7 @@ bandit:
 
 .PHONY: codespell
 codespell:
-	$WORKON_HOME=$(VENV_DIR) pipenv run codespell -L unning -L unit -q 2
+	WORKON_HOME=$(VENV_DIR) pipenv run codespell -L unit --skip ca -q 2
 
 style:
 	${MAKE} pylint

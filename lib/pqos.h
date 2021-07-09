@@ -1,8 +1,7 @@
 /*
  * BSD LICENSE
  *
- * Copyright(c) 2014-2020 Intel Corporation. All rights reserved.
- * All rights reserved.
+ * Copyright(c) 2014-2021 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,7 +56,7 @@ extern "C" {
  * =======================================
  */
 
-#define PQOS_VERSION      40100 /**< version 4.1.0 */
+#define PQOS_VERSION      40200 /**< version 4.2.0 */
 #define PQOS_MAX_COS      16    /** 16 x COS */
 #define PQOS_MAX_L3CA_COS PQOS_MAX_COS
 #define PQOS_MAX_L2CA_COS PQOS_MAX_COS

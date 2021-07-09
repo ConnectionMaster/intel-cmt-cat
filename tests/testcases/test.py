@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -64,9 +63,9 @@ class Test:
 
     ## Runs command and adds output to log
     def run(self, command, quiet=False):
-        child = subprocess.Popen(command.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-        (stdout, stderr) = child.communicate()
+        with subprocess.Popen(command.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE) as child:
+            stdout, stderr = child.communicate()
 
         if stdout is not None:
             stdout = stdout.decode("utf-8")
@@ -115,6 +114,14 @@ class Test:
         command = self.cmd_rdtset(iface, params)
 
         return self.run(command)
+
+    ## Wait for line in the output
+    def stdout_wait(self, process, line):
+        while True:
+            stdout = process.stdout.readline()
+            assert stdout != '' or process.poll() is None
+            if line in stdout:
+                break
 
 
     @staticmethod

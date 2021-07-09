@@ -4,8 +4,7 @@
 # @par
 # BSD LICENSE
 #
-# Copyright(c) 2014-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2014-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,7 +34,7 @@
 ###############################################################################
 
 LIB = libpqos
-VERSION = 4.1.0
+VERSION = 4.2.0
 SO_VERSION = 4
 SHARED ?= y
 LDFLAGS = -L. -lpthread -z noexecstack -z relro -z now

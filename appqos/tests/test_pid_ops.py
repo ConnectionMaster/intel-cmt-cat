@@ -1,8 +1,7 @@
 ################################################################################
 # BSD LICENSE
 #
-# Copyright(c) 2019-2020 Intel Corporation. All rights reserved.
-# All rights reserved.
+# Copyright(c) 2019-2021 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,26 +32,16 @@
 
 import pytest
 import mock
+import psutil
 
 from pid_ops import *
 
 def test_is_pid_valid():
-    with mock.patch('pid_ops.get_pid_status', return_value=('R', True, 'TestApp')) as get_pid_status_mock:
+    with mock.patch('pid_ops.get_pid_status', return_value=('Running', True, 'TestApp')) as get_pid_status_mock:
         assert True == is_pid_valid(4321)
         get_pid_status_mock.assert_called_with(4321)
 
-    with mock.patch('pid_ops.get_pid_status', return_value=('Z', False, 'TestAppZombi')) as get_pid_status_mock:
+    with mock.patch('pid_ops.get_pid_status', return_value=('Zombie', False, 'TestAppZombi')) as get_pid_status_mock:
         assert False == is_pid_valid(1234)
         get_pid_status_mock.assert_called_with(1234)
 
-
-def test_get_pid_status():
-    with mock.patch('pid_ops._read_pid_state', return_value=('R', 'TestApp')) as read_pid_state_mock:
-        assert ('R', True, 'TestApp') == get_pid_status(2345)
-        read_pid_state_mock.assert_called_with(2345)
-
-        assert ('R', True, 'TestApp') == get_pid_status(0)
-        read_pid_state_mock.assert_called_with("self")
-
-    with mock.patch('pid_ops._read_pid_state', side_effect=OSError()):
-        assert ('E', False, '') == get_pid_status(2345)
