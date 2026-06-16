@@ -1,4 +1,25 @@
 =======================================================================
+Release  v26.06 Jun 2026
+=======================================================================
+
+Contributors (alphabetical order):
+        Raghavan Kanagaraj <raghavan.kanagaraj@intel.com>
+        Roman Storozhenko <roman.storozhenko@intel.com>
+
+1. Library:
+        - Added AET telemetry monitoring in OS interface
+        - Added auto selection of an interface
+        - Added simultaneous monitoring of cores and I/O
+        - Removed rdtset and snmp support
+2. PQoS
+        - Added AET telemetry monitoring in OS interface
+        - Added auto selection of an interface
+        - Added simultaneous monitoring of cores and I/O
+        - Removed rdtset and snmp support
+3. General:
+        - Bug fixes
+
+=======================================================================
 Release  v26.03 Mar 2026
 =======================================================================
 

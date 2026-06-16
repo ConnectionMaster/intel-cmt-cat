@@ -24,7 +24,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %global githubname   intel-cmt-cat
-%global githubver    7.0.0
+%global githubver    7.1.0
 
 %if %{defined githubsubver}
 %global githubfull   %{githubname}-%{githubver}.%{githubsubver}
@@ -117,9 +117,9 @@ install -m 0644 %{_builddir}/%{githubfull}/LICENSE %{buildroot}/%{_licensedir}/%
 
 # Install the library
 install -d %{buildroot}/%{_libdir}
-install -s %{_builddir}/%{githubfull}/lib/libpqos.so.* %{buildroot}/%{_libdir}
+cp -a %{_builddir}/%{githubfull}/lib/libpqos.so.* %{buildroot}/%{_libdir}
 cp -a %{_builddir}/%{githubfull}/lib/libpqos.so %{buildroot}/%{_libdir}
-cp -a %{_builddir}/%{githubfull}/lib/libpqos.so.4 %{buildroot}/%{_libdir}
+strip %{buildroot}/%{_libdir}/libpqos.so.%{version}
 
 # Install the header file
 install -d %{buildroot}/%{_includedir}
@@ -160,7 +160,6 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/CMT_MBM/monitor_app.c %{bu
 
 %files -n intel-cmt-cat-devel
 %{_libdir}/libpqos.so
-%{_libdir}/libpqos.so.4
 %{_includedir}/pqos.h
 %{_usrsrc}/%{githubfull}/c/CAT_MBA/Makefile
 %{_usrsrc}/%{githubfull}/c/CAT_MBA/reset_app.c
@@ -173,6 +172,9 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/CMT_MBM/monitor_app.c %{bu
 %doc %{_usrsrc}/%{githubfull}/LICENSE
 
 %changelog
+* Tue Jun 16 2026  Raghavan Kanagaraj <raghavan.kanagaraj@intel.com> 7.1.0-1
+- New release 7.1.0
+
 * Mon Mar 16 2026  Raghavan Kanagaraj <raghavan.kanagaraj@intel.com> 7.0.0-1
 - New release 7.0.0
 
