@@ -166,6 +166,7 @@ resctrl_alloc_get_num_closids(unsigned *num_closids)
         num_info = scandir(RESCTRL_PATH_INFO, &namelist, filter, NULL);
         if (num_info <= 0) {
                 LOG_ERROR("Failed to read resctrl info dir!\n");
+                free(namelist);
                 return PQOS_RETVAL_ERROR;
         }
 
@@ -180,7 +181,7 @@ resctrl_alloc_get_num_closids(unsigned *num_closids)
 
                         ret = pqos_fread_uint64(path, 10, &num);
                         if (ret != PQOS_RETVAL_OK)
-                                return ret;
+                                break;
 
                         if (num < *num_closids || *num_closids == 0)
                                 *num_closids = num;
