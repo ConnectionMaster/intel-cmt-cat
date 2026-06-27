@@ -35,7 +35,74 @@
 #include "resctrl_alloc.h"
 #include "test.h"
 
+#include <dirent.h>
+
+void __real_free(void *ptr);
+
 /* ======== mock ======== */
+
+/*
+ * Pointers allocated by __wrap_scandir and the number of times each of them
+ * was passed to free(). Used to verify that resctrl_alloc_get_num_closids()
+ * releases the scandir() namelist on every return path.
+ */
+static void *scandir_namelist_ptr;
+static void *scandir_entry_ptr;
+static int scandir_namelist_freed;
+static int scandir_entry_freed;
+
+void
+__wrap_free(void *ptr)
+{
+        if (ptr != NULL && ptr == scandir_namelist_ptr)
+                scandir_namelist_freed++;
+        if (ptr != NULL && ptr == scandir_entry_ptr)
+                scandir_entry_freed++;
+
+        __real_free(ptr);
+}
+
+int
+__wrap_scandir(const char *dirp __attribute__((unused)),
+               struct dirent ***namelist,
+               int (*filter)(const struct dirent *) __attribute__((unused)),
+               int (*compar)(const struct dirent **, const struct dirent **)
+                   __attribute__((unused)))
+{
+        struct dirent **list = malloc(sizeof(*list));
+        struct dirent *entry = malloc(sizeof(*entry) + 16);
+
+        assert_non_null(list);
+        assert_non_null(entry);
+
+        memset(entry, 0, sizeof(*entry));
+        snprintf(entry->d_name, 16, "L3");
+        list[0] = entry;
+        *namelist = list;
+
+        scandir_namelist_ptr = list;
+        scandir_entry_ptr = entry;
+        scandir_namelist_freed = 0;
+        scandir_entry_freed = 0;
+
+        return 1;
+}
+
+int
+__wrap_pqos_file_exists(const char *path __attribute__((unused)))
+{
+        return mock_type(int);
+}
+
+int
+__wrap_pqos_fread_uint64(const char *fname __attribute__((unused)),
+                         unsigned base __attribute__((unused)),
+                         uint64_t *value)
+{
+        *value = mock_type(uint64_t);
+
+        return mock_type(int);
+}
 
 int
 __wrap_setvbuf(FILE *stream, char *buf, int type, size_t size)
@@ -347,6 +414,49 @@ test_resctrl_alloc_task_validate_error(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 }
 
+/* ======== resctrl_alloc_get_num_closids ======== */
+
+static void
+test_resctrl_alloc_get_num_closids(void **state __attribute__((unused)))
+{
+        unsigned num_closids = 0;
+        int ret;
+
+        will_return(__wrap_pqos_file_exists, 1);
+        will_return(__wrap_pqos_fread_uint64, 16);
+        will_return(__wrap_pqos_fread_uint64, PQOS_RETVAL_OK);
+
+        ret = resctrl_alloc_get_num_closids(&num_closids);
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+        assert_int_equal(num_closids, 16);
+
+        /* namelist allocated by scandir() must be released */
+        assert_int_equal(scandir_entry_freed, 1);
+        assert_int_equal(scandir_namelist_freed, 1);
+}
+
+static void
+test_resctrl_alloc_get_num_closids_read_error(void **state
+                                              __attribute__((unused)))
+{
+        unsigned num_closids = 0;
+        int ret;
+
+        will_return(__wrap_pqos_file_exists, 1);
+        will_return(__wrap_pqos_fread_uint64, 0);
+        will_return(__wrap_pqos_fread_uint64, PQOS_RETVAL_ERROR);
+
+        ret = resctrl_alloc_get_num_closids(&num_closids);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+
+        /*
+         * Even on the read error path the namelist allocated by scandir()
+         * must be released (Coverity resource leak regression check).
+         */
+        assert_int_equal(scandir_entry_freed, 1);
+        assert_int_equal(scandir_namelist_freed, 1);
+}
+
 int
 main(void)
 {
@@ -378,12 +488,17 @@ main(void)
             cmocka_unit_test(test_resctrl_alloc_task_validate_ok),
             cmocka_unit_test(test_resctrl_alloc_task_validate_error)};
 
+        const struct CMUnitTest tests_num_closids[] = {
+            cmocka_unit_test(test_resctrl_alloc_get_num_closids),
+            cmocka_unit_test(test_resctrl_alloc_get_num_closids_read_error)};
+
         result += cmocka_run_group_tests(tests_l3ca, test_init_l3ca, test_fini);
         result += cmocka_run_group_tests(tests_l2ca, test_init_l2ca, test_fini);
         result += cmocka_run_group_tests(tests_mba, test_init_mba, test_fini);
         result += cmocka_run_group_tests(tests_all, test_init_all, test_fini);
         result += cmocka_run_group_tests(tests_unsupported,
                                          test_init_unsupported, test_fini);
+        result += cmocka_run_group_tests(tests_num_closids, NULL, NULL);
 
         return result;
 }

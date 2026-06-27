@@ -504,6 +504,10 @@ $(BIN_DIR)/test_resctrl_alloc: test_resctrl_alloc.c $(LIB_OBJS)
 	$(CC) $(CFLAGS) $(WRAP) \
 		-Wl,--wrap=setvbuf \
 		-Wl,--wrap=kill \
+		-Wl,--wrap=free \
+		-Wl,--wrap=scandir \
+		-Wl,--wrap=pqos_file_exists \
+		-Wl,--wrap=pqos_fread_uint64 \
 		-Wl,--wrap=resctrl_cpumask_write \
 		-Wl,--wrap=resctrl_cpumask_read \
 		-Wl,--wrap=resctrl_cpumask_set \
