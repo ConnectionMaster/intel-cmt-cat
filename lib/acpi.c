@@ -473,6 +473,20 @@ acpi_get_sig(const char *sig)
                         return tbl;
         }
 
+        /*
+         * The kernel exposes every ACPI table listed in the RSDT/XSDT under
+         * /sys/firmware/acpi/tables, whether or not the kernel supports it.
+         * So once that directory exists, a table that cannot be obtained from
+         * it - absent, or present but unreadable/invalid - will not be found
+         * by scanning physical memory either, so skip the /dev/mem scan.
+         */
+        if (pqos_dir_exists(ACPI_TABLE_FS_PATH)) {
+                LOG_DEBUG("ACPI table %s not available via sysfs; "
+                          "skipping memory scan\n",
+                          sig);
+                return NULL;
+        }
+
         LOG_DEBUG("Trying to obtain %s acpi table from ACPI memory\n", sig);
         return acpi_get_mmap(sig);
 }
