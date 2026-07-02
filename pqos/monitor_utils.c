@@ -349,10 +349,12 @@ monitor_utils_get_pid_cores(const struct pqos_mon_data *mon_data,
                             const int len)
 {
         char core[16];
+        unsigned num_cores = 0;
         unsigned i;
         int str_len = 0;
         int cores_s_len = 0;
         int comma_len = 1;
+        int has_written_core = 0;
         unsigned *cores;
         const pid_t *tids;
         unsigned num_tids;
@@ -372,15 +374,20 @@ monitor_utils_get_pid_cores(const struct pqos_mon_data *mon_data,
                 return -1;
         }
 
+        memset(cores_s, 0, len);
+
         for (i = 0; i < num_tids; i++)
-                if (get_pid_core_num(tids[i], &cores[i]) == -1) {
-                        result = -1;
-                        goto free_memory;
-                }
+                if (get_pid_core_num(tids[i], &cores[num_cores]) == 0)
+                        num_cores++;
 
-        qsort(cores, num_tids, sizeof(*cores), unsigned_cmp);
+        if (num_cores == 0) {
+                snprintf(cores_s, len, "-");
+                goto free_memory;
+        }
 
-        for (i = 0; i < num_tids; i++) {
+        qsort(cores, num_cores, sizeof(*cores), unsigned_cmp);
+
+        for (i = 0; i < num_cores; i++) {
 
                 /* check for duplicate cores and skips them*/
                 if (i != 0 && cores[i] == cores[i - 1])
@@ -394,15 +401,15 @@ monitor_utils_get_pid_cores(const struct pqos_mon_data *mon_data,
 
                 cores_s_len = strlen(cores_s);
 
-                if (i != 0 && (cores_s_len + str_len + comma_len) < len) {
+                if (has_written_core &&
+                    (cores_s_len + str_len + comma_len) < len) {
                         strncat(cores_s, ",", len - cores_s_len);
                         strncat(cores_s, core, len - cores_s_len - comma_len);
-                } else if (i == 0 && (cores_s_len + str_len) < len)
+                } else if (!has_written_core && (cores_s_len + str_len) < len) {
                         strncat(cores_s, core, len - cores_s_len);
-                else {
-                        result = -1;
-                        goto free_memory;
-                }
+                        has_written_core = 1;
+                } else
+                        break;
         }
 
 free_memory:
