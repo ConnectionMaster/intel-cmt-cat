@@ -139,6 +139,12 @@ $(BIN_DIR)/test_iface_select: ./test_iface_select.c $(PQOS_OBJS)
 		-Wl,--start-group \
 		$(LDFLAGS) $(PQOS_OBJS) $< -Wl,--end-group -o $@
 
+$(BIN_DIR)/test_monitor_utils: ./test_monitor_utils.c
+	mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) \
+		-Wl,--start-group \
+		-lcmocka $< -Wl,--end-group -o $@
+
 
 .PHONY: run
 run: $(TESTS)
@@ -172,6 +178,7 @@ checkpatch:
 	-f test_alloc.c \
 	-f test_main.c \
 	-f test_iface_select.c \
+	-f test_monitor_utils.c \
 	-f test_profiles.c \
 	-f mock/mock_alloc.c \
 	-f mock/mock_alloc.h \
