@@ -36,6 +36,8 @@
 #include "monitor.h"
 
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -321,6 +323,7 @@ get_pid_core_num(const pid_t pid, unsigned *core)
         char core_s[64];
         char pid_s[64];
         char *tmp;
+        long core_val;
         int ret;
 
         if (core == NULL || pid < 0)
@@ -336,9 +339,14 @@ get_pid_core_num(const pid_t pid, unsigned *core)
         if (ret != 0)
                 return -1;
 
-        *core = strtoul(core_s, &tmp, 10);
-        if (*tmp != '\0')
+        errno = 0;
+        core_val = strtol(core_s, &tmp, 10);
+
+        if (tmp == core_s || *tmp != '\0' || errno == ERANGE || core_val < 0 ||
+            core_val > UINT_MAX)
                 return -1;
+
+        *core = (unsigned)core_val;
 
         return 0;
 }

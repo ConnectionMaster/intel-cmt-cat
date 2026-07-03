@@ -107,6 +107,27 @@ set_pid_core(const pid_t pid, const unsigned core)
 }
 
 static void
+set_pid_core_raw(const pid_t pid, const char *core_field)
+{
+        unsigned i;
+        struct pid_stat_fixture *fixture = &fixtures[fixture_count];
+        char *ptr = fixture->stat;
+        size_t remaining = sizeof(fixture->stat);
+
+        assert_true(fixture_count < DIM(fixtures));
+
+        fixture->pid = pid;
+        fixture->available = 1;
+
+        append_stat_field(&ptr, &remaining, "%d (test) S", pid);
+        for (i = 4; i < PID_COL_CORE; i++)
+                append_stat_field(&ptr, &remaining, " 0");
+        append_stat_field(&ptr, &remaining, " %s 0\n", core_field);
+
+        fixture_count++;
+}
+
+static void
 set_pid_missing(const pid_t pid)
 {
         struct pid_stat_fixture *fixture = &fixtures[fixture_count];
@@ -307,6 +328,69 @@ test_monitor_utils_get_pid_cores_all_missing(void **state)
 }
 
 static void
+test_monitor_utils_get_pid_cores_negative_core_skipped(void **state)
+{
+        pid_t tids[] = {501, 502};
+        struct pqos_mon_data mon_data = {0};
+        char cores[16];
+
+        reset_fixtures();
+        set_pid_core_raw(501, "-1");
+        set_pid_core(502, 5);
+
+        mon_data.tid_nr = DIM(tids);
+        mon_data.tid_map = tids;
+
+        assert_int_equal(
+            monitor_utils_get_pid_cores(&mon_data, cores, sizeof(cores)), 0);
+        assert_string_equal(cores, "5");
+        assert_null(strstr(cores, "429496"));
+        assert_null(strstr(cores, "4294967295"));
+        (void)state;
+}
+
+static void
+test_monitor_utils_get_pid_cores_all_negative(void **state)
+{
+        pid_t tids[] = {601, 602};
+        struct pqos_mon_data mon_data = {0};
+        char cores[16];
+
+        reset_fixtures();
+        set_pid_core_raw(601, "-1");
+        set_pid_core_raw(602, "-1");
+
+        mon_data.tid_nr = DIM(tids);
+        mon_data.tid_map = tids;
+
+        assert_int_equal(
+            monitor_utils_get_pid_cores(&mon_data, cores, sizeof(cores)), 0);
+        assert_string_equal(cores, "-");
+        (void)state;
+}
+
+static void
+test_monitor_utils_get_pid_cores_mixed_negative_and_missing(void **state)
+{
+        pid_t tids[] = {701, 702, 703};
+        struct pqos_mon_data mon_data = {0};
+        char cores[16];
+
+        reset_fixtures();
+        set_pid_missing(701);
+        set_pid_core_raw(702, "-1");
+        set_pid_core(703, 9);
+
+        mon_data.tid_nr = DIM(tids);
+        mon_data.tid_map = tids;
+
+        assert_int_equal(
+            monitor_utils_get_pid_cores(&mon_data, cores, sizeof(cores)), 0);
+        assert_string_equal(cores, "9");
+        (void)state;
+}
+
+static void
 test_monitor_utils_get_pid_cores_null_map(void **state)
 {
         struct pqos_mon_data mon_data = {0};
@@ -346,6 +430,11 @@ main(void)
             cmocka_unit_test(test_monitor_utils_get_pid_cores_all_resolved),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_partial_resolved),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_all_missing),
+            cmocka_unit_test(
+                test_monitor_utils_get_pid_cores_negative_core_skipped),
+            cmocka_unit_test(test_monitor_utils_get_pid_cores_all_negative),
+            cmocka_unit_test(
+                test_monitor_utils_get_pid_cores_mixed_negative_and_missing),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_null_map),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_calloc_failure),
         };
