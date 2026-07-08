@@ -388,13 +388,13 @@ pqos_read(int fd, void *buf, size_t count)
         }
 
         while (len != 0 && (ret = read(fd, byte_ptr, len)) != 0) {
-                if (ret == -1) {
+                if (ret < 0) {
                         if (errno == EINTR)
                                 continue;
                         return ret;
                 }
 
-                len -= ret;
+                len -= (size_t)ret;
                 byte_ptr += ret;
         }
 
