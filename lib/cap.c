@@ -704,7 +704,7 @@ discover_interface(enum pqos_interface requested_interface,
 
                         *interface = PQOS_INTER_MSR;
                 } else if (strncasecmp(environment, "MMIO", 4) == 0) {
-                        if (requested_interface != PQOS_INTER_MSR &&
+                        if (requested_interface != PQOS_INTER_MMIO &&
                             requested_interface != PQOS_INTER_AUTO) {
                                 LOG_ERROR("Interface initialization error!\n"
                                           "Your system has been restricted "
