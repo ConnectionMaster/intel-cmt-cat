@@ -49,6 +49,7 @@
 
 #include <ctype.h>
 #include <dirent.h> /**< for dir list*/
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -2577,9 +2578,14 @@ get_pid_cputicks(const char *proc_pid_dir_name, uint64_t *cputicks)
                                 continue;
                 }
 
+                errno = 0;
                 time = strtoull(time_str, &tmp, 10);
-                if (time > UINT64_MAX)
+                if (errno == ERANGE) {
+                        fprintf(stderr,
+                                "Error converting CPU ticks value '%s': %s\n",
+                                time_str, strerror(errno));
                         return -1;
+                }
                 time_int = (uint64_t)time;
                 /* Check to make sure string converted
                  * to int correctly
