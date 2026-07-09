@@ -152,11 +152,11 @@ print_hex_dump(const uint8_t *buf,
                                          : buf[offset + (j + 1) * width_bytes -
                                                k - 1];
                                 LOG_DEBUG(
-                                    "elem_byte.offset: %02x. value: %02x\n",
+                                    "elem_byte.offset: %02zx. value: %02x\n",
                                     (le) ? (offset + j * width_bytes + k)
                                          : (offset + (j + 1) * width_bytes - k -
                                             1),
-                                    current_byte);
+                                    (unsigned int)current_byte);
                                 if (binary) {
                                         for (int b = 7; b >= 0; --b)
                                                 snprintf(
