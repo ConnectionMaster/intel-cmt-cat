@@ -316,7 +316,7 @@ get_l3_mbm_region_rmid_range_v1(const struct pqos_erdt_mmrc *mmrc,
                (const void *)((uint8_t *)mem + rmid_block_addr + rmid_offset),
                rmid_count * BYTES_PER_RMID_ENTRY);
 
-        LOG_INFO("%s(): rmid_first value: %x\n", __func__,
+        LOG_INFO("%s(): rmid_first value: %#" PRIx64 "\n", __func__,
                  *(uint64_t *)rmids_val);
 
         pqos_munmap(mem, size);
