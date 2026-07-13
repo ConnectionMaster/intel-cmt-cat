@@ -1345,7 +1345,6 @@ amd_cap_smba_discover(struct pqos_cap_mba *cap, const struct pqos_cpuinfo *cpu)
         lcpuid(0x80000020, 0x0, &res);
         if (!(res.ebx & (1 << 2))) {
                 LOG_INFO("CPUID.0x80000008.0: SMBA not supported\n");
-                free(cap);
                 return PQOS_RETVAL_RESOURCE;
         }
 
