@@ -1306,11 +1306,11 @@ amd_cap_mba_discover(struct pqos_cap_mba *cap, const struct pqos_cpuinfo *cpu)
         }
 
         /**
-         * We can go to CPUID.0x10.0 to obtain more info
+         * We can go to CPUID.0x80000020.0 to obtain more info
          */
         lcpuid(0x80000020, 0x0, &res);
         if (!(res.ebx & (1 << 1))) {
-                LOG_INFO("CPUID 0x10.0: MBA not supported!\n");
+                LOG_INFO("CPUID.0x80000020.0: MBA not supported!\n");
                 return PQOS_RETVAL_RESOURCE;
         }
 
@@ -1344,7 +1344,7 @@ amd_cap_smba_discover(struct pqos_cap_mba *cap, const struct pqos_cpuinfo *cpu)
          */
         lcpuid(0x80000020, 0x0, &res);
         if (!(res.ebx & (1 << 2))) {
-                LOG_INFO("CPUID.0x80000008.0: SMBA not supported\n");
+                LOG_INFO("CPUID.0x80000020.0: SMBA not supported\n");
                 return PQOS_RETVAL_RESOURCE;
         }
 
