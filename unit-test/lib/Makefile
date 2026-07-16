@@ -564,6 +564,7 @@ $(BIN_DIR)/test_resctrl_mon_start: test_resctrl_mon_start.c $(LIB_OBJS)
 		-Wl,--wrap=resctrl_cpumask_set \
 		-Wl,--wrap=resctrl_cpumask_get \
 		-Wl,--wrap=resctrl_alloc_task_validate \
+		-Wl,--wrap=resctrl_alloc_get_grps_num \
 		-Wl,--start-group \
 		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
 

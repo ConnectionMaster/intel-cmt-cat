@@ -192,6 +192,16 @@ test_resctrl_mon_start_core(void **state)
         will_return_maybe(__wrap__pqos_get_cpu, data->cpu);
         will_return_maybe(resctrl_mon_is_supported, 1);
         will_return_maybe(resctrl_mon_is_event_supported, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
 
         /* start monitoring */
         will_return(resctrl_mon_new_group, "test");
@@ -273,6 +283,10 @@ test_resctrl_mon_start_pid(void **state)
         expect_value(__wrap_resctrl_mon_rmdir, class_id, 0);
         expect_string(__wrap_resctrl_mon_rmdir, name, "test");
         will_return(__wrap_resctrl_mon_rmdir, 0);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
 
         ret = resctrl_mon_stop(&group);
         assert_int_equal(ret, PQOS_RETVAL_OK);
@@ -302,7 +316,8 @@ test_resctrl_mon_start_pid_cleanup_on_error(void **state)
         will_return_maybe(resctrl_mon_is_event_supported, 1);
 
         will_return(resctrl_mon_new_group, "test");
-        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_ERROR);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 1);
         expect_value(__wrap_resctrl_mon_assoc_set_pid, task, pids[0]);
         expect_string(__wrap_resctrl_mon_assoc_set_pid, name, "test");
         will_return(__wrap_resctrl_mon_assoc_set_pid, PQOS_RETVAL_BUSY);
