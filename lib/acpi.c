@@ -389,6 +389,13 @@ acpi_get_mmap(const char *sig)
                         return NULL;
                 }
 
+                if (xsdt->xsdt->header.length < sizeof(xsdt->xsdt->header)) {
+                        LOG_ERROR("Invalid XSDT length!\n");
+                        acpi_free(xsdt);
+                        acpi_free(rsdp);
+                        return NULL;
+                }
+
                 acpi_print(xsdt);
 
                 count =
@@ -421,6 +428,13 @@ acpi_get_mmap(const char *sig)
                 rsdt = acpi_get_addr(rsdp->rsdp->rsdt_address);
                 if (rsdt == NULL) {
                         LOG_ERROR("Failed to obtain RSDT table!\n");
+                        acpi_free(rsdp);
+                        return NULL;
+                }
+
+                if (rsdt->rsdt->header.length < sizeof(rsdt->rsdt->header)) {
+                        LOG_ERROR("Invalid RSDT length!\n");
+                        acpi_free(rsdt);
                         acpi_free(rsdp);
                         return NULL;
                 }
@@ -909,7 +923,8 @@ acpi_print(struct acpi_table *table)
         LOG_DEBUG("Creator ID:        %u\n", table->header->creator_id);
         LOG_DEBUG("Creator Revision:  %u\n", table->header->creator_revision);
 
-        if (memcmp("XSDT", table->header->signature, 4) == 0) {
+        if (memcmp("XSDT", table->header->signature, 4) == 0 &&
+            table->header->length >= sizeof(struct acpi_table_xsdt)) {
                 uint32_t i;
                 uint32_t count =
                     (table->header->length - sizeof(struct acpi_table_xsdt)) /
@@ -920,7 +935,8 @@ acpi_print(struct acpi_table *table)
                                   (unsigned long long)table->xsdt->entry[i]);
         }
 
-        if (memcmp("RSDT", table->header->signature, 4) == 0) {
+        if (memcmp("RSDT", table->header->signature, 4) == 0 &&
+            table->header->length >= sizeof(struct acpi_table_rsdt)) {
                 uint32_t i;
                 uint32_t count =
                     (table->header->length - sizeof(struct acpi_table_rsdt)) /
