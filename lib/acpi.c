@@ -534,6 +534,7 @@ acpi_get_rsdp(void)
         data->table.generic = mem;
         data->address = address;
         data->size = size;
+        data->mtype = ACPI_TBL_MMAP;
 
         return (struct acpi_table *)data;
 }
