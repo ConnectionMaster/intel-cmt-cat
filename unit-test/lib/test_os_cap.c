@@ -563,6 +563,14 @@ detect_mon_support(const enum pqos_mon_event event, int resctrl, int perf)
 }
 
 static void
+detect_perf_pkg_support(void)
+{
+        expect_string(__wrap_pqos_dir_exists, path,
+                      "/sys/fs/resctrl/info/PERF_PKG_MON");
+        will_return(__wrap_pqos_dir_exists, 0);
+}
+
+static void
 test_os_cap_mon_discover_resctrl(struct test_data *data,
                                  const enum pqos_mon_event event)
 {
@@ -596,6 +604,8 @@ test_os_cap_mon_discover_resctrl(struct test_data *data,
         detect_mon_support(PQOS_PERF_EVENT_LLC_MISS, 0, 0);
         detect_mon_support(PQOS_PERF_EVENT_LLC_REF, 0, 0);
         detect_mon_support(PQOS_PERF_EVENT_IPC, 0, 0);
+        detect_perf_pkg_support();
+        detect_perf_pkg_support();
 
         ret = os_cap_mon_discover(&cap, data->cpu);
         assert_int_equal(ret, PQOS_RETVAL_OK);
@@ -640,6 +650,8 @@ test_os_cap_mon_discover_perf(struct test_data *data,
                            event == PQOS_PERF_EVENT_LLC_REF);
         detect_mon_support(PQOS_PERF_EVENT_IPC, 0,
                            event == PQOS_PERF_EVENT_IPC);
+        detect_perf_pkg_support();
+        detect_perf_pkg_support();
 
         ret = os_cap_mon_discover(&cap, data->cpu);
         assert_int_equal(ret, PQOS_RETVAL_OK);

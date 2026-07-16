@@ -71,15 +71,33 @@ __wrap_pqos_fclose(FILE *fd)
 }
 
 static void
+expect_monitoring_dirs(int l3_mon, int perf_pkg)
+{
+        expect_string(__wrap_pqos_dir_exists, path,
+                      "/sys/fs/resctrl/info/L3_MON");
+        will_return(__wrap_pqos_dir_exists, l3_mon);
+
+        if (l3_mon) {
+                expect_string(__wrap_pqos_dir_exists, path,
+                              "/sys/fs/resctrl/info/L3_MON");
+                will_return(__wrap_pqos_dir_exists, 1);
+        }
+
+        if (!l3_mon || perf_pkg) {
+                expect_string(__wrap_pqos_dir_exists, path,
+                              "/sys/fs/resctrl/info/PERF_PKG_MON");
+                will_return(__wrap_pqos_dir_exists, 0);
+        }
+}
+
+static void
 test_resctrl_mon_init_not_supported(void **state __attribute__((unused)))
 {
         int ret;
         struct pqos_cpuinfo cpu;
         struct pqos_cap cap;
 
-        expect_string(__wrap_pqos_dir_exists, path,
-                      "/sys/fs/resctrl/info/L3_MON");
-        will_return(__wrap_pqos_dir_exists, 0);
+        expect_monitoring_dirs(0, 0);
 
         ret = resctrl_mon_init(&cpu, &cap);
         assert_int_equal(ret, PQOS_RETVAL_OK);
@@ -101,9 +119,7 @@ test_resctrl_mon_init_error(void **state __attribute__((unused)))
         struct pqos_cpuinfo cpu;
         struct pqos_cap cap;
 
-        expect_string(__wrap_pqos_dir_exists, path,
-                      "/sys/fs/resctrl/info/L3_MON");
-        will_return(__wrap_pqos_dir_exists, 1);
+        expect_monitoring_dirs(1, 0);
 
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/info/L3_MON/mon_features");
@@ -124,9 +140,7 @@ test_resctrl_mon_init_llc(void **state __attribute__((unused)))
 
         fd = create_mon_features(PQOS_MON_EVENT_L3_OCCUP);
 
-        expect_string(__wrap_pqos_dir_exists, path,
-                      "/sys/fs/resctrl/info/L3_MON");
-        will_return(__wrap_pqos_dir_exists, 1);
+        expect_monitoring_dirs(1, 1);
 
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/info/L3_MON/mon_features");
@@ -154,9 +168,7 @@ test_resctrl_mon_init_lmem(void **state __attribute__((unused)))
 
         fd = create_mon_features(PQOS_MON_EVENT_LMEM_BW);
 
-        expect_string(__wrap_pqos_dir_exists, path,
-                      "/sys/fs/resctrl/info/L3_MON");
-        will_return(__wrap_pqos_dir_exists, 1);
+        expect_monitoring_dirs(1, 1);
 
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/info/L3_MON/mon_features");
@@ -184,9 +196,7 @@ test_resctrl_mon_init_tmem(void **state __attribute__((unused)))
 
         fd = create_mon_features(PQOS_MON_EVENT_TMEM_BW);
 
-        expect_string(__wrap_pqos_dir_exists, path,
-                      "/sys/fs/resctrl/info/L3_MON");
-        will_return(__wrap_pqos_dir_exists, 1);
+        expect_monitoring_dirs(1, 1);
 
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/info/L3_MON/mon_features");
@@ -215,9 +225,7 @@ test_resctrl_mon_init_rmem(void **state __attribute__((unused)))
         fd = create_mon_features(PQOS_MON_EVENT_TMEM_BW |
                                  PQOS_MON_EVENT_LMEM_BW);
 
-        expect_string(__wrap_pqos_dir_exists, path,
-                      "/sys/fs/resctrl/info/L3_MON");
-        will_return(__wrap_pqos_dir_exists, 1);
+        expect_monitoring_dirs(1, 1);
 
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/info/L3_MON/mon_features");

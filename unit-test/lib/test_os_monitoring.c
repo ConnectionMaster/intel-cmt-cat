@@ -76,6 +76,12 @@ os_mon_tid_exists(const pid_t pid)
 }
 
 int
+resctrl_mon_is_supported(void)
+{
+        return mock_type(int);
+}
+
+int
 __wrap_scandir(const char *restrict dirp,
                struct dirent ***restrict namelist,
                int (*filter)(const struct dirent *) __attribute__((unused)),
@@ -115,6 +121,9 @@ test_os_mon_init_perf(void **state)
         expect_value(__wrap_perf_mon_init, cpu, data->cpu);
         expect_value(__wrap_perf_mon_init, cap, data->cap);
         will_return(__wrap_perf_mon_init, PQOS_RETVAL_OK);
+        expect_value(__wrap_resctrl_mon_init, cpu, data->cpu);
+        expect_value(__wrap_resctrl_mon_init, cap, data->cap);
+        will_return(__wrap_resctrl_mon_init, PQOS_RETVAL_RESOURCE);
 
         ret = os_mon_init(data->cpu, data->cap);
         assert_int_equal(ret, PQOS_RETVAL_OK);
@@ -136,6 +145,7 @@ test_os_mon_init_resctrl(void **state)
         expect_value(__wrap_resctrl_mon_init, cpu, data->cpu);
         expect_value(__wrap_resctrl_mon_init, cap, data->cap);
         will_return(__wrap_resctrl_mon_init, PQOS_RETVAL_OK);
+        will_return(resctrl_mon_is_supported, 1);
 
         ret = os_mon_init(data->cpu, data->cap);
         assert_int_equal(ret, PQOS_RETVAL_OK);
