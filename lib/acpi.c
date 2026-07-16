@@ -101,7 +101,7 @@ acpi_verify_checksum(const uint8_t *mem, size_t size)
         while (size--)
                 sum += *mem++;
 
-        return (int)(sum == 0);
+        return sum == 0;
 }
 
 /**
