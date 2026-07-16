@@ -290,8 +290,9 @@ acpi_read_fs(const char *path)
         struct acpi_table_internal *tbl_internal = NULL;
         void *tbl_header;
         char *tbl_entries_addr;
-        int tbl_entries_len;
-        unsigned int hdr_len;
+        size_t tbl_entries_len;
+        size_t hdr_len;
+        ssize_t bytes_read;
         int fd;
 
         tbl_internal = malloc(sizeof(*tbl_internal));
@@ -310,7 +311,8 @@ acpi_read_fs(const char *path)
 
         /* Read table header to obtain table length */
         hdr_len = sizeof(*tbl_internal->table.header);
-        if (pqos_read(fd, tbl_internal->table.header, hdr_len) != hdr_len)
+        bytes_read = pqos_read(fd, tbl_internal->table.header, hdr_len);
+        if (bytes_read < 0 || (size_t)bytes_read != hdr_len)
                 goto acpi_read_fs_close_file;
 
         /* Validate table length */
@@ -327,10 +329,11 @@ acpi_read_fs(const char *path)
                 goto acpi_read_fs_close_file;
         }
 
-        /* Read the rest of APCI table into memory */
+        /* Read the rest of ACPI table into memory */
         tbl_entries_len = tbl_internal->table.header->length - hdr_len;
         tbl_entries_addr = (char *)tbl_internal->table.generic + hdr_len;
-        if (pqos_read(fd, tbl_entries_addr, tbl_entries_len) != tbl_entries_len)
+        bytes_read = pqos_read(fd, tbl_entries_addr, tbl_entries_len);
+        if (bytes_read < 0 || (size_t)bytes_read != tbl_entries_len)
                 goto acpi_read_fs_close_file;
 
         /* Verify ACPI table checksum */
