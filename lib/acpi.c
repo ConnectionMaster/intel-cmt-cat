@@ -633,6 +633,15 @@ acpi_get_irdt_dev(struct acpi_table_irdt_rmud *rmud, size_t *num)
         *num = 0;
 
         while (dev_len > 0) {
+                size_t dev_hdr_len = sizeof(dev->type) + sizeof(dev->length);
+
+                if (dev_len < dev_hdr_len || dev->length < dev_hdr_len) {
+                        LOG_ERROR("Invalid DEV len!\n");
+                        free(devs);
+                        *num = 0;
+                        return NULL;
+                }
+
                 (*num)++;
 
                 struct acpi_table_irdt_device **devs_tmp =
@@ -684,6 +693,13 @@ acpi_get_irdt_rmud(struct acpi_table_irdt *irdt, size_t *num)
         *num = 0;
 
         while (rmuds_len > 0) {
+                if (rmuds_len < sizeof(*rmud) || rmud->length < sizeof(*rmud)) {
+                        LOG_ERROR("Invalid RMUD len!\n");
+                        free(rmuds);
+                        *num = 0;
+                        return NULL;
+                }
+
                 (*num)++;
 
                 struct acpi_table_irdt_rmud **rmuds_tmp =
