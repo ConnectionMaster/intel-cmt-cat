@@ -815,7 +815,7 @@ acpi_print_irdt_device(struct acpi_table_irdt_device *dev)
                 struct acpi_table_irdt_chms **chms = NULL;
 
                 acpi_get_irdt_chms(dev, &chms, &chms_num);
-                LOG_DEBUG("  %llu CHMS(s):\n", chms_num);
+                LOG_DEBUG("  %zu CHMS(s):\n", chms_num);
 
                 size_t i;
 
@@ -978,7 +978,7 @@ acpi_print(struct acpi_table *table)
                 rmuds = acpi_get_irdt_rmud(table->irdt, &rmuds_num);
                 if (rmuds) {
                         for (i = 0; i < rmuds_num; i++) {
-                                LOG_DEBUG("RMUD #%lu:\n", i);
+                                LOG_DEBUG("RMUD #%zu:\n", i);
                                 acpi_print_irdt_rmud(rmuds[i]);
                         }
                         free(rmuds);
