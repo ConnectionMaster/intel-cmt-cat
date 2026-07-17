@@ -641,6 +641,7 @@ acpi_get_irdt_dev(struct acpi_table_irdt_rmud *rmud, size_t *num)
 
         if (rmud->length < sizeof(*rmud)) {
                 LOG_ERROR("Invalid RMUD len!\n");
+                *num = 0;
                 return NULL;
         }
 
@@ -701,6 +702,7 @@ acpi_get_irdt_rmud(struct acpi_table_irdt *irdt, size_t *num)
 
         if (irdt->header.length < sizeof(*irdt)) {
                 LOG_ERROR("Invalid IRDT len!\n");
+                *num = 0;
                 return NULL;
         }
 
