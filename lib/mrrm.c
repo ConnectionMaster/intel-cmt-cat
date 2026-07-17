@@ -2,7 +2,6 @@
  * BSD LICENSE
  *
  * Copyright(c) 2025-2026 Intel Corporation. All rights reserved.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,24 +49,30 @@
 static struct pqos_mrrm_info *p_mrrm_info = NULL;
 
 /**
- * @brief Parses MRRM acpi table to extract MRE information
+ * @brief Parses MRRM ACPI table to extract MRE information
  *
- * @param p_pqos_mre struct to be updated with MRE info
- * @param p_acpi_mre table to be parsed for MREs info
- * @param flags region assignment type
+ * @param p_pqos_mre Structure to be updated with MRE information
+ * @param p_acpi_mre Table to be parsed for MRE information
+ * @param flags Region assignment type
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
 mrrm_populate_mre(struct pqos_mre_info *p_pqos_mre,
-                  struct mrrm_mre_list *p_acpi_mre,
+                  const struct mrrm_mre_list *p_acpi_mre,
                   uint8_t flags)
 {
-        int regs_length = 0;
+        size_t regs_length;
 
         if (p_acpi_mre->type != ACPI_MRRM_MRE_TYPE) {
-                printf("Incorrect MRE structure type 0x%x\n", p_acpi_mre->type);
+                LOG_ERROR("Incorrect MRE structure type 0x%x\n",
+                          (unsigned)p_acpi_mre->type);
+                return PQOS_RETVAL_ERROR;
+        }
+        if (p_acpi_mre->length < sizeof(*p_acpi_mre)) {
+                LOG_ERROR("Invalid MRE length %u\n",
+                          (unsigned)p_acpi_mre->length);
                 return PQOS_RETVAL_ERROR;
         }
 
@@ -79,98 +84,115 @@ mrrm_populate_mre(struct pqos_mre_info *p_pqos_mre,
         p_pqos_mre->local_region_id = p_acpi_mre->local_region_id;
         p_pqos_mre->remote_region_id = p_acpi_mre->remote_region_id;
 
-        if (flags == REGION_ASSIGNMENT_TYPE_SET) {
-                regs_length = p_acpi_mre->length - ACPI_MRRM_MRE_SIZE;
+        if (flags != REGION_ASSIGNMENT_TYPE_SET)
+                return PQOS_RETVAL_OK;
 
-                if (regs_length == 0)
-                        return PQOS_RETVAL_ERROR;
-                /* Copy Region-ID Programming Registers */
-                p_pqos_mre->programming_regs = (uint8_t *)malloc(regs_length);
-                if (p_pqos_mre->programming_regs == NULL)
-                        return PQOS_RETVAL_ERROR;
-
-                p_pqos_mre->regs_length = regs_length;
-                memcpy(p_pqos_mre->programming_regs,
-                       p_acpi_mre->region_id_programming_registers,
-                       regs_length);
+        regs_length = p_acpi_mre->length - sizeof(*p_acpi_mre);
+        if (regs_length == 0) {
+                LOG_ERROR("MRE programming register list is empty\n");
+                return PQOS_RETVAL_ERROR;
         }
+
+        p_pqos_mre->programming_regs = malloc(regs_length);
+        if (p_pqos_mre->programming_regs == NULL) {
+                LOG_ERROR("Can't allocate memory for MRE registers\n");
+                return PQOS_RETVAL_ERROR;
+        }
+
+        p_pqos_mre->regs_length = regs_length;
+        memcpy(p_pqos_mre->programming_regs,
+               p_acpi_mre->region_id_programming_registers, regs_length);
 
         return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses MRRM acpi table to extract MRRM information
+ * @brief Parses MRRM ACPI table to extract MRRM information
  *
- * @param mrrm_info struct to be updated with MRRM info
- * @param p_acpi_mrrm table to be parsed for MRRM info
+ * @param mrrm_info Structure to be updated with MRRM information
+ * @param p_acpi_mrrm Table to be parsed for MRRM information
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
 mrrm_populate(struct pqos_mrrm_info **mrrm_info,
-              struct acpi_table_mrrm *p_acpi_mrrm)
+              const struct acpi_table_mrrm *p_acpi_mrrm)
 {
-        int ret = PQOS_RETVAL_OK;
-        int idx = 0;
-        int mre_idx = 0;
-        int mre_count = 0;
-        int mres_size = 0;
-        struct acpi_table_header *mrrm_acpi_header =
-            (struct acpi_table_header *)p_acpi_mrrm;
-        struct mrrm_mre_list *p_acpi_mre = NULL;
+        const struct acpi_table_header *header = &p_acpi_mrrm->header.header;
+        const struct mrrm_mre_list *mre;
+        size_t remaining;
+        unsigned mre_count = 0;
+        unsigned i;
+        int ret;
 
-        mres_size = mrrm_acpi_header->length - sizeof(struct mrrm_header);
-        p_acpi_mre = p_acpi_mrrm->mre;
-
-        /* Find number of mre structures */
-        while (mres_size > 0) {
-                mres_size -= p_acpi_mrrm->mre[idx].length;
-                mre_count++;
-        }
-
-        /* check invalid length */
-        if (mres_size < 0) {
-                printf("Invalid MRE length in MRRM %d\n",
-                       mrrm_acpi_header->length);
+        if (header->length < sizeof(struct mrrm_header)) {
+                LOG_ERROR("Invalid MRRM length %u\n", header->length);
                 return PQOS_RETVAL_ERROR;
         }
 
-        p_mrrm_info =
-            (struct pqos_mrrm_info *)calloc(1, sizeof(struct pqos_mrrm_info));
+        remaining = header->length - sizeof(struct mrrm_header);
+        mre = p_acpi_mrrm->mre;
+        while (remaining > 0) {
+                if (remaining < sizeof(*mre) || mre->length < sizeof(*mre) ||
+                    mre->length > remaining) {
+                        LOG_ERROR("Invalid MRE length in MRRM table\n");
+                        return PQOS_RETVAL_ERROR;
+                }
+
+                remaining -= mre->length;
+                mre = (const struct mrrm_mre_list *)((const uint8_t *)mre +
+                                                     mre->length);
+                mre_count++;
+        }
+
+        p_mrrm_info = calloc(1, sizeof(*p_mrrm_info));
+        if (p_mrrm_info == NULL) {
+                LOG_ERROR("Can't allocate memory for MRRM information\n");
+                return PQOS_RETVAL_ERROR;
+        }
+
         p_mrrm_info->max_memory_regions_supported =
             p_acpi_mrrm->header.max_memory_regions_supported;
         p_mrrm_info->flags = p_acpi_mrrm->header.flags;
         p_mrrm_info->num_mres = mre_count;
-        p_mrrm_info->mre = (struct pqos_mre_info *)calloc(
-            mre_count, sizeof(struct pqos_mre_info));
 
-        mre_idx = 0;
-        while (mre_idx < mre_count) {
-                ret = mrrm_populate_mre(&p_mrrm_info->mre[mre_idx], p_acpi_mre,
-                                        p_acpi_mrrm->header.flags);
-                mre_idx++;
-                if (ret != PQOS_RETVAL_OK)
-                        break;
-                p_acpi_mre = (struct mrrm_mre_list *)((char *)p_acpi_mre +
-                                                      p_acpi_mre->length);
+        if (mre_count > 0) {
+                p_mrrm_info->mre = calloc(mre_count, sizeof(*p_mrrm_info->mre));
+                if (p_mrrm_info->mre == NULL) {
+                        LOG_ERROR("Can't allocate memory for MREs\n");
+                        mrrm_fini();
+                        return PQOS_RETVAL_ERROR;
+                }
         }
 
-        if (ret == PQOS_RETVAL_OK)
-                *mrrm_info = p_mrrm_info;
-        else
-                mrrm_fini();
+        mre = p_acpi_mrrm->mre;
+        for (i = 0; i < mre_count; i++) {
+                ret = mrrm_populate_mre(&p_mrrm_info->mre[i], mre,
+                                        p_acpi_mrrm->header.flags);
+                if (ret != PQOS_RETVAL_OK) {
+                        mrrm_fini();
+                        return ret;
+                }
+                mre = (const struct mrrm_mre_list *)((const uint8_t *)mre +
+                                                     mre->length);
+        }
 
-        return ret;
+        LOG_DEBUG("Parsed %u MRE structures\n", mre_count);
+        *mrrm_info = p_mrrm_info;
+
+        return PQOS_RETVAL_OK;
 }
 
 int
 mrrm_init(const struct pqos_cap *cap, struct pqos_mrrm_info **mrrm_info)
 {
+        struct acpi_table *table;
         int ret;
 
         if (cap == NULL || mrrm_info == NULL)
                 return PQOS_RETVAL_PARAM;
+        *mrrm_info = NULL;
 
         ret = acpi_init();
         if (ret != PQOS_RETVAL_OK) {
@@ -178,16 +200,18 @@ mrrm_init(const struct pqos_cap *cap, struct pqos_mrrm_info **mrrm_info)
                 return ret;
         }
 
-        struct acpi_table *table = acpi_get_sig(ACPI_TABLE_SIG_MRRM);
-
+        table = acpi_get_sig(ACPI_TABLE_SIG_MRRM);
         if (table == NULL) {
                 LOG_WARN("Could not obtain %s table\n", ACPI_TABLE_SIG_MRRM);
+                (void)acpi_fini();
                 return PQOS_RETVAL_RESOURCE;
         }
 
         acpi_print(table);
         ret = mrrm_populate(mrrm_info, table->mrrm);
         acpi_free(table);
+        if (ret != PQOS_RETVAL_OK)
+                (void)acpi_fini();
 
         return ret;
 }
@@ -195,17 +219,16 @@ mrrm_init(const struct pqos_cap *cap, struct pqos_mrrm_info **mrrm_info)
 void
 mrrm_fini(void)
 {
-        uint32_t idx = 0;
+        uint32_t idx;
 
-        if (p_mrrm_info != NULL) {
-                idx = 0;
-                while (idx < p_mrrm_info->num_mres && p_mrrm_info->mre) {
-                        if (p_mrrm_info->mre[idx].programming_regs)
-                                free(p_mrrm_info->mre[idx].programming_regs);
-                        idx++;
-                }
+        if (p_mrrm_info == NULL)
+                return;
 
-                free(p_mrrm_info->mre);
-                free(p_mrrm_info);
-        }
+        if (p_mrrm_info->mre != NULL)
+                for (idx = 0; idx < p_mrrm_info->num_mres; idx++)
+                        free(p_mrrm_info->mre[idx].programming_regs);
+
+        free(p_mrrm_info->mre);
+        free(p_mrrm_info);
+        p_mrrm_info = NULL;
 }

@@ -2,7 +2,6 @@
  * BSD LICENSE
  *
  * Copyright(c) 2025-2026 Intel Corporation. All rights reserved.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,7 +95,7 @@ struct __attribute__((__packed__)) acpi_table_mrrm {
  *
  * Initialize MRRM module
  * Detect ACPI MRRM tables
- * Initialize mmio data
+ * Initialize MRRM data
  * Print logs about detected ACPI configuration
  *
  * @param [in] cap capabilities structure
@@ -120,4 +119,4 @@ PQOS_LOCAL void mrrm_fini(void);
 }
 #endif
 
-#endif /* __PQOS_MRRM_H_ */
+#endif /* __PQOS_MRRM_H__ */
