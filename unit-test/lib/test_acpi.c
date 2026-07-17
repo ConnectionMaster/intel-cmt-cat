@@ -227,6 +227,42 @@ test_acpi_get_irdt_rmud(void **state __attribute__((unused)))
 }
 
 static void
+test_acpi_get_irdt_rmud_invalid_len(void **state __attribute__((unused)))
+{
+        uint8_t buf[128];
+        struct acpi_table_irdt *irdt = (struct acpi_table_irdt *)buf;
+        struct acpi_table_irdt_rmud **rmuds = NULL;
+        struct acpi_table_irdt_rmud *rmud;
+        size_t num = 0;
+
+        /* Remaining RMUD bytes shorter than the RMUD header */
+        memset(buf, 0, sizeof(buf));
+        irdt->header.length = sizeof(*irdt) + 5;
+
+        expect_function_call(__wrap_free);
+        expect_value(__wrap_free, ptr, NULL);
+
+        rmuds = acpi_get_irdt_rmud(irdt, &num);
+        assert_null(rmuds);
+        assert_int_equal(num, 0);
+
+        /* RMUD's own declared length shorter than the RMUD header */
+        memset(buf, 0, sizeof(buf));
+        irdt->header.length =
+            sizeof(*irdt) + sizeof(struct acpi_table_irdt_rmud);
+        rmud = irdt->rmud;
+        rmud->type = ACPI_TABLE_IRDT_TYPE_RMUD;
+        rmud->length = 5;
+
+        expect_function_call(__wrap_free);
+        expect_value(__wrap_free, ptr, NULL);
+
+        rmuds = acpi_get_irdt_rmud(irdt, &num);
+        assert_null(rmuds);
+        assert_int_equal(num, 0);
+}
+
+static void
 test_acpi_get_irdt_dev(void **state __attribute__((unused)))
 {
         /* RMUD#1 with no DEVs */
@@ -276,6 +312,43 @@ test_acpi_get_irdt_dev(void **state __attribute__((unused)))
 
         assert_int_equal(num_dss, 2);
         assert_int_equal(num_rcs, 2);
+}
+
+static void
+test_acpi_get_irdt_dev_invalid_len(void **state __attribute__((unused)))
+{
+        uint8_t buf[64];
+        struct acpi_table_irdt_rmud *rmud = (struct acpi_table_irdt_rmud *)buf;
+        struct acpi_table_irdt_device **devs = NULL;
+        struct acpi_table_irdt_device *dev;
+        size_t num = 0;
+
+        /* Remaining DEV bytes shorter than the DEV header */
+        memset(buf, 0, sizeof(buf));
+        rmud->type = ACPI_TABLE_IRDT_TYPE_RMUD;
+        rmud->length = sizeof(*rmud) + 2;
+
+        expect_function_call(__wrap_free);
+        expect_value(__wrap_free, ptr, NULL);
+
+        devs = acpi_get_irdt_dev(rmud, &num);
+        assert_null(devs);
+        assert_int_equal(num, 0);
+
+        /* DEV's own declared length shorter than the DEV header */
+        memset(buf, 0, sizeof(buf));
+        rmud->type = ACPI_TABLE_IRDT_TYPE_RMUD;
+        rmud->length = sizeof(*rmud) + 4;
+        dev = rmud->device;
+        dev->type = ACPI_TABLE_IRDT_TYPE_DSS;
+        dev->length = 2;
+
+        expect_function_call(__wrap_free);
+        expect_value(__wrap_free, ptr, NULL);
+
+        devs = acpi_get_irdt_dev(rmud, &num);
+        assert_null(devs);
+        assert_int_equal(num, 0);
 }
 
 static void
@@ -351,7 +424,9 @@ main(void)
             cmocka_unit_test(test_acpi_fini),
             cmocka_unit_test(test_acpi_free),
             cmocka_unit_test(test_acpi_get_irdt_rmud),
+            cmocka_unit_test(test_acpi_get_irdt_rmud_invalid_len),
             cmocka_unit_test(test_acpi_get_irdt_dev),
+            cmocka_unit_test(test_acpi_get_irdt_dev_invalid_len),
             cmocka_unit_test(test_acpi_get_irdt_chms)};
 
         result += cmocka_run_group_tests(tests, NULL, NULL);
