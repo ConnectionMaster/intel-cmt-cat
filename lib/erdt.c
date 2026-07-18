@@ -2,7 +2,6 @@
  * BSD LICENSE
  *
  * Copyright(c) 2025-2026 Intel Corporation. All rights reserved.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,104 +59,155 @@ static struct pqos_erdt_info *p_erdt_info = NULL;
 
 static struct pqos_channels_domains *p_channels_domains = NULL;
 
+struct __attribute__((__packed__)) erdt_structure_header {
+        uint16_t type;
+        uint16_t length;
+};
+
 /**
- * @brief Copies correction factor list from ACPI table to internal structure
+ * @brief Gets and validates the next ERDT sub-structure
  *
- * @param p_pqos_correction_factor Pointer to store the correction factor list
- * @param p_acpi_correction_factor Pointer to the correction factor list in ACPI
- * @param length Length of the correction factor list
+ * @param p_cursor Current parsing position
+ * @param p_remaining Number of bytes remaining in the containing structure
+ * @param expected_type Expected ERDT sub-structure type
+ * @param minimum_length Minimum valid sub-structure length
+ * @param p_name Sub-structure name used in diagnostics
+ * @param p_structure Validated sub-structure
+ *
+ * @return Operational status
+ * @retval PQOS_RETVAL_OK success
+ */
+static int
+erdt_get_structure(const uint8_t **p_cursor,
+                   size_t *p_remaining,
+                   uint16_t expected_type,
+                   size_t minimum_length,
+                   const char *p_name,
+                   const void **p_structure)
+{
+        const struct erdt_structure_header *p_header;
+
+        if (*p_remaining < sizeof(*p_header)) {
+                LOG_ERROR("Truncated %s structure\n", p_name);
+                return PQOS_RETVAL_ERROR;
+        }
+
+        p_header =
+            (const struct erdt_structure_header *)(const void *)*p_cursor;
+        if (p_header->type != expected_type) {
+                LOG_ERROR("Incorrect %s structure type 0x%x\n", p_name,
+                          (unsigned)p_header->type);
+                return PQOS_RETVAL_ERROR;
+        }
+        if (p_header->length < minimum_length ||
+            p_header->length > *p_remaining) {
+                LOG_ERROR("Invalid %s structure length %u\n", p_name,
+                          (unsigned)p_header->length);
+                return PQOS_RETVAL_ERROR;
+        }
+
+        *p_structure = *p_cursor;
+        *p_cursor += p_header->length;
+        *p_remaining -= p_header->length;
+
+        return PQOS_RETVAL_OK;
+}
+
+/**
+ * @brief Copies a correction-factor list from an ACPI table
+ *
+ * @param p_pqos_correction_factor Destination correction-factor list
+ * @param p_acpi_correction_factor Source correction-factor list
+ * @param count Number of correction factors
  * @param max_rmids Maximum number of RMIDs supported
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
-copy_correction_factor(void *p_pqos_correction_factor,
+copy_correction_factor(uint32_t **p_pqos_correction_factor,
                        const void *p_acpi_correction_factor,
-                       uint32_t length,
+                       size_t count,
                        uint32_t max_rmids)
 {
-        /* Check correction factor list length */
-        if (length != NO_CORRECTION_FACTOR &&
-            length != SINGLE_CORRECTION_FACTOR && length != (max_rmids + 1))
-                return PQOS_RETVAL_ERROR;
+        size_t bytes;
 
-        /* Copy correction factor list length */
-        if (length == NO_CORRECTION_FACTOR) {
-                p_pqos_correction_factor = NULL;
-        } else {
-                p_pqos_correction_factor = malloc(length);
-                if (p_pqos_correction_factor == NULL) {
-                        printf("Can't allocate memory for "
-                               "correction factors\n");
-                        return PQOS_RETVAL_ERROR;
-                }
-                memcpy(p_pqos_correction_factor, p_acpi_correction_factor,
-                       length);
+        if (count != NO_CORRECTION_FACTOR &&
+            count != SINGLE_CORRECTION_FACTOR &&
+            (max_rmids == UINT32_MAX || count != (size_t)max_rmids + 1)) {
+                LOG_ERROR("Invalid correction-factor count %zu\n", count);
+                return PQOS_RETVAL_ERROR;
         }
+
+        *p_pqos_correction_factor = NULL;
+        if (count == NO_CORRECTION_FACTOR)
+                return PQOS_RETVAL_OK;
+
+        if (count > SIZE_MAX / sizeof(**p_pqos_correction_factor)) {
+                LOG_ERROR("Correction-factor list is too large\n");
+                return PQOS_RETVAL_ERROR;
+        }
+        bytes = count * sizeof(**p_pqos_correction_factor);
+
+        *p_pqos_correction_factor = malloc(bytes);
+        if (*p_pqos_correction_factor == NULL) {
+                LOG_ERROR("Can't allocate memory for correction factors\n");
+                return PQOS_RETVAL_ERROR;
+        }
+
+        memcpy(*p_pqos_correction_factor, p_acpi_correction_factor, bytes);
 
         return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure CACD info
+ * @brief Populates CACD information from an ERDT sub-structure
  *
- * @param p_cacd struct to be updated with CACD info
- * @param p_acpi_cacd table to be parsed for CACD info
+ * @param p_cacd CACD information to populate
+ * @param p_acpi_cacd ACPI CACD sub-structure
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
 erdt_populate_cacd(struct pqos_erdt_cacd *p_cacd,
-                   struct acpi_table_erdt_cacd *p_acpi_cacd)
+                   const struct acpi_table_erdt_cacd *p_acpi_cacd)
 {
-        uint32_t enum_ids_length = 0;
+        size_t enum_ids_size = p_acpi_cacd->length - sizeof(*p_acpi_cacd);
 
-        if (p_acpi_cacd->type != ACPI_ERDT_STRUCT_CACD_TYPE) {
-                printf("Incorrect CACD structure type 0x%x\n",
-                       p_acpi_cacd->type);
+        if (enum_ids_size % sizeof(*p_cacd->enumeration_ids) != 0) {
+                LOG_ERROR("Invalid CACD enumeration ID list length %zu\n",
+                          enum_ids_size);
                 return PQOS_RETVAL_ERROR;
         }
 
         p_cacd->rmdd_domain_id = p_acpi_cacd->rmdd_domain_id;
-        enum_ids_length =
-            p_acpi_cacd->length - sizeof(struct acpi_table_erdt_cacd);
+        p_cacd->enum_ids_length =
+            enum_ids_size / sizeof(*p_cacd->enumeration_ids);
+        if (enum_ids_size == 0)
+                return PQOS_RETVAL_OK;
 
-        if (enum_ids_length != 0) {
-                p_cacd->enumeration_ids = (uint32_t *)malloc(enum_ids_length);
-                if (p_cacd->enumeration_ids == NULL) {
-                        printf("Can't allocate memory for enumeration_ids\n");
-                        return PQOS_RETVAL_ERROR;
-                }
-                memcpy(p_cacd->enumeration_ids, p_acpi_cacd->enumeration_ids,
-                       enum_ids_length);
+        p_cacd->enumeration_ids = malloc(enum_ids_size);
+        if (p_cacd->enumeration_ids == NULL) {
+                LOG_ERROR("Can't allocate memory for enumeration IDs\n");
+                return PQOS_RETVAL_ERROR;
         }
-
-        p_cacd->enum_ids_length = enum_ids_length / sizeof(uint32_t);
+        memcpy(p_cacd->enumeration_ids, p_acpi_cacd->enumeration_ids,
+               enum_ids_size);
 
         return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure CMRC info
+ * @brief Populates CMRC information from an ERDT sub-structure
  *
- * @param p_cmrc struct to be updated with CMRC info
- * @param p_acpi_cmrc table to be parsed for CMRC info
- *
- * @return Operational status
- * @retval PQOS_RETVAL_OK success
+ * @param p_cmrc CMRC information to populate
+ * @param p_acpi_cmrc ACPI CMRC sub-structure
  */
-static int
+static void
 erdt_populate_cmrc(struct pqos_erdt_cmrc *p_cmrc,
-                   struct acpi_table_erdt_cmrc *p_acpi_cmrc)
+                   const struct acpi_table_erdt_cmrc *p_acpi_cmrc)
 {
-        if (p_acpi_cmrc->type != ACPI_ERDT_STRUCT_CMRC_TYPE) {
-                printf("Incorrect CMRC structure type 0x%x\n",
-                       p_acpi_cmrc->type);
-                return PQOS_RETVAL_ERROR;
-        }
-
         p_cmrc->flags = p_acpi_cmrc->flags;
         p_cmrc->reg_index_func_ver =
             p_acpi_cmrc->register_indexing_function_version;
@@ -167,29 +217,29 @@ erdt_populate_cmrc(struct pqos_erdt_cmrc *p_cmrc,
         p_cmrc->clump_size = p_acpi_cmrc->cmt_register_clump_size_for_cpu;
         p_cmrc->clump_stride = p_acpi_cmrc->cmt_register_clump_stride_for_cpu;
         p_cmrc->upscaling_factor = p_acpi_cmrc->cmt_counter_upscaling_factor;
-
-        return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure MMRC info
+ * @brief Populates MMRC information from an ERDT sub-structure
  *
- * @param p_mmrc struct to be updated with MMRC info
- * @param p_acpi_mmrc table to be parsed for MMRC info
+ * @param p_mmrc MMRC information to populate
+ * @param p_acpi_mmrc ACPI MMRC sub-structure
+ * @param max_rmids Maximum number of RMIDs supported
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
 erdt_populate_mmrc(struct pqos_erdt_mmrc *p_mmrc,
-                   struct acpi_table_erdt_mmrc *p_acpi_mmrc,
+                   const struct acpi_table_erdt_mmrc *p_acpi_mmrc,
                    uint32_t max_rmids)
 {
-        int ret = PQOS_RETVAL_OK;
+        const size_t available = p_acpi_mmrc->length - sizeof(*p_acpi_mmrc);
+        const size_t factor_size = sizeof(*p_acpi_mmrc->mbm_correction_factor);
 
-        if (p_acpi_mmrc->type != ACPI_ERDT_STRUCT_MMRC_TYPE) {
-                printf("Incorrect MMRC structure type 0x%x\n",
-                       p_acpi_mmrc->type);
+        if (p_acpi_mmrc->mbm_correction_factor_list_length >
+            available / factor_size) {
+                LOG_ERROR("MMRC correction-factor list exceeds structure\n");
                 return PQOS_RETVAL_ERROR;
         }
 
@@ -198,44 +248,27 @@ erdt_populate_mmrc(struct pqos_erdt_mmrc *p_mmrc,
             p_acpi_mmrc->register_indexing_function_version;
         p_mmrc->reg_block_base_addr =
             p_acpi_mmrc->mbm_register_block_base_address;
-        p_mmrc->reg_block_size = p_acpi_mmrc->mbm_register_blockSize;
+        p_mmrc->reg_block_size = p_acpi_mmrc->mbm_register_block_size;
         p_mmrc->counter_width = p_acpi_mmrc->mbm_counter_width;
         p_mmrc->upscaling_factor = p_acpi_mmrc->mbm_counter_upscaling_factor;
         p_mmrc->correction_factor_length =
             p_acpi_mmrc->mbm_correction_factor_list_length;
 
-        ret = copy_correction_factor(
-            (void *)p_mmrc->correction_factor,
-            (const void *)p_acpi_mmrc->mbm_correction_factor,
+        return copy_correction_factor(
+            &p_mmrc->correction_factor, p_acpi_mmrc->mbm_correction_factor,
             p_mmrc->correction_factor_length, max_rmids);
-        if (ret == PQOS_RETVAL_ERROR) {
-                printf("Wrong MBM correction factor list length in "
-                       "MMRC structure\n");
-                return ret;
-        }
-
-        return ret;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure MARC info
+ * @brief Populates MARC information from an ERDT sub-structure
  *
- * @param p_marc struct to be updated with MARC info
- * @param p_acpi_marc table to be parsed for MARC info
- *
- * @return Operational status
- * @retval PQOS_RETVAL_OK success
+ * @param p_marc MARC information to populate
+ * @param p_acpi_marc ACPI MARC sub-structure
  */
-static int
+static void
 erdt_populate_marc(struct pqos_erdt_marc *p_marc,
-                   struct acpi_table_erdt_marc *p_acpi_marc)
+                   const struct acpi_table_erdt_marc *p_acpi_marc)
 {
-        if (p_acpi_marc->type != ACPI_ERDT_STRUCT_MARC_TYPE) {
-                printf("Incorrect MARC structure type 0x%x\n",
-                       p_acpi_marc->type);
-                return PQOS_RETVAL_ERROR;
-        }
-
         p_marc->flags = p_acpi_marc->mba_flags;
         p_marc->reg_index_func_ver =
             p_acpi_marc->register_indexing_function_version;
@@ -247,214 +280,160 @@ erdt_populate_marc(struct pqos_erdt_marc *p_marc,
             p_acpi_marc->mba_maximum_bw_register_block_base_address;
         p_marc->reg_block_size = p_acpi_marc->mba_register_block_size;
         p_marc->control_window_range = p_acpi_marc->mba_bw_control_window_range;
-
-        return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Calculates number of DASE structures in DACD structure
+ * @brief Calculates the number of DASE structures in a DACD structure
  *
- * @param length Length of the DACD structure excluding the header
- * @param p_acpi_dase Pointer to the first DASE structure in the DACD from ACPI
- * @param num_dases Pointer to store the number of DASEs found
+ * @param length Length of the DASE data
+ * @param p_acpi_dase First ACPI DASE sub-structure
+ * @param num_dases Number of DASE structures found
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
-erdt_calculate_num_dases(uint32_t length,
-                         struct acpi_table_erdt_dase *p_acpi_dase,
+erdt_calculate_num_dases(size_t length,
+                         const struct acpi_table_erdt_dase *p_acpi_dase,
                          uint32_t *num_dases)
 {
-        uint32_t dase_length = 0;
+        const struct acpi_table_erdt_dase *p_dase = p_acpi_dase;
         uint32_t count = 0;
-        struct acpi_table_erdt_dase *p_dase = p_acpi_dase;
 
-        if (p_acpi_dase == NULL) {
-                printf("Invalid DASE pointer\n");
-                return PQOS_RETVAL_ERROR;
-        }
-
-        if (length < ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH) {
-                printf("Invalid DASE length %u\n", length);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        dase_length = p_acpi_dase->length;
-        if (dase_length < ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH) {
-                printf("Invalid DASE length %u\n", dase_length);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        if (dase_length > length) {
-                printf("Invalid DASE length %u, expected less than %u\n",
-                       dase_length, length);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        /* Calculate number of DASEs in the DACD structure */
         while (length > 0) {
-                dase_length = p_dase->length;
-                if (dase_length > length) {
-                        printf("Invalid DASE length %u, "
-                               "exceeds remaining length %u\n",
-                               dase_length, length);
+                if (length < ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH ||
+                    p_dase->length < ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH ||
+                    p_dase->length > length) {
+                        LOG_ERROR("Invalid DASE structure length\n");
                         return PQOS_RETVAL_ERROR;
                 }
-                length = length - dase_length;
-                p_dase =
-                    (struct acpi_table_erdt_dase *)((unsigned char *)p_dase +
-                                                    dase_length);
+                if ((p_dase->length - ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH) %
+                        PATH_PAIR_LENGTH !=
+                    0) {
+                        LOG_ERROR(
+                            "Invalid DASE path length %u\n",
+                            (unsigned)(p_dase->length -
+                                       ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH));
+                        return PQOS_RETVAL_ERROR;
+                }
+
+                length -= p_dase->length;
+                p_dase = (const struct acpi_table_erdt_dase
+                              *)(const void *)((const uint8_t *)p_dase +
+                                               p_dase->length);
                 count++;
         }
 
         *num_dases = count;
-
         return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure DACD info
+ * @brief Populates DACD information from an ERDT sub-structure
  *
- * @param p_dacd struct to be updated with DACD info
- * @param p_acpi_dacd table to be parsed for DACD info
+ * @param p_dacd DACD information to populate
+ * @param p_acpi_dacd ACPI DACD sub-structure
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
 erdt_populate_dacd(struct pqos_erdt_dacd *p_dacd,
-                   struct acpi_table_erdt_dacd *p_acpi_dacd)
+                   const struct acpi_table_erdt_dacd *p_acpi_dacd)
 {
-        uint32_t num_dases = 0;
-        uint32_t idx = 0;
-        uint32_t length = 0;
-        int ret = PQOS_RETVAL_OK;
-        struct acpi_table_erdt_dase *p_acpi_dase = NULL;
-
-        if (p_acpi_dacd->type != ACPI_ERDT_STRUCT_DACD_TYPE) {
-                printf("Incorrect DACD structure type 0x%x\n",
-                       p_acpi_dacd->type);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        if (p_acpi_dacd->length < ACPI_ERDT_STRUCT_DACD_HEADER_LENGTH) {
-                printf("Invalid DACD length %u\n", p_acpi_dacd->length);
-                return PQOS_RETVAL_ERROR;
-        }
+        const struct acpi_table_erdt_dase *p_acpi_dase;
+        size_t dase_size = p_acpi_dacd->length - sizeof(*p_acpi_dacd);
+        uint32_t num_dases;
+        uint32_t i;
+        int ret;
 
         p_dacd->rmdd_domain_id = p_acpi_dacd->rmdd_domain_id;
-
-        length = p_acpi_dacd->length - ACPI_ERDT_STRUCT_DACD_HEADER_LENGTH;
-        if (length == 0) {
-                p_dacd->num_dases = length;
-                p_dacd->dase = NULL;
+        if (dase_size == 0)
                 return PQOS_RETVAL_OK;
-        }
-        ret =
-            erdt_calculate_num_dases(length, &p_acpi_dacd->dase[0], &num_dases);
-        if (ret == PQOS_RETVAL_ERROR) {
-                printf("Error calculating number of DASEs\n");
-                return PQOS_RETVAL_ERROR;
-        }
 
-        p_dacd->dase = (struct pqos_erdt_dase *)calloc(
-            1, sizeof(struct pqos_erdt_dase) * num_dases);
+        ret =
+            erdt_calculate_num_dases(dase_size, p_acpi_dacd->dase, &num_dases);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+
+        p_dacd->dase = calloc(num_dases, sizeof(*p_dacd->dase));
         if (p_dacd->dase == NULL) {
-                printf("Can't allocate memory for DASEs\n");
+                LOG_ERROR("Can't allocate memory for DASE structures\n");
                 return PQOS_RETVAL_ERROR;
         }
         p_dacd->num_dases = num_dases;
 
-        p_acpi_dase = &p_acpi_dacd->dase[0];
-        for (idx = 0; idx < num_dases; idx++) {
-                p_dacd->dase[idx].type = p_acpi_dase->type;
-                p_dacd->dase[idx].segment_number = p_acpi_dase->segment_number;
-                p_dacd->dase[idx].start_bus_number =
-                    p_acpi_dase->start_bus_number;
-                p_dacd->dase[idx].path_length =
+        p_acpi_dase = p_acpi_dacd->dase;
+        for (i = 0; i < num_dases; i++) {
+                struct pqos_erdt_dase *p_dase = &p_dacd->dase[i];
+
+                p_dase->type = p_acpi_dase->type;
+                p_dase->segment_number = p_acpi_dase->segment_number;
+                p_dase->start_bus_number = p_acpi_dase->start_bus_number;
+                p_dase->path_length =
                     p_acpi_dase->length - ACPI_ERDT_STRUCT_DASE_HEADER_LENGTH;
-
-                if (p_dacd->dase[idx].path_length == 0) {
-                        p_dacd->dase[idx].path = NULL;
-                        p_acpi_dase = (struct acpi_table_erdt_dase
-                                           *)((uint8_t *)p_acpi_dase +
-                                              p_acpi_dase->length);
-                        continue;
+                if (p_dase->path_length > 0) {
+                        p_dase->path = malloc(p_dase->path_length);
+                        if (p_dase->path == NULL) {
+                                LOG_ERROR(
+                                    "Can't allocate memory for DASE path\n");
+                                return PQOS_RETVAL_ERROR;
+                        }
+                        memcpy(p_dase->path, p_acpi_dase->path,
+                               p_dase->path_length);
                 }
-
-                p_dacd->dase[idx].path =
-                    (uint8_t *)calloc(1, p_dacd->dase[idx].path_length);
-                if (p_dacd->dase[idx].path == NULL) {
-                        printf("Can't allocate memory for DASE path\n");
-                        for (uint32_t cleanup_idx = 0; cleanup_idx < idx;
-                             cleanup_idx++)
-                                free(p_dacd->dase[cleanup_idx].path);
-                        free(p_dacd->dase);
-                        return PQOS_RETVAL_ERROR;
-                }
-
-                memcpy(p_dacd->dase[idx].path, p_acpi_dase->path,
-                       p_dacd->dase[idx].path_length);
 
                 p_acpi_dase =
-                    (struct acpi_table_erdt_dase *)((uint8_t *)p_acpi_dase +
-                                                    p_acpi_dase->length);
+                    (const struct acpi_table_erdt_dase
+                         *)(const void *)((const uint8_t *)p_acpi_dase +
+                                          p_acpi_dase->length);
         }
 
         return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure CMRD info
+ * @brief Populates CMRD information from an ERDT sub-structure
  *
- * @param p_cmrd struct to be updated with CMRD info
- * @param p_acpi_cmrd table to be parsed for CMRD info
- *
- * @return Operational status
- * @retval PQOS_RETVAL_OK success
+ * @param p_cmrd CMRD information to populate
+ * @param p_acpi_cmrd ACPI CMRD sub-structure
  */
-static int
+static void
 erdt_populate_cmrd(struct pqos_erdt_cmrd *p_cmrd,
-                   struct acpi_table_erdt_cmrd *p_acpi_cmrd)
+                   const struct acpi_table_erdt_cmrd *p_acpi_cmrd)
 {
-        if (p_acpi_cmrd->type != ACPI_ERDT_STRUCT_CMRD_TYPE) {
-                printf("Incorrect CMRD structure type 0x%x\n",
-                       p_acpi_cmrd->type);
-                return PQOS_RETVAL_ERROR;
-        }
-
         p_cmrd->flags = p_acpi_cmrd->flags;
         p_cmrd->reg_index_func_ver =
             p_acpi_cmrd->register_indexing_function_version;
         p_cmrd->reg_base_addr = p_acpi_cmrd->register_base_address;
         p_cmrd->reg_block_size = p_acpi_cmrd->register_block_size;
         p_cmrd->offset = p_acpi_cmrd->cmt_register_offset_for_io;
-        p_cmrd->clump_size = p_acpi_cmrd->cmt_register_clump_size_ror_io;
+        p_cmrd->clump_size = p_acpi_cmrd->cmt_register_clump_size_for_io;
         p_cmrd->upscaling_factor = p_acpi_cmrd->cmt_counter_upscaling_factor;
-
-        return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure IBRD info
+ * @brief Populates IBRD information from an ERDT sub-structure
  *
- * @param p_ibrd struct to be updated with IBRD info
- * @param p_acpi_ibrd table to be parsed for IBRD info
+ * @param p_ibrd IBRD information to populate
+ * @param p_acpi_ibrd ACPI IBRD sub-structure
+ * @param max_rmids Maximum number of RMIDs supported
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
 erdt_populate_ibrd(struct pqos_erdt_ibrd *p_ibrd,
-                   struct acpi_table_erdt_ibrd *p_acpi_ibrd,
-                   int max_rmids)
+                   const struct acpi_table_erdt_ibrd *p_acpi_ibrd,
+                   uint32_t max_rmids)
 {
-        int ret = PQOS_RETVAL_OK;
+        const size_t available = p_acpi_ibrd->length - sizeof(*p_acpi_ibrd);
+        const size_t factor_size =
+            sizeof(*p_acpi_ibrd->io_bw_counter_correction_factor);
 
-        if (p_acpi_ibrd->type != ACPI_ERDT_STRUCT_IBRD_TYPE) {
-                printf("Incorrect IBRD structure type 0x%x\n",
-                       p_acpi_ibrd->type);
+        if (p_acpi_ibrd->io_bw_counter_correction_factor_list_length >
+            available / factor_size) {
+                LOG_ERROR("IBRD correction-factor list exceeds structure\n");
                 return PQOS_RETVAL_ERROR;
         }
 
@@ -462,229 +441,186 @@ erdt_populate_ibrd(struct pqos_erdt_ibrd *p_ibrd,
         p_ibrd->reg_index_func_ver =
             p_acpi_ibrd->register_indexing_function_version;
         p_ibrd->reg_base_addr = p_acpi_ibrd->register_base_address;
-        p_ibrd->reg_block_size = p_acpi_ibrd->register_blockSize;
-        p_ibrd->bw_reg_offset = p_acpi_ibrd->total_io_bw_registerOffset;
-        p_ibrd->miss_bw_reg_offset = p_acpi_ibrd->io_miss_bw_registerOffset;
+        p_ibrd->reg_block_size = p_acpi_ibrd->register_block_size;
+        p_ibrd->bw_reg_offset = p_acpi_ibrd->total_io_bw_register_offset;
+        p_ibrd->miss_bw_reg_offset = p_acpi_ibrd->io_miss_bw_register_offset;
         p_ibrd->bw_reg_clump_size =
-            p_acpi_ibrd->total_io_bwr_register_clumpSize;
-        p_ibrd->miss_reg_clump_size = p_acpi_ibrd->io_miss_register_clumpSize;
+            p_acpi_ibrd->total_io_bw_register_clump_size;
+        p_ibrd->miss_reg_clump_size = p_acpi_ibrd->io_miss_register_clump_size;
         p_ibrd->counter_width = p_acpi_ibrd->io_bw_counter_width;
         p_ibrd->upscaling_factor = p_acpi_ibrd->io_bw_counter_upscaling_factor;
         p_ibrd->correction_factor_length =
             p_acpi_ibrd->io_bw_counter_correction_factor_list_length;
 
-        ret = copy_correction_factor(
-            (void *)p_ibrd->correction_factor,
-            (const void *)p_acpi_ibrd->io_bw_counter_correction_factor,
+        return copy_correction_factor(
+            &p_ibrd->correction_factor,
+            p_acpi_ibrd->io_bw_counter_correction_factor,
             p_ibrd->correction_factor_length, max_rmids);
-        if (ret == PQOS_RETVAL_ERROR) {
-                printf("Wrong I/O BW counter correction factor list length in "
-                       "IBRD structure\n");
-                return ret;
-        }
-
-        return ret;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure CARD info
+ * @brief Populates CARD information from an ERDT sub-structure
  *
- * @param p_card struct to be updated with CARD info
- * @param p_acpi_card table to be parsed for CARD info
- *
- * @return Operational status
- * @retval PQOS_RETVAL_OK success
+ * @param p_card CARD information to populate
+ * @param p_acpi_card ACPI CARD sub-structure
  */
-static int
+static void
 erdt_populate_card(struct pqos_erdt_card *p_card,
-                   struct acpi_table_erdt_card *p_acpi_card)
+                   const struct acpi_table_erdt_card *p_acpi_card)
 {
-        if (p_acpi_card->type != ACPI_ERDT_STRUCT_CARD_TYPE) {
-                printf("Incorrect CARD structure type 0x%x\n",
-                       p_acpi_card->type);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        if (p_acpi_card->flags & CARD_CONTENTION_BITMASKS_VALID_BIT)
-                p_card->contention_bitmask_valid = 1;
-        else
-                p_card->contention_bitmask_valid = 0;
-
-        if (p_acpi_card->flags & CARD_NON_CONTIGUOUS_BITMASKS_SUPPORTED_BIT)
-                p_card->non_contiguous_cbm = 1;
-        else
-                p_card->non_contiguous_cbm = 0;
-
-        if (p_acpi_card->flags & CARD_ZERO_LENGTH_BITMASKS_BIT)
-                p_card->zero_length_bitmask = 1;
-        else
-                p_card->zero_length_bitmask = 0;
-
+        p_card->contention_bitmask_valid =
+            !!(p_acpi_card->flags & CARD_CONTENTION_BITMASKS_VALID_BIT);
+        p_card->non_contiguous_cbm =
+            !!(p_acpi_card->flags & CARD_NON_CONTIGUOUS_BITMASKS_SUPPORTED_BIT);
+        p_card->zero_length_bitmask =
+            !!(p_acpi_card->flags & CARD_ZERO_LENGTH_BITMASKS_BIT);
         p_card->contention_bitmask = p_acpi_card->contention_bitmask;
         p_card->reg_index_func_ver =
             p_acpi_card->register_indexing_function_version;
         p_card->reg_base_addr = p_acpi_card->register_base_address;
         p_card->reg_block_size = p_acpi_card->register_block_size;
         p_card->cat_reg_offset =
-            p_acpi_card->cache_allocation_rgister_ofsets_for_io;
+            p_acpi_card->cache_allocation_register_offsets_for_io;
         p_card->cat_reg_block_size =
             p_acpi_card->cache_allocation_register_block_size;
+}
+
+/**
+ * @brief Populates common RMDD information from an ERDT sub-structure
+ *
+ * @param p_rmdd RMDD information to populate
+ * @param p_acpi_rmdd ACPI RMDD sub-structure
+ */
+static void
+erdt_populate_rmdd(struct pqos_erdt_rmdd *p_rmdd,
+                   const struct acpi_table_erdt_rmdd *p_acpi_rmdd)
+{
+        p_rmdd->flags = p_acpi_rmdd->flags;
+        p_rmdd->num_io_l3_slices = p_acpi_rmdd->number_of_io_l3_slices;
+        p_rmdd->num_io_l3_sets = p_acpi_rmdd->number_of_io_l3_sets;
+        p_rmdd->num_io_l3_ways = p_acpi_rmdd->number_of_io_l3_ways;
+        p_rmdd->domain_id = p_acpi_rmdd->domain_id;
+        p_rmdd->max_rmids = p_acpi_rmdd->max_rmids;
+        p_rmdd->control_reg_base_addr =
+            p_acpi_rmdd->control_register_base_address;
+        p_rmdd->control_reg_size = p_acpi_rmdd->control_register_size;
+}
+
+/**
+ * @brief Populates ERDT information for a CPU agent
+ *
+ * @param p_cpu_agent_info CPU agent information to populate
+ * @param p_acpi_rmdd ACPI RMDD structure for the CPU agent
+ *
+ * @return Operational status
+ * @retval PQOS_RETVAL_OK success
+ */
+static int
+erdt_populate_rmdd_cpu_agent(struct pqos_cpu_agent_info *p_cpu_agent_info,
+                             const struct acpi_table_erdt_rmdd *p_acpi_rmdd)
+{
+        const uint8_t *p_cursor =
+            (const uint8_t *)p_acpi_rmdd + sizeof(*p_acpi_rmdd);
+        size_t remaining = p_acpi_rmdd->length - sizeof(*p_acpi_rmdd);
+        const void *p_structure;
+        int ret;
+
+        erdt_populate_rmdd(&p_cpu_agent_info->rmdd, p_acpi_rmdd);
+
+#define GET_CPU_STRUCTURE(type, member, structure_name)                        \
+        do {                                                                   \
+                ret = erdt_get_structure(                                      \
+                    &p_cursor, &remaining, ACPI_ERDT_STRUCT_##type##_TYPE,     \
+                    sizeof(struct acpi_table_erdt_##member), structure_name,   \
+                    &p_structure);                                             \
+                if (ret != PQOS_RETVAL_OK)                                     \
+                        return ret;                                            \
+        } while (0)
+
+        GET_CPU_STRUCTURE(CACD, cacd, "CACD");
+        ret = erdt_populate_cacd(&p_cpu_agent_info->cacd, p_structure);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+        GET_CPU_STRUCTURE(CMRC, cmrc, "CMRC");
+        erdt_populate_cmrc(&p_cpu_agent_info->cmrc, p_structure);
+        GET_CPU_STRUCTURE(MMRC, mmrc, "MMRC");
+        ret = erdt_populate_mmrc(&p_cpu_agent_info->mmrc, p_structure,
+                                 p_cpu_agent_info->rmdd.max_rmids);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+        GET_CPU_STRUCTURE(MARC, marc, "MARC");
+        erdt_populate_marc(&p_cpu_agent_info->marc, p_structure);
+
+#undef GET_CPU_STRUCTURE
+
+        if (remaining != 0) {
+                LOG_ERROR("Unexpected data in CPU RMDD structure\n");
+                return PQOS_RETVAL_ERROR;
+        }
 
         return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structure RMDD info
+ * @brief Populates ERDT information for a device agent
  *
- * @param p_rmdd struct to be updated with RMDD info
- * @param p_acpi_rmdds table to be parsed for RMDD info
+ * @param p_dev_agent_info Device agent information to populate
+ * @param p_acpi_rmdd ACPI RMDD structure for the device agent
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
  */
 static int
-erdt_populate_rmdd(struct pqos_erdt_rmdd *p_rmdd,
-                   struct acpi_table_erdt_rmdd *p_acpi_rmdds)
+erdt_populate_rmdd_device_agent(struct pqos_device_agent_info *p_dev_agent_info,
+                                const struct acpi_table_erdt_rmdd *p_acpi_rmdd)
 {
-        if (p_acpi_rmdds->type != ACPI_ERDT_STRUCT_RMDD_TYPE) {
-                printf("Incorrect RMDD structure type 0x%x\n",
-                       p_acpi_rmdds->type);
+        const uint8_t *p_cursor =
+            (const uint8_t *)p_acpi_rmdd + sizeof(*p_acpi_rmdd);
+        size_t remaining = p_acpi_rmdd->length - sizeof(*p_acpi_rmdd);
+        const void *p_structure;
+        int ret;
+
+        erdt_populate_rmdd(&p_dev_agent_info->rmdd, p_acpi_rmdd);
+
+#define GET_DEVICE_STRUCTURE(type, member, structure_name)                     \
+        do {                                                                   \
+                ret = erdt_get_structure(                                      \
+                    &p_cursor, &remaining, ACPI_ERDT_STRUCT_##type##_TYPE,     \
+                    sizeof(struct acpi_table_erdt_##member), structure_name,   \
+                    &p_structure);                                             \
+                if (ret != PQOS_RETVAL_OK)                                     \
+                        return ret;                                            \
+        } while (0)
+
+        GET_DEVICE_STRUCTURE(DACD, dacd, "DACD");
+        ret = erdt_populate_dacd(&p_dev_agent_info->dacd, p_structure);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+        GET_DEVICE_STRUCTURE(CMRD, cmrd, "CMRD");
+        erdt_populate_cmrd(&p_dev_agent_info->cmrd, p_structure);
+        GET_DEVICE_STRUCTURE(IBRD, ibrd, "IBRD");
+        ret = erdt_populate_ibrd(&p_dev_agent_info->ibrd, p_structure,
+                                 p_dev_agent_info->rmdd.max_rmids);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+        GET_DEVICE_STRUCTURE(CARD, card, "CARD");
+        erdt_populate_card(&p_dev_agent_info->card, p_structure);
+
+#undef GET_DEVICE_STRUCTURE
+
+        if (remaining != 0) {
+                LOG_ERROR("Unexpected data in device RMDD structure\n");
                 return PQOS_RETVAL_ERROR;
         }
 
-        p_rmdd->flags = p_acpi_rmdds->flags;
-        p_rmdd->num_io_l3_slices = p_acpi_rmdds->number_of_io_l3Slices;
-        p_rmdd->num_io_l3_sets = p_acpi_rmdds->number_of_io_l3_sets;
-        p_rmdd->num_io_l3_ways = p_acpi_rmdds->number_of_io_l3_ways;
-        p_rmdd->domain_id = p_acpi_rmdds->domainId;
-        p_rmdd->max_rmids = p_acpi_rmdds->max_rmids;
-        p_rmdd->control_reg_base_addr =
-            p_acpi_rmdds->control_register_base_address;
-        p_rmdd->control_reg_size = p_acpi_rmdds->control_register_size;
-
-        return 0;
+        return PQOS_RETVAL_OK;
 }
 
 /**
- * @brief Parses ERDT table to extract ERDT Sub-structures info for CPU agent
+ * @brief Parses CPU and device agent RMDD structures from an ERDT table
  *
- * @param p_cpu_agent_info struct to be updated with ERDT Sub-structures info
- *                         for CPU agent
- * @param p_acpi_rmdds table to be parsed for ERDT Sub-structures info
- *
- * @return Operational status
- * @retval PQOS_RETVAL_OK success
- */
-static int
-erdt_populate_rmdd_cpu_agents(struct pqos_cpu_agent_info *p_cpu_agent_info,
-                              struct acpi_table_erdt_rmdd *p_acpi_rmdds)
-{
-        int ret = PQOS_RETVAL_OK;
-        uint32_t length = 0;
-
-        /* Copy CPU agent's CMRD structure */
-        ret = erdt_populate_rmdd(&p_cpu_agent_info->rmdd, p_acpi_rmdds);
-        length = sizeof(struct acpi_table_erdt_rmdd);
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy CPU agent's CACD structure */
-        ret |= erdt_populate_cacd(&p_cpu_agent_info->cacd,
-                                  (struct acpi_table_erdt_cacd *)p_acpi_rmdds);
-        length = ((struct acpi_table_erdt_cacd *)p_acpi_rmdds)->length;
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy CPU agent's CMRC structure */
-        ret |= erdt_populate_cmrc(&p_cpu_agent_info->cmrc,
-                                  (struct acpi_table_erdt_cmrc *)p_acpi_rmdds);
-        length = ((struct acpi_table_erdt_cmrc *)p_acpi_rmdds)->length;
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy CPU agent's MMRC structure */
-        ret |= erdt_populate_mmrc(&p_cpu_agent_info->mmrc,
-                                  (struct acpi_table_erdt_mmrc *)p_acpi_rmdds,
-                                  p_acpi_rmdds->max_rmids);
-        length = ((struct acpi_table_erdt_mmrc *)p_acpi_rmdds)->length;
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy CPU agent's MARC structure */
-        ret |= erdt_populate_marc(&p_cpu_agent_info->marc,
-                                  (struct acpi_table_erdt_marc *)p_acpi_rmdds);
-
-        return ret;
-}
-
-/**
- * @brief Parses ERDT table to extract ERDT Sub-structures info for Device
- *        agent
- *
- * @param p_dev_agent_info struct to be updated with ERDT Sub-structures info
- *                         for Device agent
- * @param p_acpi_rmdds table to be parsed for ERDT Sub-structures info
- *
- * @return Operational status
- * @retval PQOS_RETVAL_OK success
- */
-static int
-erdt_populate_rmdd_device_agents(
-    struct pqos_device_agent_info *p_dev_agent_info,
-    struct acpi_table_erdt_rmdd *p_acpi_rmdds)
-{
-        int ret = PQOS_RETVAL_OK;
-        uint32_t length = 0;
-
-        /* Copy device agent's RMDD structure */
-        ret = erdt_populate_rmdd(&p_dev_agent_info->rmdd, p_acpi_rmdds);
-        length = sizeof(struct acpi_table_erdt_rmdd);
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy device agent's DACD structure */
-        ret |= erdt_populate_dacd(&p_dev_agent_info->dacd,
-                                  (struct acpi_table_erdt_dacd *)p_acpi_rmdds);
-        length = ((struct acpi_table_erdt_dacd *)p_acpi_rmdds)->length;
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy device agent's CMRD structure */
-        ret |= erdt_populate_cmrd(&p_dev_agent_info->cmrd,
-                                  (struct acpi_table_erdt_cmrd *)p_acpi_rmdds);
-        length = ((struct acpi_table_erdt_cmrd *)p_acpi_rmdds)->length;
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy device agent's IBRD structure */
-        ret |= erdt_populate_ibrd(&p_dev_agent_info->ibrd,
-                                  (struct acpi_table_erdt_ibrd *)p_acpi_rmdds,
-                                  p_acpi_rmdds->max_rmids);
-        length = ((struct acpi_table_erdt_ibrd *)p_acpi_rmdds)->length;
-        p_acpi_rmdds =
-            (struct acpi_table_erdt_rmdd *)((unsigned char *)p_acpi_rmdds +
-                                            length);
-
-        /* Copy device agent's CARD structure */
-        ret |= erdt_populate_card(&p_dev_agent_info->card,
-                                  (struct acpi_table_erdt_card *)p_acpi_rmdds);
-
-        return ret;
-}
-
-/**
- * @brief Parses ERDT table to extract RMDD Sub-structures info for CPU and
- *        Device agents
- *
- * @param erdt_info Pointer to store the ERDT information
- * @param p_acpi_erdt ACPI ERDT table to be parsed
+ * @param erdt_info ERDT information populated by the function
+ * @param p_acpi_erdt ACPI ERDT table to parse
  * @param socket_num Number of sockets in the system
  *
  * @return Operational status
@@ -692,117 +628,122 @@ erdt_populate_rmdd_device_agents(
  */
 static int
 erdt_populate_rmdds(struct pqos_erdt_info **erdt_info,
-                    struct acpi_table_erdt *p_acpi_erdt,
-                    int socket_num)
+                    const struct acpi_table_erdt *p_acpi_erdt,
+                    unsigned socket_num)
 {
-        int ret = PQOS_RETVAL_OK;
-        uint32_t cpu_idx = 0;
-        uint32_t dev_idx = 0;
-        int rmdd_idx = 0;
-        int total_rmdds =
-            socket_num * (CPU_AGENTS_PER_SOCKET + DEVICE_AGENTS_PER_SOCKET);
-        void *p_acpi_rmdds = (void *)&p_acpi_erdt->erdt_sub_structures[0];
-        struct acpi_table_erdt_rmdd *p_acpi_rmdd = NULL;
-        uint32_t length = 0;
-        uint32_t max_cpu_agents = 0;
-        uint32_t max_dev_agents = 0;
+        const struct acpi_table_erdt_rmdd *p_acpi_rmdd;
+        const uint8_t *p_cursor;
+        size_t remaining;
+        unsigned max_cpu_agents;
+        unsigned max_dev_agents;
+        int ret;
 
-        if (p_acpi_erdt->header.header.length <
-            sizeof(struct acpi_table_erdt_header)) {
-                printf("Invalid ACPI ERDT header length: %u\n",
-                       p_acpi_erdt->header.header.length);
+        if (socket_num > UINT_MAX / CPU_AGENTS_PER_SOCKET ||
+            socket_num > UINT_MAX / DEVICE_AGENTS_PER_SOCKET) {
+                LOG_ERROR("Socket count is too large\n");
                 return PQOS_RETVAL_ERROR;
         }
-        length = p_acpi_erdt->header.header.length -
-                 sizeof(struct acpi_table_erdt_header);
-
-        p_erdt_info =
-            (struct pqos_erdt_info *)calloc(1, sizeof(struct pqos_erdt_info));
-
-        if (p_erdt_info == NULL) {
-                printf("Can't allocate memory for pqos_erdt_info\n");
-                return PQOS_RETVAL_ERROR;
-        }
-
-        p_erdt_info->max_clos = p_acpi_erdt->header.max_clos;
         max_cpu_agents = CPU_AGENTS_PER_SOCKET * socket_num;
         max_dev_agents = DEVICE_AGENTS_PER_SOCKET * socket_num;
 
-        p_erdt_info->cpu_agents = (struct pqos_cpu_agent_info *)calloc(
-            max_cpu_agents, sizeof(struct pqos_cpu_agent_info));
-        if (p_erdt_info->cpu_agents == NULL) {
-                printf("Can't allocate memory for CPU agents\n");
-                free(p_erdt_info);
+        if (p_acpi_erdt->header.header.length <
+            sizeof(struct acpi_table_erdt_header)) {
+                LOG_ERROR("Invalid ACPI ERDT header length: %u\n",
+                          p_acpi_erdt->header.header.length);
                 return PQOS_RETVAL_ERROR;
         }
 
-        p_erdt_info->dev_agents = (struct pqos_device_agent_info *)calloc(
-            max_dev_agents, sizeof(struct pqos_device_agent_info));
-        if (p_erdt_info->dev_agents == NULL) {
-                printf("Can't allocate memory for Device agents\n");
-                free(p_erdt_info->cpu_agents);
-                free(p_erdt_info);
+        p_erdt_info = calloc(1, sizeof(*p_erdt_info));
+        if (p_erdt_info == NULL) {
+                LOG_ERROR("Can't allocate memory for ERDT information\n");
                 return PQOS_RETVAL_ERROR;
         }
+        p_erdt_info->max_clos = p_acpi_erdt->header.max_clos;
 
-        cpu_idx = 0;
-        dev_idx = 0;
-        for (rmdd_idx = 0; rmdd_idx < total_rmdds && length > 0; rmdd_idx++) {
-
-                p_acpi_rmdd = (struct acpi_table_erdt_rmdd *)p_acpi_rmdds;
-
-                switch (p_acpi_rmdd->flags) {
-                case RMDD_L3_DOMAIN:
-                        if (cpu_idx >= max_cpu_agents) {
-                                printf("ERDT table has more CPU Domain RMDD "
-                                       "structures than available CPU domains "
-                                       "in the machine\n");
-                                erdt_fini();
-                                return PQOS_RETVAL_ERROR;
-                        }
-                        ret = erdt_populate_rmdd_cpu_agents(
-                            &p_erdt_info->cpu_agents[cpu_idx],
-                            (struct acpi_table_erdt_rmdd *)p_acpi_rmdds);
-                        cpu_idx++;
-                        p_erdt_info->num_cpu_agents++;
-                        break;
-                case RMDD_IO_L3_DOMAIN:
-                        if (dev_idx >= max_dev_agents) {
-                                printf("ERDT table has more I/O Device Domain "
-                                       "RMDD structures than available I/O "
-                                       "Device domains in the machine\n");
-                                erdt_fini();
-                                return PQOS_RETVAL_ERROR;
-                        }
-                        ret = erdt_populate_rmdd_device_agents(
-                            &p_erdt_info->dev_agents[dev_idx],
-                            (struct acpi_table_erdt_rmdd *)p_acpi_rmdds);
-                        dev_idx++;
-                        p_erdt_info->num_dev_agents++;
-                        break;
-                default:
-                        break;
-                }
-                if (ret != PQOS_RETVAL_OK)
-                        break;
-
-                if (length < p_acpi_rmdd->length) {
-                        printf("Invalid length in ERDT table\n");
+        if (max_cpu_agents > 0) {
+                p_erdt_info->cpu_agents =
+                    calloc(max_cpu_agents, sizeof(*p_erdt_info->cpu_agents));
+                if (p_erdt_info->cpu_agents == NULL) {
+                        LOG_ERROR("Can't allocate memory for CPU agents\n");
                         erdt_fini();
                         return PQOS_RETVAL_ERROR;
                 }
-
-                length -= p_acpi_rmdd->length;
-
-                p_acpi_rmdds = (void *)((unsigned char *)p_acpi_rmdds +
-                                        p_acpi_rmdd->length);
+        }
+        if (max_dev_agents > 0) {
+                p_erdt_info->dev_agents =
+                    calloc(max_dev_agents, sizeof(*p_erdt_info->dev_agents));
+                if (p_erdt_info->dev_agents == NULL) {
+                        LOG_ERROR("Can't allocate memory for device agents\n");
+                        erdt_fini();
+                        return PQOS_RETVAL_ERROR;
+                }
         }
 
-        if (ret == PQOS_RETVAL_OK)
-                *erdt_info = p_erdt_info;
-        else
-                erdt_fini();
+        p_cursor = (const uint8_t *)p_acpi_erdt->erdt_sub_structures;
+        remaining = p_acpi_erdt->header.header.length -
+                    sizeof(struct acpi_table_erdt_header);
+        while (remaining > 0) {
+                if (remaining < sizeof(*p_acpi_rmdd)) {
+                        LOG_ERROR("Truncated RMDD structure\n");
+                        ret = PQOS_RETVAL_ERROR;
+                        goto error;
+                }
 
+                p_acpi_rmdd =
+                    (const struct acpi_table_erdt_rmdd *)(const void *)p_cursor;
+                if (p_acpi_rmdd->type != ACPI_ERDT_STRUCT_RMDD_TYPE ||
+                    p_acpi_rmdd->length < sizeof(*p_acpi_rmdd) ||
+                    p_acpi_rmdd->length > remaining) {
+                        LOG_ERROR("Invalid RMDD structure\n");
+                        ret = PQOS_RETVAL_ERROR;
+                        goto error;
+                }
+
+                switch (p_acpi_rmdd->flags) {
+                case RMDD_L3_DOMAIN:
+                        if (p_erdt_info->num_cpu_agents >= max_cpu_agents) {
+                                LOG_ERROR(
+                                    "Too many CPU domain RMDD structures\n");
+                                ret = PQOS_RETVAL_ERROR;
+                                goto error;
+                        }
+                        ret = erdt_populate_rmdd_cpu_agent(
+                            &p_erdt_info
+                                 ->cpu_agents[p_erdt_info->num_cpu_agents++],
+                            p_acpi_rmdd);
+                        break;
+                case RMDD_IO_L3_DOMAIN:
+                        if (p_erdt_info->num_dev_agents >= max_dev_agents) {
+                                LOG_ERROR(
+                                    "Too many device domain RMDD structures\n");
+                                ret = PQOS_RETVAL_ERROR;
+                                goto error;
+                        }
+                        ret = erdt_populate_rmdd_device_agent(
+                            &p_erdt_info
+                                 ->dev_agents[p_erdt_info->num_dev_agents++],
+                            p_acpi_rmdd);
+                        break;
+                default:
+                        LOG_ERROR("Unknown RMDD flags 0x%x\n",
+                                  (unsigned)p_acpi_rmdd->flags);
+                        ret = PQOS_RETVAL_ERROR;
+                        break;
+                }
+                if (ret != PQOS_RETVAL_OK)
+                        goto error;
+
+                p_cursor += p_acpi_rmdd->length;
+                remaining -= p_acpi_rmdd->length;
+        }
+
+        LOG_DEBUG("Parsed %u CPU and %u device ERDT agents\n",
+                  p_erdt_info->num_cpu_agents, p_erdt_info->num_dev_agents);
+        *erdt_info = p_erdt_info;
+        return PQOS_RETVAL_OK;
+
+error:
+        erdt_fini();
         return ret;
 }
 
@@ -831,13 +772,13 @@ check_channel_id_exist(struct pqos_channels_domains *channels_domains,
  *        The channel ids are in pqos_devinfo structure.
  *        The function maps BDF to channel ids using pqos_devinfo structure.
  *        And populates channel_ids count, channel_ids,
- *        coressponding domain_ids and indexes in channels_domains structure.
+ *        corresponding domain_ids and indexes in channels_domains structure.
  *
  * @param dacd Pointer of ERDT Sub-structure DACD
  * @param devinfo Pointer of IORDT Device information
  * @param channels_domains Pointer of structure to be populated
  * @param dev_agent_idx Index of device agent in erdt_info->dev_agents[]
- *        The dev_agent_idx is tored in channels_domains->domain_id_idx[]
+ *        The dev_agent_idx is stored in channels_domains->domain_id_idxs[]
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
@@ -846,7 +787,8 @@ static int
 erdt_dev_populate_chans(const struct pqos_erdt_dacd *dacd,
                         const struct pqos_devinfo *devinfo,
                         struct pqos_channels_domains *channels_domains,
-                        unsigned dev_agent_idx)
+                        unsigned dev_agent_idx,
+                        unsigned max_channels)
 {
         uint16_t bdf = 0;
         uint32_t i = 0;
@@ -873,9 +815,11 @@ erdt_dev_populate_chans(const struct pqos_erdt_dacd *dacd,
                             &num_channels);
 
                         if (channels == NULL) {
-                                LOG_DEBUG("Failed to get channels for "
-                                          "Segment: 0x%x BDF: 0x%x\n",
-                                          dacd->dase[i].segment_number, bdf);
+                                LOG_DEBUG(
+                                    "Failed to get channels for "
+                                    "Segment: 0x%x BDF: 0x%x\n",
+                                    (unsigned)dacd->dase[i].segment_number,
+                                    (unsigned)bdf);
                                 continue;
                         }
 
@@ -885,6 +829,14 @@ erdt_dev_populate_chans(const struct pqos_erdt_dacd *dacd,
                                                              channels[ch_idx]);
                                 if (ret == PQOS_RETVAL_ERROR)
                                         continue;
+
+                                if (channels_domains->num_channel_ids >=
+                                    max_channels) {
+                                        LOG_ERROR("Too many channel-domain "
+                                                  "mappings\n");
+                                        free(channels);
+                                        return PQOS_RETVAL_ERROR;
+                                }
 
                                 channels_domains->channel_ids[idx] =
                                     channels[ch_idx];
@@ -909,86 +861,59 @@ channels_domains_init(unsigned int num_channels,
                       const struct pqos_devinfo *devinfo,
                       struct pqos_channels_domains **channels_domains)
 {
+        unsigned i;
         int ret;
 
-        ASSERT(num_channels > 0);
-        ASSERT(erdt != NULL);
-        ASSERT(channels_domains != NULL);
+        if (num_channels == 0 || erdt == NULL || devinfo == NULL ||
+            channels_domains == NULL || erdt->num_dev_agents > UINT16_MAX)
+                return PQOS_RETVAL_PARAM;
+        *channels_domains = NULL;
 
-        p_channels_domains = (struct pqos_channels_domains *)calloc(
-            1, sizeof(struct pqos_channels_domains));
-
+        p_channels_domains = calloc(1, sizeof(*p_channels_domains));
         if (p_channels_domains == NULL) {
-                LOG_ERROR("Can't allocate memory for pqos_channels_domains\n");
+                LOG_ERROR("Can't allocate memory for channel domains\n");
                 return PQOS_RETVAL_ERROR;
         }
-
-        p_channels_domains->num_channel_ids = 0;
 
         p_channels_domains->channel_ids =
-            (pqos_channel_t *)malloc(num_channels * sizeof(pqos_channel_t));
-        if (p_channels_domains->channel_ids == NULL) {
-                LOG_ERROR("Can't allocate memory for pqos_channel_t\n");
-                free(p_channels_domains);
-                return PQOS_RETVAL_ERROR;
-        }
-        memset(p_channels_domains->channel_ids, 0,
-               num_channels * sizeof(pqos_channel_t));
-
+            calloc(num_channels, sizeof(*p_channels_domains->channel_ids));
         p_channels_domains->domain_ids =
-            (uint16_t *)malloc(num_channels * sizeof(uint16_t));
-        if (p_channels_domains->domain_ids == NULL) {
-                LOG_ERROR("Can't allocate memory for domains in "
-                          "pqos_channels_domains\n");
-                free(p_channels_domains->channel_ids);
-                free(p_channels_domains);
-                return PQOS_RETVAL_ERROR;
-        }
-        memset(p_channels_domains->domain_ids, 0,
-               num_channels * sizeof(uint16_t));
-
+            calloc(num_channels, sizeof(*p_channels_domains->domain_ids));
         p_channels_domains->domain_id_idxs =
-            (uint16_t *)malloc(num_channels * sizeof(uint16_t));
-        if (p_channels_domains->domain_id_idxs == NULL) {
-                LOG_ERROR("Can't allocate memory for domain_id_idxs in "
-                          "pqos_channels_domains\n");
-                free(p_channels_domains->domain_ids);
-                free(p_channels_domains->channel_ids);
-                free(p_channels_domains);
+            calloc(num_channels, sizeof(*p_channels_domains->domain_id_idxs));
+        if (p_channels_domains->channel_ids == NULL ||
+            p_channels_domains->domain_ids == NULL ||
+            p_channels_domains->domain_id_idxs == NULL) {
+                LOG_ERROR("Can't allocate channel-domain mappings\n");
+                channels_domains_fini();
                 return PQOS_RETVAL_ERROR;
         }
-        memset(p_channels_domains->domain_id_idxs, 0,
-               num_channels * sizeof(uint16_t));
 
-        for (unsigned i = 0; i < erdt->num_dev_agents; i++) {
+        for (i = 0; i < erdt->num_dev_agents; i++) {
                 ret = erdt_dev_populate_chans(&erdt->dev_agents[i].dacd,
-                                              devinfo, p_channels_domains, i);
+                                              devinfo, p_channels_domains, i,
+                                              num_channels);
                 if (ret != PQOS_RETVAL_OK) {
-                        free(p_channels_domains->domain_id_idxs);
-                        free(p_channels_domains->domain_ids);
-                        free(p_channels_domains->channel_ids);
-                        free(p_channels_domains);
+                        channels_domains_fini();
                         return ret;
                 }
         }
 
         *channels_domains = p_channels_domains;
-
         return PQOS_RETVAL_OK;
 }
 
 void
 channels_domains_fini(void)
 {
-        ASSERT(p_channels_domains != NULL);
-        ASSERT(p_channels_domains->channel_ids != NULL);
-        ASSERT(p_channels_domains->domain_ids != NULL);
-        ASSERT(p_channels_domains->domain_id_idxs != NULL);
+        if (p_channels_domains == NULL)
+                return;
 
         free(p_channels_domains->channel_ids);
         free(p_channels_domains->domain_ids);
         free(p_channels_domains->domain_id_idxs);
         free(p_channels_domains);
+        p_channels_domains = NULL;
 }
 
 int
@@ -996,11 +921,13 @@ erdt_init(const struct pqos_cap *cap,
           struct pqos_cpuinfo *cpu,
           struct pqos_erdt_info **erdt_info)
 {
-        int ret = PQOS_RETVAL_OK;
-        int socket_num = 0;
+        struct acpi_table *table;
+        int socket_num;
+        int ret;
 
         if (cap == NULL || cpu == NULL || erdt_info == NULL)
                 return PQOS_RETVAL_PARAM;
+        *erdt_info = NULL;
 
         ret = acpi_init();
         if (ret != PQOS_RETVAL_OK) {
@@ -1008,16 +935,16 @@ erdt_init(const struct pqos_cap *cap,
                 return ret;
         }
 
-        struct acpi_table *table = acpi_get_sig(ACPI_TABLE_SIG_ERDT);
-
+        table = acpi_get_sig(ACPI_TABLE_SIG_ERDT);
         if (table == NULL) {
                 LOG_WARN("Could not obtain %s table\n", ACPI_TABLE_SIG_ERDT);
+                (void)acpi_fini();
                 return PQOS_RETVAL_RESOURCE;
         }
 
         socket_num = cpuinfo_get_socket_num(cpu);
-        if (socket_num == -1) {
-                printf("Unable to get socket count\n");
+        if (socket_num <= 0) {
+                LOG_ERROR("Unable to get socket count\n");
                 acpi_free(table);
                 return PQOS_RETVAL_ERROR;
         }
@@ -1025,6 +952,8 @@ erdt_init(const struct pqos_cap *cap,
         acpi_print(table);
         ret = erdt_populate_rmdds(erdt_info, table->erdt, socket_num);
         acpi_free(table);
+        if (ret != PQOS_RETVAL_OK)
+                (void)acpi_fini();
 
         return ret;
 }
@@ -1032,44 +961,37 @@ erdt_init(const struct pqos_cap *cap,
 void
 erdt_fini(void)
 {
-        uint32_t idx = 0;
-        uint32_t dase_idx = 0;
+        uint32_t idx;
+        uint32_t dase_idx;
 
-        if (p_erdt_info != NULL) {
-                if (p_erdt_info->cpu_agents != NULL) {
-                        idx = 0;
-                        while (idx < p_erdt_info->num_cpu_agents) {
-                                free(p_erdt_info->cpu_agents[idx]
-                                         .cacd.enumeration_ids);
-                                free(p_erdt_info->cpu_agents[idx]
-                                         .mmrc.correction_factor);
-                                idx++;
-                        }
+        if (p_erdt_info == NULL)
+                return;
 
-                        free(p_erdt_info->cpu_agents);
+        if (p_erdt_info->cpu_agents != NULL) {
+                for (idx = 0; idx < p_erdt_info->num_cpu_agents; idx++) {
+                        free(p_erdt_info->cpu_agents[idx].cacd.enumeration_ids);
+                        free(p_erdt_info->cpu_agents[idx]
+                                 .mmrc.correction_factor);
                 }
+                free(p_erdt_info->cpu_agents);
+        }
 
-                if (p_erdt_info->dev_agents != NULL) {
-                        idx = 0;
-                        while (idx < p_erdt_info->num_dev_agents) {
-                                free(p_erdt_info->dev_agents[idx]
-                                         .ibrd.correction_factor);
-                                dase_idx = 0;
-                                while (p_erdt_info->dev_agents[idx].dacd.dase &&
-                                       dase_idx < p_erdt_info->dev_agents[idx]
-                                                      .dacd.num_dases) {
+        if (p_erdt_info->dev_agents != NULL) {
+                for (idx = 0; idx < p_erdt_info->num_dev_agents; idx++) {
+                        free(p_erdt_info->dev_agents[idx]
+                                 .ibrd.correction_factor);
+                        if (p_erdt_info->dev_agents[idx].dacd.dase != NULL)
+                                for (dase_idx = 0;
+                                     dase_idx < p_erdt_info->dev_agents[idx]
+                                                    .dacd.num_dases;
+                                     dase_idx++)
                                         free(p_erdt_info->dev_agents[idx]
                                                  .dacd.dase[dase_idx]
                                                  .path);
-                                        dase_idx++;
-                                }
-                                free(p_erdt_info->dev_agents[idx].dacd.dase);
-                                idx++;
-                        }
-
-                        free(p_erdt_info->dev_agents);
+                        free(p_erdt_info->dev_agents[idx].dacd.dase);
                 }
-
-                free(p_erdt_info);
+                free(p_erdt_info->dev_agents);
         }
+        free(p_erdt_info);
+        p_erdt_info = NULL;
 }

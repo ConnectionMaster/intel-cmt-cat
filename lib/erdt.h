@@ -2,7 +2,6 @@
  * BSD LICENSE
  *
  * Copyright(c) 2025-2026 Intel Corporation. All rights reserved.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -105,7 +104,7 @@ struct __attribute__((__packed__)) acpi_table_erdt_card {
         uint8_t reserved2[7];
         uint64_t register_base_address;
         uint32_t register_block_size;
-        uint16_t cache_allocation_rgister_ofsets_for_io;
+        uint16_t cache_allocation_register_offsets_for_io;
         uint16_t cache_allocation_register_block_size;
 };
 
@@ -120,11 +119,11 @@ struct __attribute__((__packed__)) acpi_table_erdt_ibrd {
         uint8_t register_indexing_function_version;
         uint8_t reserved2[11];
         uint64_t register_base_address;
-        uint32_t register_blockSize;
-        uint16_t total_io_bw_registerOffset;
-        uint16_t io_miss_bw_registerOffset;
-        uint16_t total_io_bwr_register_clumpSize;
-        uint16_t io_miss_register_clumpSize;
+        uint32_t register_block_size;
+        uint16_t total_io_bw_register_offset;
+        uint16_t io_miss_bw_register_offset;
+        uint16_t total_io_bw_register_clump_size;
+        uint16_t io_miss_register_clump_size;
         uint8_t reserved3[7];
         uint8_t io_bw_counter_width;
         uint64_t io_bw_counter_upscaling_factor;
@@ -145,7 +144,7 @@ struct __attribute__((__packed__)) acpi_table_erdt_cmrd {
         uint64_t register_base_address;
         uint32_t register_block_size;
         uint16_t cmt_register_offset_for_io;
-        uint16_t cmt_register_clump_size_ror_io;
+        uint16_t cmt_register_clump_size_for_io;
         uint64_t cmt_counter_upscaling_factor;
 };
 
@@ -177,7 +176,7 @@ struct __attribute__((__packed__)) acpi_table_erdt_mmrc {
         uint8_t register_indexing_function_version;
         uint8_t reserved2[11];
         uint64_t mbm_register_block_base_address;
-        uint32_t mbm_register_blockSize;
+        uint32_t mbm_register_block_size;
         uint8_t mbm_counter_width;
         uint64_t mbm_counter_upscaling_factor;
         uint8_t reserved3[7];
@@ -243,11 +242,11 @@ struct __attribute__((__packed__)) acpi_table_erdt_rmdd {
         uint16_t type;
         uint16_t length;
         uint16_t flags;
-        uint16_t number_of_io_l3Slices;
+        uint16_t number_of_io_l3_slices;
         uint8_t number_of_io_l3_sets;
         uint8_t number_of_io_l3_ways;
         uint8_t reserved[8];
-        uint16_t domainId;
+        uint16_t domain_id;
         uint32_t max_rmids;
         uint64_t control_register_base_address;
         uint16_t control_register_size;
@@ -316,6 +315,9 @@ struct __attribute__((__packed__)) acpi_table_erdt {
  *
  * Initialize Channels to Domains module array
  *
+ * @param [in] num_channels Number of I/O RDT channels
+ * @param [in] erdt ERDT information
+ * @param [in] devinfo I/O RDT device information
  * @param [out] channels_domains pqos_channels_domains structure to be
  * initialized
  *
@@ -341,7 +343,7 @@ PQOS_LOCAL void channels_domains_fini(void);
  *
  * Initialize ERDT module
  * Detect ACPI ERDT tables
- * Initialize mmio data
+ * Initialize ERDT data
  * Print logs about detected ACPI configuration
  *
  * @param [in] cap capabilities structure
@@ -367,4 +369,4 @@ PQOS_LOCAL void erdt_fini(void);
 }
 #endif
 
-#endif /* __PQOS_ERDT_H_ */
+#endif /* __PQOS_ERDT_H__ */
