@@ -326,6 +326,24 @@ erdt_calculate_num_dases(size_t length,
 }
 
 /**
+ * @brief Frees DACD device agent scope entries
+ *
+ * @param p_dacd DACD information to free
+ */
+static void
+erdt_free_dacd(struct pqos_erdt_dacd *p_dacd)
+{
+        uint32_t i;
+
+        if (p_dacd->dase != NULL)
+                for (i = 0; i < p_dacd->num_dases; i++)
+                        free(p_dacd->dase[i].path);
+
+        free(p_dacd->dase);
+        memset(p_dacd, 0, sizeof(*p_dacd));
+}
+
+/**
  * @brief Populates DACD information from an ERDT sub-structure
  *
  * @param p_dacd DACD information to populate
@@ -376,6 +394,7 @@ erdt_populate_dacd(struct pqos_erdt_dacd *p_dacd,
                         if (p_dase->path == NULL) {
                                 LOG_ERROR(
                                     "Can't allocate memory for DASE path\n");
+                                erdt_free_dacd(p_dacd);
                                 return PQOS_RETVAL_ERROR;
                         }
                         memcpy(p_dase->path, p_acpi_dase->path,
@@ -1111,7 +1130,6 @@ void
 erdt_fini(void)
 {
         uint32_t idx;
-        uint32_t dase_idx;
 
         if (p_erdt_info == NULL)
                 return;
@@ -1129,15 +1147,7 @@ erdt_fini(void)
                 for (idx = 0; idx < p_erdt_info->num_dev_agents; idx++) {
                         free(p_erdt_info->dev_agents[idx]
                                  .ibrd.correction_factor);
-                        if (p_erdt_info->dev_agents[idx].dacd.dase != NULL)
-                                for (dase_idx = 0;
-                                     dase_idx < p_erdt_info->dev_agents[idx]
-                                                    .dacd.num_dases;
-                                     dase_idx++)
-                                        free(p_erdt_info->dev_agents[idx]
-                                                 .dacd.dase[dase_idx]
-                                                 .path);
-                        free(p_erdt_info->dev_agents[idx].dacd.dase);
+                        erdt_free_dacd(&p_erdt_info->dev_agents[idx].dacd);
                 }
                 free(p_erdt_info->dev_agents);
         }
