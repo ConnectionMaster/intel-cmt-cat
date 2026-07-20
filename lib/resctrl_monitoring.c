@@ -426,14 +426,25 @@ resctrl_mon_cpumask_read(const unsigned class_id,
 /**
  * @brief Read counter value
  *
+ * Parses the complete contents of a resctrl monitoring counter file.
+ * Distinguishes valid numeric values (including zero) from the kernel's
+ * non-numeric status strings:
+ *   - "Unassigned": no hardware counter assigned -> PQOS_RETVAL_UNAVAILABLE
+ *   - "Unavailable": counter temporarily unavailable -> PQOS_RETVAL_UNAVAILABLE
+ *   - "Error": hardware read error -> PQOS_RETVAL_ERROR
+ *   - empty, malformed, overflowing, or trailing-junk -> PQOS_RETVAL_ERROR
+ *
  * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] l3id l3id to read from
  * @param [in] event resctrl mon event
- * @param [out] value counter value
+ * @param [out] value counter value (only valid when PQOS_RETVAL_OK)
  *
  * @return Operational status
- * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_OK on success (valid numeric value in *value)
+ * @retval PQOS_RETVAL_UNAVAILABLE counter is Unassigned or Unavailable
+ * @retval PQOS_RETVAL_ERROR I/O failure, Error state, or malformed content
+ * @retval PQOS_RETVAL_PARAM unknown event
  */
 PQOS_STATIC int
 resctrl_mon_read_counter(const unsigned class_id,
@@ -446,8 +457,10 @@ resctrl_mon_read_counter(const unsigned class_id,
         const char *name;
         char path[PATH_MAX];
         FILE *fd;
-        unsigned long long counter;
         int len;
+        char line[64];
+        char *endptr;
+        unsigned long long parsed;
 
         ASSERT(resctrl_group != NULL);
         ASSERT(value != NULL);
@@ -468,8 +481,6 @@ resctrl_mon_read_counter(const unsigned class_id,
                 break;
         }
 
-        *value = 0;
-
         if (resctrl_mon_group_path(class_id, resctrl_group, NULL, buf,
                                    sizeof(buf)) != PQOS_RETVAL_OK)
                 return PQOS_RETVAL_ERROR;
@@ -480,10 +491,40 @@ resctrl_mon_read_counter(const unsigned class_id,
         fd = pqos_fopen(path, "r");
         if (fd == NULL)
                 return PQOS_RETVAL_ERROR;
-        if (fscanf(fd, "%llu", &counter) == 1 && counter < UINT64_MAX)
-                *value = counter;
+
+        if (fgets(line, sizeof(line), fd) == NULL) {
+                pqos_fclose(fd);
+                LOG_ERROR("Failed to read resctrl counter: %s\n", path);
+                return PQOS_RETVAL_ERROR;
+        }
         pqos_fclose(fd);
 
+        /* Check for kernel non-numeric status strings */
+        if (strcmp(line, "Unassigned\n") == 0 ||
+            strcmp(line, "Unassigned") == 0) {
+                LOG_DEBUG("resctrl counter Unassigned: %s\n", path);
+                return PQOS_RETVAL_UNAVAILABLE;
+        }
+        if (strcmp(line, "Unavailable\n") == 0 ||
+            strcmp(line, "Unavailable") == 0) {
+                LOG_DEBUG("resctrl counter Unavailable: %s\n", path);
+                return PQOS_RETVAL_UNAVAILABLE;
+        }
+        if (strcmp(line, "Error\n") == 0 || strcmp(line, "Error") == 0) {
+                LOG_ERROR("resctrl counter Error: %s\n", path);
+                return PQOS_RETVAL_ERROR;
+        }
+
+        /* Parse complete line as an unsigned integer */
+        errno = 0;
+        parsed = strtoull(line, &endptr, 10);
+        if (errno != 0 || endptr == line ||
+            (*endptr != '\n' && *endptr != '\0')) {
+                LOG_ERROR("Failed to parse resctrl counter: %s\n", path);
+                return PQOS_RETVAL_ERROR;
+        }
+
+        *value = (uint64_t)parsed;
         return PQOS_RETVAL_OK;
 }
 
@@ -583,15 +624,21 @@ resctrl_mon_read_tel_pkgs(const unsigned class_id,
 /**
  * @brief Read counter value from requested \a l3ids
  *
+ * Aggregates the counter value across all l3ids.  If any domain returns
+ * PQOS_RETVAL_UNAVAILABLE the partial sum is discarded and
+ * PQOS_RETVAL_UNAVAILABLE is returned.  Hard errors propagate immediately.
+ *
  * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] l3ids l3ids to read from
  * @param [in] l3ids_num number of l3ids
  * @param [in] event resctrl monitoring event
- * @param [out] value counter value
+ * @param [out] value counter value (only valid when PQOS_RETVAL_OK)
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_UNAVAILABLE any domain is Unassigned or Unavailable
+ * @retval PQOS_RETVAL_ERROR I/O or parse failure
  */
 static int
 resctrl_mon_read_counters(const unsigned class_id,
@@ -629,6 +676,11 @@ resctrl_mon_read_counters(const unsigned class_id,
 
                 ret = resctrl_mon_read_counter(class_id, resctrl_group, l3id,
                                                event, &counter);
+                if (ret == PQOS_RETVAL_UNAVAILABLE) {
+                        /* Discard partial sum; propagate unavailability */
+                        *value = 0;
+                        goto resctrl_mon_read_exit;
+                }
                 if (ret != PQOS_RETVAL_OK)
                         goto resctrl_mon_read_exit;
 
@@ -765,6 +817,14 @@ resctrl_mon_empty(const unsigned class_id,
 
         ret = resctrl_mon_read_counters(class_id, resctrl_group, l3id, l3id_num,
                                         PQOS_MON_EVENT_L3_OCCUP, &value);
+        if (ret == PQOS_RETVAL_UNAVAILABLE) {
+                /*
+                 * Cannot determine LLC occupancy; treat group as non-empty to
+                 * avoid deleting a group whose occupancy is simply unavailable.
+                 */
+                *empty = 0;
+                return PQOS_RETVAL_OK;
+        }
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
@@ -1835,9 +1895,12 @@ resctrl_mon_purge(struct pqos_mon_data *group)
                             group->intl->resctrl.l3id,
                             group->intl->resctrl.num_l3id,
                             PQOS_MON_EVENT_LMEM_BW, &value);
-                        if (ret != PQOS_RETVAL_OK)
+                        if (ret == PQOS_RETVAL_OK)
+                                group->intl->resctrl.values_storage.mbm_local +=
+                                    value;
+                        else if (ret != PQOS_RETVAL_UNAVAILABLE)
                                 return ret;
-                        group->intl->resctrl.values_storage.mbm_local += value;
+                        /* UNAVAILABLE: skip saving partial/stale MBM data */
                 }
                 if (resctrl_mon_is_event_supported(PQOS_MON_EVENT_TMEM_BW)) {
                         ret = resctrl_mon_read_counters(
@@ -1845,10 +1908,12 @@ resctrl_mon_purge(struct pqos_mon_data *group)
                             group->intl->resctrl.l3id,
                             group->intl->resctrl.num_l3id,
                             PQOS_MON_EVENT_TMEM_BW, &value);
-                        if (ret != PQOS_RETVAL_OK)
+                        if (ret == PQOS_RETVAL_OK)
+                                group->intl->resctrl.values_storage.mbm_total +=
+                                    value;
+                        else if (ret != PQOS_RETVAL_UNAVAILABLE)
                                 return ret;
-
-                        group->intl->resctrl.values_storage.mbm_total += value;
+                        /* UNAVAILABLE: skip saving partial/stale MBM data */
                 }
 
                 ret = resctrl_mon_rmdir(clos, name);
@@ -1988,6 +2053,27 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
                     clos, group->intl->resctrl.mon_group,
                     group->intl->resctrl.l3id, group->intl->resctrl.num_l3id,
                     event, &val);
+                if (ret == PQOS_RETVAL_UNAVAILABLE) {
+                        /*
+                         * Mark this event invalid and return UNAVAILABLE so
+                         * the caller can continue polling other events without
+                         * updating baselines or calculating a delta.
+                         */
+                        switch (event) {
+                        case PQOS_MON_EVENT_L3_OCCUP:
+                                group->intl->resctrl.valid_llc = 0;
+                                break;
+                        case PQOS_MON_EVENT_LMEM_BW:
+                                group->intl->resctrl.valid_mbm_local = 0;
+                                break;
+                        case PQOS_MON_EVENT_TMEM_BW:
+                                group->intl->resctrl.valid_mbm_total = 0;
+                                break;
+                        default:
+                                break;
+                        }
+                        goto resctrl_mon_poll_exit;
+                }
                 if (ret != PQOS_RETVAL_OK)
                         goto resctrl_mon_poll_exit;
 
@@ -1996,25 +2082,41 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
         } while (++clos < max_clos);
 
         /**
-         * Set value
+         * Set value.
+         * For MBM events, apply a per-event validity state machine:
+         *   initial/invalid -> valid: establish baseline, delta = 0.
+         *   valid -> valid: calculate normal delta.
          */
         switch (event) {
         case PQOS_MON_EVENT_L3_OCCUP:
                 group->values.llc = value;
+                group->intl->resctrl.valid_llc = 1;
                 break;
         case PQOS_MON_EVENT_LMEM_BW:
                 old_value = group->values.mbm_local;
                 group->values.mbm_local =
                     value + group->intl->resctrl.values_storage.mbm_local;
-                group->values.mbm_local_delta =
-                    get_delta(old_value, group->values.mbm_local);
+                if (group->intl->resctrl.valid_mbm_local) {
+                        group->values.mbm_local_delta =
+                            get_delta(old_value, group->values.mbm_local);
+                } else {
+                        /* First valid reading after invalidity: re-baseline */
+                        group->values.mbm_local_delta = 0;
+                        group->intl->resctrl.valid_mbm_local = 1;
+                }
                 break;
         case PQOS_MON_EVENT_TMEM_BW:
                 old_value = group->values.mbm_total;
                 group->values.mbm_total =
                     value + group->intl->resctrl.values_storage.mbm_total;
-                group->values.mbm_total_delta =
-                    get_delta(old_value, group->values.mbm_total);
+                if (group->intl->resctrl.valid_mbm_total) {
+                        group->values.mbm_total_delta =
+                            get_delta(old_value, group->values.mbm_total);
+                } else {
+                        /* First valid reading after invalidity: re-baseline */
+                        group->values.mbm_total_delta = 0;
+                        group->intl->resctrl.valid_mbm_total = 1;
+                }
                 break;
         default:
                 return PQOS_RETVAL_ERROR;

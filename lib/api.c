@@ -1732,3 +1732,50 @@ pqos_io_devs_get(struct pqos_pci_info *pci_info, uint16_t segment, uint16_t bdf)
 
         return API_CALL(io_devs_get, pci_info, segment, bdf);
 }
+
+int
+pqos_mon_event_valid(const struct pqos_mon_data *group,
+                     enum pqos_mon_event event)
+{
+        const struct pqos_mon_data_internal *intl;
+
+        if (group == NULL || group->intl == NULL ||
+            group->valid != GROUP_VALID_MARKER)
+                return 0;
+
+        if ((group->event & event) == 0)
+                return 0;
+
+        intl = group->intl;
+
+        /*
+         * For events backed by resctrl (LLC, MBM) check the per-event
+         * validity flag that is updated during each poll.
+         * RMEM_BW is a virtual event derived from LMEM_BW and TMEM_BW:
+         * it is valid only when both components are valid.
+         */
+        switch (event) {
+        case PQOS_MON_EVENT_L3_OCCUP:
+                if (intl->resctrl.event & event)
+                        return intl->resctrl.valid_llc;
+                break;
+        case PQOS_MON_EVENT_LMEM_BW:
+                if (intl->resctrl.event & event)
+                        return intl->resctrl.valid_mbm_local;
+                break;
+        case PQOS_MON_EVENT_TMEM_BW:
+                if (intl->resctrl.event & event)
+                        return intl->resctrl.valid_mbm_total;
+                break;
+        case PQOS_MON_EVENT_RMEM_BW:
+                if ((intl->resctrl.event & PQOS_MON_EVENT_LMEM_BW) &&
+                    (intl->resctrl.event & PQOS_MON_EVENT_TMEM_BW))
+                        return intl->resctrl.valid_mbm_local &&
+                               intl->resctrl.valid_mbm_total;
+                break;
+        default:
+                break;
+        }
+
+        return 1;
+}

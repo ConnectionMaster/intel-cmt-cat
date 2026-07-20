@@ -2316,6 +2316,29 @@ int pqos_mon_get_tel_value(const struct pqos_mon_data *group,
                            double *value);
 
 /**
+ * @brief Checks whether the last polled value for a given event is valid.
+ *
+ * For resctrl-backed events (LLC occupancy, local MBM, total MBM) this
+ * returns 0 if the last poll returned "Unassigned" or "Unavailable" from
+ * the kernel, or if no valid reading has been obtained yet.  It returns 1
+ * once a valid numeric sample has been read.
+ *
+ * For all other events the function returns 1 if the event is currently
+ * monitored by the group.
+ *
+ * Use this to determine whether to display an event value or substitute
+ * an unavailable marker (e.g. "N/A") in pqos output.
+ *
+ * @note Update event values using \a pqos_mon_poll before calling this.
+ *
+ * @param [in] group monitoring group
+ * @param [in] event event to check
+ * @return 1 if the event has a valid current reading, 0 otherwise
+ */
+int pqos_mon_event_valid(const struct pqos_mon_data *group,
+                         enum pqos_mon_event event);
+
+/**
  * @brief Frees memory previously allocated and returned by the library
  * functions.
  *

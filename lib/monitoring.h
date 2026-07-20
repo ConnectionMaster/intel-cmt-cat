@@ -142,6 +142,18 @@ struct pqos_mon_data_internal {
                 unsigned *pkgids;
                 unsigned num_pkgids;
 
+                /**
+                 * Per-event validity flags for resctrl counters.
+                 * 0 = no valid reading yet or last read was
+                 * Unassigned/Unavailable.
+                 * 1 = last read returned a valid numeric value.
+                 * Kept independent so one unavailable event does not affect
+                 * unrelated events.
+                 */
+                int valid_llc;       /**< LLC occupancy counter validity */
+                int valid_mbm_local; /**< local MBM counter validity */
+                int valid_mbm_total; /**< total MBM counter validity */
+
         } resctrl;
 
         /**

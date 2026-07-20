@@ -223,9 +223,18 @@ pqos_mon_poll_events(struct pqos_mon_data *group)
                  * poll resctrl event
                  */
                 if (group->intl->resctrl.event & evt) {
-                        ret = resctrl_mon_poll(group, evt);
-                        if (ret != PQOS_RETVAL_OK)
+                        int resctrl_ret = resctrl_mon_poll(group, evt);
+
+                        if (resctrl_ret != PQOS_RETVAL_OK &&
+                            resctrl_ret != PQOS_RETVAL_UNAVAILABLE) {
+                                ret = resctrl_ret;
                                 goto poll_events_exit;
+                        }
+                        /*
+                         * PQOS_RETVAL_UNAVAILABLE is non-fatal: the per-event
+                         * validity flag has been cleared inside
+                         * resctrl_mon_poll().  Continue polling other events.
+                         */
                 }
 #endif
         }

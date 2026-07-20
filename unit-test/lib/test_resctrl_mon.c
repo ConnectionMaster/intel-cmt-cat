@@ -167,7 +167,7 @@ test_resctrl_mon_read_counter_error(void **state __attribute__((unused)))
                                        &value);
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 
-        /* invalid value */
+        /* malformed/invalid value - must return error, not OK with zero */
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
                       "llc_occupancy");
@@ -176,8 +176,102 @@ test_resctrl_mon_read_counter_error(void **state __attribute__((unused)))
 
         ret = resctrl_mon_read_counter(1, "test", 0, PQOS_MON_EVENT_L3_OCCUP,
                                        &value);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+}
+
+/* ======== resctrl_mon_read_counter: resctrl status strings ======== */
+
+static void
+test_resctrl_mon_read_counter_zero(void **state __attribute__((unused)))
+{
+        int ret;
+        uint64_t value = 99;
+
+        /* numeric zero is a valid measurement */
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "llc_occupancy");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "0\n");
+
+        ret = resctrl_mon_read_counter(1, "test", 0, PQOS_MON_EVENT_L3_OCCUP,
+                                       &value);
         assert_int_equal(ret, PQOS_RETVAL_OK);
         assert_int_equal(value, 0);
+}
+
+static void
+test_resctrl_mon_read_counter_unassigned(void **state __attribute__((unused)))
+{
+        int ret;
+        uint64_t value = 99;
+
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "mbm_local_bytes");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "Unassigned\n");
+
+        ret = resctrl_mon_read_counter(1, "test", 0, PQOS_MON_EVENT_LMEM_BW,
+                                       &value);
+        assert_int_equal(ret, PQOS_RETVAL_UNAVAILABLE);
+        /* value must not be updated */
+        assert_int_equal(value, 99);
+}
+
+static void
+test_resctrl_mon_read_counter_unavailable(void **state __attribute__((unused)))
+{
+        int ret;
+        uint64_t value = 99;
+
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "mbm_total_bytes");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "Unavailable\n");
+
+        ret = resctrl_mon_read_counter(1, "test", 0, PQOS_MON_EVENT_TMEM_BW,
+                                       &value);
+        assert_int_equal(ret, PQOS_RETVAL_UNAVAILABLE);
+        assert_int_equal(value, 99);
+}
+
+static void
+test_resctrl_mon_read_counter_error_state(void **state __attribute__((unused)))
+{
+        int ret;
+        uint64_t value = 99;
+
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "llc_occupancy");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "Error\n");
+
+        ret = resctrl_mon_read_counter(1, "test", 0, PQOS_MON_EVENT_L3_OCCUP,
+                                       &value);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+        assert_int_equal(value, 99);
+}
+
+static void
+test_resctrl_mon_read_counter_trailing_junk(void **state __attribute__((unused)))
+{
+        int ret;
+        uint64_t value = 99;
+
+        /* trailing non-numeric characters after a valid number */
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "llc_occupancy");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "123abc\n");
+
+        ret = resctrl_mon_read_counter(1, "test", 0, PQOS_MON_EVENT_L3_OCCUP,
+                                       &value);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+        assert_int_equal(value, 99);
 }
 
 int
@@ -188,6 +282,11 @@ main(void)
             cmocka_unit_test(test_resctrl_mon_rmdir),
             cmocka_unit_test(test_resctrl_mon_read_counter),
             cmocka_unit_test(test_resctrl_mon_read_counter_error),
+            cmocka_unit_test(test_resctrl_mon_read_counter_zero),
+            cmocka_unit_test(test_resctrl_mon_read_counter_unassigned),
+            cmocka_unit_test(test_resctrl_mon_read_counter_unavailable),
+            cmocka_unit_test(test_resctrl_mon_read_counter_error_state),
+            cmocka_unit_test(test_resctrl_mon_read_counter_trailing_junk),
         };
 
         cmocka_run_group_tests(tests, NULL, NULL);

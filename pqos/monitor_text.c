@@ -198,6 +198,14 @@ monitor_text_header(FILE *fp,
                 fprintf(fp, " %11s", "PWR[W]");
 }
 
+/* Forward declarations for N/A column helpers defined later in this file */
+static size_t fillin_text_na_column(char data[], const size_t sz_data);
+static size_t fillin_text_na_16char_column(char data[], const size_t sz_data);
+static size_t fillin_text_na_regions_column(int num_regions,
+                                            char *data,
+                                            size_t offset,
+                                            size_t sz_data);
+
 /**
  * @brief Fills in single text column in the monitoring table
  *
@@ -278,14 +286,26 @@ monitor_text_row(FILE *fp,
 #endif
 
         for (i = 0; i < DIM(output); i++) {
-                double value =
-                    monitor_utils_get_value(mon_data, output[i].event) /
-                    output[i].unit;
+                const int is_monitored =
+                    (mon_data->event & output[i].event) != 0;
+                const int is_valid =
+                    !is_monitored ||
+                    pqos_mon_event_valid(mon_data, output[i].event);
 
-                offset += fillin_text_column(output[i].format, value,
-                                             data + offset, sz_data - offset,
-                                             mon_data->event & output[i].event,
-                                             events & output[i].event);
+                if (is_monitored && !is_valid && (events & output[i].event)) {
+                        /* Monitored but unavailable: display N/A */
+                        offset += fillin_text_na_column(data + offset,
+                                                        sz_data - offset);
+                } else {
+                        double value =
+                            monitor_utils_get_value(mon_data, output[i].event) /
+                            output[i].unit;
+
+                        offset += fillin_text_column(
+                            output[i].format, value, data + offset,
+                            sz_data - offset, is_monitored,
+                            events & output[i].event);
+                }
         }
 
         if (monitor_core_mode() || monitor_uncore_mode())
@@ -342,34 +362,51 @@ monitor_text_region_row(FILE *fp,
 #endif
 
         for (i = 0; i < DIM(output); i++) {
+                const int is_monitored =
+                    (mon_data->event & output[i].event) != 0;
+                const int is_valid =
+                    !is_monitored ||
+                    pqos_mon_event_valid(mon_data, output[i].event);
+
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
                         for (j = 0; j < mon_data->regions.num_mem_regions;
                              j++) {
+                                if (is_monitored && !is_valid &&
+                                    (events & output[i].event)) {
+                                        /* Unavailable: N/A for this region */
+                                        offset += fillin_text_na_16char_column(
+                                            data + offset, sz_data - offset);
+                                } else {
+                                        double value =
+                                            monitor_utils_get_region_value(
+                                                mon_data, output[i].event,
+                                                mon_data->regions
+                                                    .region_num[j]) /
+                                            output[i].unit;
 
-                                double value =
-                                    monitor_utils_get_region_value(
-                                        mon_data, output[i].event,
-                                        mon_data->regions.region_num[j]) /
-                                    output[i].unit;
-
-                                offset += fillin_text_column(
-                                    REGION_FORMAT, value, data + offset,
-                                    sz_data - offset,
-                                    mon_data->event & output[i].event,
-                                    events & output[i].event);
+                                        offset += fillin_text_column(
+                                            REGION_FORMAT, value, data + offset,
+                                            sz_data - offset, is_monitored,
+                                            events & output[i].event);
+                                }
                         }
                         continue;
                 }
 
-                double value =
-                    monitor_utils_get_region_value(mon_data, output[i].event,
-                                                   INVALID_REGION_NUM) /
-                    output[i].unit;
+                if (is_monitored && !is_valid && (events & output[i].event)) {
+                        offset += fillin_text_na_column(data + offset,
+                                                        sz_data - offset);
+                } else {
+                        double value =
+                            monitor_utils_get_region_value(
+                                mon_data, output[i].event, INVALID_REGION_NUM) /
+                            output[i].unit;
 
-                offset += fillin_text_column(output[i].format, value,
-                                             data + offset, sz_data - offset,
-                                             mon_data->event & output[i].event,
-                                             events & output[i].event);
+                        offset += fillin_text_column(
+                            output[i].format, value, data + offset,
+                            sz_data - offset, is_monitored,
+                            events & output[i].event);
+                }
         }
 
         if (monitor_core_mode())
@@ -484,6 +521,11 @@ monitor_text_mixed_row(FILE *fp,
                     (output[i].event & (PQOS_MON_EVENT_IO_L3_OCCUP |
                                         PQOS_MON_EVENT_IO_TOTAL_MEM_BW |
                                         PQOS_MON_EVENT_IO_MISS_MEM_BW)) != 0;
+                const int is_monitored =
+                    (mon_data->event & output[i].event) != 0;
+                const int is_valid =
+                    !is_monitored ||
+                    pqos_mon_event_valid(mon_data, output[i].event);
 
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
                         if (is_core_group) {
@@ -491,18 +533,29 @@ monitor_text_mixed_row(FILE *fp,
                                 for (j = 0;
                                      j < mon_data->regions.num_mem_regions;
                                      j++) {
-                                        double value =
-                                            monitor_utils_get_region_value(
-                                                mon_data, output[i].event,
-                                                mon_data->regions
-                                                    .region_num[j]) /
-                                            output[i].unit;
+                                        if (is_monitored && !is_valid &&
+                                            (events & output[i].event)) {
+                                                /* Unavailable: N/A */
+                                                offset +=
+                                                    fillin_text_na_16char_column(
+                                                        data + offset,
+                                                        sz_data - offset);
+                                        } else {
+                                                double value =
+                                                    monitor_utils_get_region_value(
+                                                        mon_data,
+                                                        output[i].event,
+                                                        mon_data->regions
+                                                            .region_num[j]) /
+                                                    output[i].unit;
 
-                                        offset += fillin_text_column(
-                                            REGION_FORMAT, value, data + offset,
-                                            sz_data - offset,
-                                            mon_data->event & output[i].event,
-                                            events & output[i].event);
+                                                offset += fillin_text_column(
+                                                    REGION_FORMAT, value,
+                                                    data + offset,
+                                                    sz_data - offset,
+                                                    is_monitored,
+                                                    events & output[i].event);
+                                        }
                                 }
                         } else {
                                 /* Channel group: N/A for each region column */
@@ -523,6 +576,15 @@ monitor_text_mixed_row(FILE *fp,
                         if (events & output[i].event)
                                 offset += fillin_text_na_column(
                                     data + offset, sz_data - offset);
+                } else if (is_monitored && !is_valid &&
+                           (events & output[i].event)) {
+                        /* Monitored but unavailable */
+                        if (is_io_event)
+                                offset += fillin_text_na_16char_column(
+                                    data + offset, sz_data - offset);
+                        else
+                                offset += fillin_text_na_column(
+                                    data + offset, sz_data - offset);
                 } else {
                         double value =
                             monitor_utils_get_region_value(
@@ -531,7 +593,7 @@ monitor_text_mixed_row(FILE *fp,
 
                         offset += fillin_text_column(
                             output[i].format, value, data + offset,
-                            sz_data - offset, mon_data->event & output[i].event,
+                            sz_data - offset, is_monitored,
                             events & output[i].event);
                 }
         }
