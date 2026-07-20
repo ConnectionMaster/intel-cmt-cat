@@ -294,6 +294,47 @@ test_iordt_unsupported(void **state)
 }
 
 static void
+test_iordt_fini_error(void **state)
+{
+        struct test_data *data = (struct test_data *)*state;
+        struct acpi_table table = {.generic = acpi_irdt};
+        struct pqos_devinfo *devinfo = NULL;
+        int ret;
+
+        expect_function_call(__wrap_acpi_init);
+        will_return(__wrap_acpi_init, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_pci_init);
+        will_return(__wrap_pci_init, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_acpi_get_sig);
+        expect_string(__wrap_acpi_get_sig, sig, ACPI_TABLE_SIG_IRDT);
+        will_return(__wrap_acpi_get_sig, &table);
+        expect_function_call(__wrap_acpi_print);
+        expect_value(__wrap_acpi_print, table, &table);
+        expect_function_call(__wrap_acpi_free);
+        expect_value(__wrap_acpi_free, table, &table);
+
+        ret = iordt_init(data->cap, &devinfo);
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+        assert_non_null(devinfo);
+
+        expect_function_call(__wrap_pci_fini);
+        will_return(__wrap_pci_fini, PQOS_RETVAL_ERROR);
+        expect_function_call(__wrap_acpi_fini);
+        will_return(__wrap_acpi_fini, PQOS_RETVAL_RESOURCE);
+
+        ret = iordt_fini();
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+
+        expect_function_call(__wrap_pci_fini);
+        will_return(__wrap_pci_fini, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_acpi_fini);
+        will_return(__wrap_acpi_fini, PQOS_RETVAL_OK);
+
+        ret = iordt_fini();
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+}
+
+static void
 test_iordt_fini(void **state __attribute__((unused)))
 {
         int ret;
@@ -366,6 +407,7 @@ main(void)
             cmocka_unit_test(test_iordt_init),
             cmocka_unit_test(test_iordt_init_cleanup),
             cmocka_unit_test(test_iordt_fini),
+            cmocka_unit_test(test_iordt_fini_error),
             cmocka_unit_test(test_iordt_check_support_unsupported),
             cmocka_unit_test(test_iordt_check_support_l3),
             cmocka_unit_test(test_iordt_unsupported)};
