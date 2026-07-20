@@ -2,7 +2,6 @@
  * BSD LICENSE
  *
  * Copyright(c) 2023-2026 Intel Corporation. All rights reserved.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,15 +76,16 @@ PQOS_LOCAL int iordt_fini(void);
  * @param [in] platform QoS capabilities structure
  *
  * @return Operational status
- * @retval PQOS_RETVAL_OK is I/O RDT is supported
+ * @retval PQOS_RETVAL_OK if I/O RDT is supported
  */
 PQOS_LOCAL int iordt_check_support(const struct pqos_cap *cap);
 
 /**
- * @brief Obtains numa node for the channel
+ * @brief Obtains NUMA node for the channel
  *
- * @param [in] channel MMIO channel
- * @param [out] numa Socket id
+ * @param [in] devinfo I/O RDT device information
+ * @param [in] channel_id MMIO channel identifier
+ * @param [out] numa NUMA node identifier
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK success
@@ -117,7 +117,7 @@ PQOS_LOCAL int iordt_mon_assoc_write(pqos_channel_t channel, pqos_rmid_t rmid);
 PQOS_LOCAL int iordt_mon_assoc_read(pqos_channel_t channel, pqos_rmid_t *rmid);
 
 /**
- * @brief reset I/O RDT channel assoc
+ * @brief Resets I/O RDT channel association
  *
  * @param[in] dev I/O RDT device information
  *
@@ -149,7 +149,7 @@ PQOS_LOCAL int iordt_assoc_write(pqos_channel_t channel, unsigned class_id);
 PQOS_LOCAL int iordt_assoc_read(pqos_channel_t channel, unsigned *class_id);
 
 /**
- * @brief reset CLOS assoc
+ * @brief Resets CLOS association
  *
  * @param[in] dev I/O RDT device information
  *

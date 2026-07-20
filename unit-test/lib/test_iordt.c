@@ -240,6 +240,41 @@ test_iordt_init(void **state)
 }
 
 static void
+test_iordt_init_cleanup(void **state)
+{
+        struct test_data *data = (struct test_data *)*state;
+        struct pqos_devinfo *devinfo = NULL;
+        int ret;
+
+        expect_function_call(__wrap_acpi_init);
+        will_return(__wrap_acpi_init, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_pci_init);
+        will_return(__wrap_pci_init, PQOS_RETVAL_ERROR);
+        expect_function_call(__wrap_acpi_fini);
+        will_return(__wrap_acpi_fini, PQOS_RETVAL_OK);
+
+        ret = iordt_init(data->cap, &devinfo);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+        assert_null(devinfo);
+
+        expect_function_call(__wrap_acpi_init);
+        will_return(__wrap_acpi_init, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_pci_init);
+        will_return(__wrap_pci_init, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_acpi_get_sig);
+        expect_string(__wrap_acpi_get_sig, sig, ACPI_TABLE_SIG_IRDT);
+        will_return(__wrap_acpi_get_sig, NULL);
+        expect_function_call(__wrap_pci_fini);
+        will_return(__wrap_pci_fini, PQOS_RETVAL_OK);
+        expect_function_call(__wrap_acpi_fini);
+        will_return(__wrap_acpi_fini, PQOS_RETVAL_OK);
+
+        ret = iordt_init(data->cap, &devinfo);
+        assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
+        assert_null(devinfo);
+}
+
+static void
 test_iordt_unsupported(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
@@ -263,14 +298,8 @@ test_iordt_fini(void **state __attribute__((unused)))
 {
         int ret;
 
-        expect_function_call(__wrap_pci_fini);
-        will_return(__wrap_pci_fini, PQOS_RETVAL_OK);
-
-        expect_function_call(__wrap_acpi_fini);
-        will_return(__wrap_acpi_fini, PQOS_RETVAL_ERROR);
-
         ret = iordt_fini();
-        assert_int_not_equal(ret, PQOS_RETVAL_OK);
+        assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
 /* ========= iordt_check_support ======== */
@@ -335,6 +364,7 @@ main(void)
 
         const struct CMUnitTest tests[] = {
             cmocka_unit_test(test_iordt_init),
+            cmocka_unit_test(test_iordt_init_cleanup),
             cmocka_unit_test(test_iordt_fini),
             cmocka_unit_test(test_iordt_check_support_unsupported),
             cmocka_unit_test(test_iordt_check_support_l3),

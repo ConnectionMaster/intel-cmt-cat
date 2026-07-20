@@ -2,7 +2,6 @@
  * BSD LICENSE
  *
  * Copyright(c) 2023-2026 Intel Corporation. All rights reserved.
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,7 +61,7 @@
 struct iordt_mmio {
         uint64_t id;          /**< MMIO id */
         uint64_t addr;        /**< MMIO physical address */
-        unsigned numa;        /**< numa id in the system */
+        unsigned numa;        /**< NUMA node ID in the system */
         uint16_t rmid_offset; /**< RMID block offset */
         uint16_t clos_offset; /**< CLOS block offset */
         uint64_t flags;       /**< RCS flags */
@@ -77,7 +76,7 @@ struct iordt_mmioinfo {
 };
 
 /**
- * IO RDT topology information.
+ * I/O RDT topology information.
  * This pointer is allocated and initialized in this module.
  */
 static struct pqos_devinfo *m_devinfo = NULL;
@@ -86,6 +85,9 @@ static struct pqos_devinfo *m_devinfo = NULL;
  * MMIO topology information
  */
 static struct iordt_mmioinfo *m_mmioinfo = NULL;
+
+static int m_acpi_initialized;
+static int m_pci_initialized;
 
 /**
  * @brief Get MMIO information for the channel
@@ -121,7 +123,7 @@ get_mmio(const struct iordt_mmioinfo *mmioinfo, pqos_channel_t channel_id)
  * @param [in] platform QoS capabilities structure
  *
  * @return Operational status
- * @retval PQOS_RETVAL_OK is I/O RDT is supported
+ * @retval PQOS_RETVAL_OK if I/O RDT is supported
  */
 int
 iordt_check_support(const struct pqos_cap *cap)
@@ -165,21 +167,28 @@ iordt_dev_populate_chans(struct pqos_dev *pqos_dev,
         size_t chms_idx, chan_idx;
         int ret = acpi_get_irdt_chms(dev, &chms, &chms_num);
 
-        if (ret != PQOS_RETVAL_OK)
+        if (ret != PQOS_RETVAL_OK) {
+                LOG_ERROR("Failed to get DSS channel mappings: %d\n", ret);
+                free(chms);
                 return ret;
+        }
 
         for (chms_idx = 0, chan_idx = 0; chms_idx < chms_num; chms_idx++) {
                 size_t vc_num = DIM(chms[chms_idx]->vc_map);
                 size_t vc_idx;
 
-                for (vc_idx = 0;
-                     vc_idx < vc_num && chan_idx < PQOS_DEV_MAX_CHANNELS;
-                     vc_idx++) {
+                for (vc_idx = 0; vc_idx < vc_num; vc_idx++) {
                         uint8_t vc = chms[chms_idx]->vc_map[vc_idx];
 
                         /* Check if this is a valid entry */
                         if (!(vc & ACPI_TABLE_IRDT_CHMS_CHAN_VALID))
                                 continue;
+                        if (chan_idx >= PQOS_DEV_MAX_CHANNELS) {
+                                LOG_ERROR("Too many channels for I/O RDT "
+                                          "device\n");
+                                free(chms);
+                                return PQOS_RETVAL_ERROR;
+                        }
                         /* remove flags */
                         vc &= ~(ACPI_TABLE_IRDT_CHMS_CHAN_MASK);
 
@@ -215,33 +224,42 @@ iordt_populate_devs(struct pqos_devinfo *devinfo,
         int ret;
 
         devs = acpi_get_irdt_dev(rmud, &devs_num);
-        if (!devs)
+        if (devs == NULL) {
+                LOG_ERROR("Failed to get IRDT devices\n");
                 return PQOS_RETVAL_ERROR;
+        }
 
-        /* pqos_devinfo devs */
         for (dev_idx = 0; dev_idx < devs_num; dev_idx++) {
+                struct pqos_dev *new_devs;
+                struct pqos_dev *pqos_dev;
 
-                /* skipping entries other than DSS */
                 if (devs[dev_idx]->type != ACPI_TABLE_IRDT_TYPE_DSS)
                         continue;
-
-                devinfo->num_devs++;
-                devinfo->devs = realloc(devinfo->devs, sizeof(*devinfo->devs) *
-                                                           devinfo->num_devs);
-                if (devinfo->devs == NULL) {
+                if (devinfo->num_devs == UINT_MAX) {
+                        LOG_ERROR("Too many I/O RDT devices\n");
                         free(devs);
                         return PQOS_RETVAL_ERROR;
                 }
 
-                struct pqos_dev *pqos_dev =
-                    &devinfo->devs[devinfo->num_devs - 1];
+                new_devs = realloc(devinfo->devs, (devinfo->num_devs + 1) *
+                                                      sizeof(*devinfo->devs));
+                if (new_devs == NULL) {
+                        LOG_ERROR("Can't allocate I/O RDT devices\n");
+                        free(devs);
+                        return PQOS_RETVAL_ERROR;
+                }
+
+                devinfo->devs = new_devs;
+                pqos_dev = &devinfo->devs[devinfo->num_devs++];
+                memset(pqos_dev, 0, sizeof(*pqos_dev));
 
                 if (devs[dev_idx]->dss.device_type == 0x1)
                         pqos_dev->type = PQOS_DEVICE_TYPE_PCI;
                 else if (devs[dev_idx]->dss.device_type == 0x2)
                         pqos_dev->type = PQOS_DEVICE_TYPE_PCI_BRIDGE;
                 else {
-                        LOG_ERROR("Unknown DSS device type!\n");
+                        LOG_ERROR("Unknown DSS device type 0x%x\n",
+                                  devs[dev_idx]->dss.device_type);
                         free(devs);
                         return PQOS_RETVAL_ERROR;
                 }
@@ -251,15 +269,13 @@ iordt_populate_devs(struct pqos_devinfo *devinfo,
                 ret =
                     iordt_dev_populate_chans(pqos_dev, devs[dev_idx], rmud_idx);
                 if (ret != PQOS_RETVAL_OK) {
-                        LOG_ERROR("Failed to populate DSS channels!\n");
+                        LOG_ERROR("Failed to populate DSS channels: %d\n", ret);
                         free(devs);
-                        return PQOS_RETVAL_ERROR;
+                        return ret;
                 }
         }
 
-        if (devs)
-                free(devs);
-
+        free(devs);
         return PQOS_RETVAL_OK;
 }
 
@@ -278,71 +294,88 @@ iordt_populate_chans(struct pqos_devinfo *devinfo,
                      struct acpi_table_irdt_rmud *rmud,
                      size_t rmud_idx)
 {
-        const struct iordt_mmio *mmio = NULL;
         size_t devs_num = 0;
         struct acpi_table_irdt_device **devs;
-        size_t dev_idx, chan_idx;
+        size_t dev_idx;
+        size_t chan_idx;
 
         devs = acpi_get_irdt_dev(rmud, &devs_num);
-        if (!devs)
+        if (devs == NULL) {
+                LOG_ERROR("Failed to get IRDT devices\n");
                 return PQOS_RETVAL_ERROR;
+        }
 
         for (dev_idx = 0; dev_idx < devs_num; dev_idx++) {
+                const struct acpi_table_irdt_device *dev = devs[dev_idx];
+                int rmid_tag;
+                int clos_tag;
+                int cxld;
 
-                /* skipping entries other than RCS */
-                if (devs[dev_idx]->type != ACPI_TABLE_IRDT_TYPE_RCS)
+                if (dev->type != ACPI_TABLE_IRDT_TYPE_RCS)
                         continue;
 
-                int rmid_tag =
-                    (devs[dev_idx]->rcs.flags & RCS_FLAGS_RTS) ? 1 : 0;
-                int clos_tag =
-                    (devs[dev_idx]->rcs.flags & RCS_FLAGS_CTS) ? 1 : 0;
-                int cxld = (devs[dev_idx]->rcs.flags & RCS_FLAGS_CXLD) ? 1 : 0;
+                rmid_tag = !!(dev->rcs.flags & RCS_FLAGS_RTS);
+                clos_tag = !!(dev->rcs.flags & RCS_FLAGS_CTS);
+                cxld = !!(dev->rcs.flags & RCS_FLAGS_CXLD);
 
-                for (chan_idx = 0; chan_idx < devs[dev_idx]->rcs.channel_count;
+                if (dev->rcs.channel_count > MMIO_MAX_CHANNELS) {
+                        LOG_ERROR("Invalid I/O RDT channel count %u\n",
+                                  (unsigned)dev->rcs.channel_count);
+                        free(devs);
+                        return PQOS_RETVAL_ERROR;
+                }
+
+                for (chan_idx = 0; chan_idx < dev->rcs.channel_count;
                      chan_idx++) {
+                        const struct iordt_mmio *mmio;
+                        struct pqos_channel *channels;
+                        struct pqos_channel *channel;
 
-                        devinfo->num_channels++;
-                        devinfo->channels = realloc(
-                            devinfo->channels, sizeof(struct pqos_channel) *
-                                                   devinfo->num_channels);
-                        if (devinfo->channels == NULL) {
+                        if (devinfo->num_channels == UINT_MAX) {
+                                LOG_ERROR("Too many I/O RDT channels\n");
                                 free(devs);
                                 return PQOS_RETVAL_ERROR;
                         }
 
-                        struct pqos_channel *pqos_chan =
-                            &devinfo->channels[devinfo->num_channels - 1];
+                        channels = realloc(devinfo->channels,
+                                           (devinfo->num_channels + 1) *
+                                               sizeof(*devinfo->channels));
+                        if (channels == NULL) {
+                                LOG_ERROR("Can't allocate I/O RDT channels\n");
+                                free(devs);
+                                return PQOS_RETVAL_ERROR;
+                        }
 
-                        pqos_chan->rmid_tagging = rmid_tag;
-                        pqos_chan->clos_tagging = clos_tag;
-                        pqos_chan->cxld = cxld;
-                        pqos_chan->channel_id = PQOS_IRDT_CHAN_ID(
-                            rmud_idx, devs[dev_idx]->rcs.rcs_enumeration_id,
-                            chan_idx);
-                        mmio = get_mmio(m_mmioinfo, pqos_chan->channel_id);
+                        devinfo->channels = channels;
+                        channel = &devinfo->channels[devinfo->num_channels++];
+                        memset(channel, 0, sizeof(*channel));
+                        channel->rmid_tagging = rmid_tag;
+                        channel->clos_tagging = clos_tag;
+                        channel->cxld = cxld;
+                        channel->channel_id = PQOS_IRDT_CHAN_ID(
+                            rmud_idx, dev->rcs.rcs_enumeration_id, chan_idx);
+
+                        mmio = get_mmio(m_mmioinfo, channel->channel_id);
                         if (mmio == NULL) {
-                                LOG_WARN("Unable to get MMIO information for "
-                                         "the channel 0x%lx\n",
-                                         pqos_chan->channel_id);
+                                LOG_ERROR("No MMIO information for channel "
+                                          "0x%" PRIx64 "\n",
+                                          channel->channel_id);
                                 free(devs);
                                 return PQOS_RETVAL_ERROR;
                         }
-                        pqos_chan->mmio_addr = mmio->addr;
-                        pqos_chan->numa = mmio->numa;
+                        channel->mmio_addr = mmio->addr;
+                        channel->numa = mmio->numa;
                 }
         }
 
-        if (devs)
-                free(devs);
-
+        free(devs);
         return PQOS_RETVAL_OK;
 }
 
 /**
  * @brief Parses IRDT table to extract MMIO address
  *
- * @param mmio MMIO information structure
+ * @param mmioinfo MMIO information structure
  * @param rmud RMUD table to be parsed for RCS' info
  * @param rmud_idx RMUD index
  *
@@ -360,8 +393,10 @@ iordt_populate_mmio(struct iordt_mmioinfo *mmioinfo,
         int ret = PQOS_RETVAL_OK;
 
         devs = acpi_get_irdt_dev(rmud, &devs_num);
-        if (!devs)
+        if (devs == NULL) {
+                LOG_ERROR("Failed to get IRDT devices\n");
                 return PQOS_RETVAL_ERROR;
+        }
 
         for (dev_idx = 0; dev_idx < devs_num; dev_idx++) {
                 struct iordt_mmio *mmio;
@@ -376,9 +411,15 @@ iordt_populate_mmio(struct iordt_mmioinfo *mmioinfo,
                 /* mmio physical address */
                 addr = dev->rcs.rcs_block_mmio_location;
 
+                if (mmioinfo->num_mmio == UINT_MAX) {
+                        LOG_ERROR("Too many IRDT MMIO blocks\n");
+                        ret = PQOS_RETVAL_ERROR;
+                        goto iordt_populate_mmio_exit;
+                }
                 mmio = realloc(mmioinfo->mmio, (mmioinfo->num_mmio + 1) *
-                                                   sizeof(struct iordt_mmio));
+                                                   sizeof(*mmioinfo->mmio));
                 if (mmio == NULL) {
+                        LOG_ERROR("Can't allocate IRDT MMIO blocks\n");
                         ret = PQOS_RETVAL_ERROR;
                         goto iordt_populate_mmio_exit;
                 }
@@ -408,8 +449,12 @@ iordt_populate_mmio(struct iordt_mmioinfo *mmioinfo,
                         continue;
 
                 ret = acpi_get_irdt_chms(dev, &chms, &chms_num);
-                if (ret != PQOS_RETVAL_OK)
+                if (ret != PQOS_RETVAL_OK) {
+                        LOG_ERROR("Failed to get IRDT channel mappings: %d\n",
+                                  ret);
+                        free(chms);
                         goto iordt_populate_mmio_exit;
+                }
 
                 for (chms_idx = 0; chms_idx < chms_num; chms_idx++) {
                         const uint16_t domain = rmud->segment;
@@ -446,111 +491,15 @@ iordt_populate_mmio_exit:
         return ret;
 }
 
-int
-iordt_init(const struct pqos_cap *cap, struct pqos_devinfo **devinfo)
+/**
+ * @brief Frees I/O RDT topology information
+ */
+static void
+iordt_free(void)
 {
-        int ret;
-
-        if (cap == NULL || devinfo == NULL)
-                return PQOS_RETVAL_PARAM;
-
-        ret = iordt_check_support(cap);
-        if (ret != PQOS_RETVAL_OK)
-                return ret;
-
-        ret = acpi_init();
-        if (ret != PQOS_RETVAL_OK) {
-                LOG_WARN("Could not initialize ACPI!\n");
-                return ret;
-        }
-
-        ret = pci_init();
-        if (ret != PQOS_RETVAL_OK) {
-                LOG_WARN("Could not initialize PCI!\n");
-                return ret;
-        }
-
-        struct acpi_table *table = acpi_get_sig(ACPI_TABLE_SIG_IRDT);
-
-        if (table == NULL) {
-                LOG_WARN("Could not obtain %s table\n", ACPI_TABLE_SIG_IRDT);
-                return PQOS_RETVAL_RESOURCE;
-        }
-
-        acpi_print(table);
-
-        m_devinfo = (struct pqos_devinfo *)calloc(1, sizeof(*m_devinfo));
-        if (m_devinfo == NULL) {
-                acpi_free(table);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        m_mmioinfo = (struct iordt_mmioinfo *)calloc(1, sizeof(*m_mmioinfo));
-        if (m_mmioinfo == NULL) {
-                acpi_free(table);
-                free(m_devinfo);
-                return PQOS_RETVAL_ERROR;
-        }
-
-        size_t rmud_idx;
-        size_t rmuds_num = 0;
-        struct acpi_table_irdt_rmud **rmuds = NULL;
-
-        rmuds = acpi_get_irdt_rmud(table->irdt, &rmuds_num);
-        if (!rmuds) {
-                acpi_free(table);
-                LOG_WARN("Could not get RMUDs!\n");
-                return PQOS_RETVAL_ERROR;
-        }
-
-        for (rmud_idx = 0; rmud_idx < rmuds_num; rmud_idx++) {
-                ret =
-                    iordt_populate_mmio(m_mmioinfo, rmuds[rmud_idx], rmud_idx);
-                if (ret != PQOS_RETVAL_OK)
-                        break;
-
-                ret = iordt_populate_devs(m_devinfo, rmuds[rmud_idx], rmud_idx);
-                if (ret != PQOS_RETVAL_OK)
-                        break;
-
-                ret =
-                    iordt_populate_chans(m_devinfo, rmuds[rmud_idx], rmud_idx);
-                if (ret != PQOS_RETVAL_OK)
-                        break;
-        }
-
-        if (rmuds)
-                free(rmuds);
-
-        acpi_free(table);
-
-        *devinfo = m_devinfo;
-
-        return ret;
-}
-
-int
-iordt_fini(void)
-{
-        int ret;
-
-        ret = pci_fini();
-        if (ret != PQOS_RETVAL_OK) {
-                LOG_WARN("Could not finalize PCI!\n");
-                return ret;
-        }
-
-        ret = acpi_fini();
-        if (ret != PQOS_RETVAL_OK) {
-                LOG_WARN("Could not finalize IO RDT!\n");
-                return ret;
-        }
-
         if (m_devinfo != NULL) {
-                if (m_devinfo->channels)
-                        free(m_devinfo->channels);
-                if (m_devinfo->devs)
-                        free(m_devinfo->devs);
+                free(m_devinfo->channels);
+                free(m_devinfo->devs);
                 free(m_devinfo);
                 m_devinfo = NULL;
         }
@@ -560,8 +509,122 @@ iordt_fini(void)
                 free(m_mmioinfo);
                 m_mmioinfo = NULL;
         }
+}
+
+int
+iordt_init(const struct pqos_cap *cap, struct pqos_devinfo **devinfo)
+{
+        struct acpi_table_irdt_rmud **rmuds = NULL;
+        struct acpi_table *table = NULL;
+        size_t rmuds_num = 0;
+        size_t rmud_idx;
+        int ret;
+
+        if (cap == NULL || devinfo == NULL)
+                return PQOS_RETVAL_PARAM;
+        *devinfo = NULL;
+
+        ret = iordt_check_support(cap);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+
+        ret = acpi_init();
+        if (ret != PQOS_RETVAL_OK) {
+                LOG_WARN("Could not initialize ACPI: %d\n", ret);
+                return ret;
+        }
+        m_acpi_initialized = 1;
+
+        ret = pci_init();
+        if (ret != PQOS_RETVAL_OK) {
+                LOG_WARN("Could not initialize PCI: %d\n", ret);
+                goto error;
+        }
+        m_pci_initialized = 1;
+
+        table = acpi_get_sig(ACPI_TABLE_SIG_IRDT);
+        if (table == NULL) {
+                LOG_WARN("Could not obtain %s table\n", ACPI_TABLE_SIG_IRDT);
+                ret = PQOS_RETVAL_RESOURCE;
+                goto error;
+        }
+
+        acpi_print(table);
+        m_devinfo = calloc(1, sizeof(*m_devinfo));
+        m_mmioinfo = calloc(1, sizeof(*m_mmioinfo));
+        if (m_devinfo == NULL || m_mmioinfo == NULL) {
+                LOG_ERROR("Can't allocate I/O RDT topology information\n");
+                ret = PQOS_RETVAL_ERROR;
+                goto error;
+        }
+
+        rmuds = acpi_get_irdt_rmud(table->irdt, &rmuds_num);
+        if (rmuds == NULL) {
+                LOG_ERROR("Could not get IRDT RMUD structures\n");
+                ret = PQOS_RETVAL_ERROR;
+                goto error;
+        }
+
+        for (rmud_idx = 0; rmud_idx < rmuds_num; rmud_idx++) {
+                ret =
+                    iordt_populate_mmio(m_mmioinfo, rmuds[rmud_idx], rmud_idx);
+                if (ret != PQOS_RETVAL_OK)
+                        goto error;
+
+                ret = iordt_populate_devs(m_devinfo, rmuds[rmud_idx], rmud_idx);
+                if (ret != PQOS_RETVAL_OK)
+                        goto error;
+
+                ret =
+                    iordt_populate_chans(m_devinfo, rmuds[rmud_idx], rmud_idx);
+                if (ret != PQOS_RETVAL_OK)
+                        goto error;
+        }
+
+        LOG_DEBUG("Parsed %u I/O devices and %u channels\n",
+                  m_devinfo->num_devs, m_devinfo->num_channels);
+        free(rmuds);
+        acpi_free(table);
+        *devinfo = m_devinfo;
 
         return PQOS_RETVAL_OK;
+
+error:
+        free(rmuds);
+        if (table != NULL)
+                acpi_free(table);
+        (void)iordt_fini();
+        return ret;
+}
+
+int
+iordt_fini(void)
+{
+        int ret = PQOS_RETVAL_OK;
+        int retval;
+
+        if (m_pci_initialized) {
+                retval = pci_fini();
+                if (retval != PQOS_RETVAL_OK) {
+                        LOG_WARN("Could not finalize PCI: %d\n", retval);
+                        ret = retval;
+                } else
+                        m_pci_initialized = 0;
+        }
+
+        if (m_acpi_initialized) {
+                retval = acpi_fini();
+                if (retval != PQOS_RETVAL_OK) {
+                        LOG_WARN("Could not finalize I/O RDT ACPI: %d\n",
+                                 retval);
+                        if (ret == PQOS_RETVAL_OK)
+                                ret = retval;
+                } else
+                        m_acpi_initialized = 0;
+        }
+
+        iordt_free();
+        return ret;
 }
 
 int
@@ -569,20 +632,22 @@ iordt_get_numa(const struct pqos_devinfo *devinfo,
                pqos_channel_t channel_id,
                unsigned *numa)
 {
-        const struct iordt_mmio *mmio = get_mmio(m_mmioinfo, channel_id);
+        const struct iordt_mmio *mmio;
         unsigned i;
         int ret = PQOS_RETVAL_RESOURCE;
 
+        if (devinfo == NULL || numa == NULL)
+                return PQOS_RETVAL_PARAM;
+
+        mmio = get_mmio(m_mmioinfo, channel_id);
         if (mmio == NULL)
                 return PQOS_RETVAL_PARAM;
 
-        /* read socket information basing on bdf in RCS */
         if (mmio->numa != PCI_NUMA_INVALID) {
                 *numa = mmio->numa;
                 return PQOS_RETVAL_OK;
         }
 
-        /* Check socket info in DSS */
         for (i = 0; i < devinfo->num_devs; ++i) {
                 unsigned ch;
                 const struct pqos_dev *dev = &devinfo->devs[i];
@@ -595,6 +660,9 @@ iordt_get_numa(const struct pqos_devinfo *devinfo,
 
                         pci = pci_dev_get(dev->segment, dev->bdf);
                         if (pci == NULL) {
+                                LOG_DEBUG("No PCI information for segment "
+                                          "0x%x BDF 0x%x\n",
+                                          dev->segment, dev->bdf);
                                 ret = PQOS_RETVAL_ERROR;
                                 continue;
                         }
@@ -604,7 +672,6 @@ iordt_get_numa(const struct pqos_devinfo *devinfo,
                                 pci_dev_release(pci);
                                 return PQOS_RETVAL_OK;
                         }
-
                         pci_dev_release(pci);
                 }
         }
@@ -749,8 +816,12 @@ iordt_mon_assoc_reset(const struct pqos_devinfo *dev)
                         continue;
 
                 retval = iordt_mon_assoc_write(channel->channel_id, 0);
-                if (retval != PQOS_RETVAL_OK)
+                if (retval != PQOS_RETVAL_OK) {
+                        LOG_ERROR("Failed to reset RMID association for "
+                                  "channel 0x%" PRIx64 ": %d\n",
+                                  channel->channel_id, retval);
                         ret = retval;
+                }
         }
 
         return ret;
@@ -862,8 +933,12 @@ iordt_assoc_reset(const struct pqos_devinfo *dev)
                         continue;
 
                 retval = _assoc_write(channel->channel_id, 0, 0);
-                if (retval != PQOS_RETVAL_OK)
-                        ret = PQOS_RETVAL_ERROR;
+                if (retval != PQOS_RETVAL_OK) {
+                        LOG_ERROR("Failed to reset CLOS association for "
+                                  "channel 0x%" PRIx64 ": %d\n",
+                                  channel->channel_id, retval);
+                        ret = retval;
+                }
         }
 
         return ret;
