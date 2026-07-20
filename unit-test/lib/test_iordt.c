@@ -212,6 +212,7 @@ test_iordt_init(void **state)
         assert_ptr_not_equal(devinfo->channels, NULL);
 
         size_t i;
+        unsigned numa;
 
         /* All devices are PCI devices */
         for (i = 0; i < devinfo->num_devs; i++)
@@ -228,6 +229,9 @@ test_iordt_init(void **state)
         assert_int_equal(devinfo->channels[0].channel_id, 0x10100);
         assert_int_equal(devinfo->channels[1].channel_id, 0x10101);
         assert_int_equal(devinfo->channels[2].channel_id, 0x10200);
+
+        ret = iordt_get_numa(devinfo, 0x20000, &numa);
+        assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 
         expect_function_call(__wrap_pci_fini);
         will_return(__wrap_pci_fini, PQOS_RETVAL_OK);

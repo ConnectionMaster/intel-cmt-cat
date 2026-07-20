@@ -641,7 +641,7 @@ iordt_get_numa(const struct pqos_devinfo *devinfo,
 
         mmio = get_mmio(m_mmioinfo, channel_id);
         if (mmio == NULL)
-                return PQOS_RETVAL_PARAM;
+                return PQOS_RETVAL_RESOURCE;
 
         if (mmio->numa != PCI_NUMA_INVALID) {
                 *numa = mmio->numa;
