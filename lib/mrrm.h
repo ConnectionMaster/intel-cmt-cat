@@ -49,10 +49,12 @@ extern "C" {
 #define ACPI_TABLE_SIG_MRRM "MRRM"
 #endif
 
-#define REGION_ASSIGNMENT_TYPE_SET 1
+#define REGION_ASSIGNMENT_TYPE_BIT 1
+#define REGION_ID_FLAGS_MASK       3
 /* MRE structure size without Region-ID Programming Registers[] */
-#define ACPI_MRRM_MRE_SIZE 32
-#define ACPI_MRRM_MRE_TYPE 0
+#define ACPI_MRRM_MRE_SIZE                  32
+#define ACPI_MRRM_MRE_TYPE                  0
+#define ACPI_MRRM_PROGRAMMING_REGISTER_SIZE 8
 
 /**
  * Memory Range and Region Mapping (MRRM) Structure

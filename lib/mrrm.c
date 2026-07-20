@@ -64,6 +64,8 @@ mrrm_populate_mre(struct pqos_mre_info *p_pqos_mre,
                   uint8_t flags)
 {
         size_t regs_length;
+        size_t offset;
+        uint64_t reg;
 
         if (p_acpi_mre->type != ACPI_MRRM_MRE_TYPE) {
                 LOG_ERROR("Incorrect MRE structure type 0x%x\n",
@@ -76,6 +78,11 @@ mrrm_populate_mre(struct pqos_mre_info *p_pqos_mre,
                 return PQOS_RETVAL_ERROR;
         }
 
+        if (p_acpi_mre->region_id_flags & ~REGION_ID_FLAGS_MASK) {
+                LOG_ERROR("Invalid MRE Region-ID flags\n");
+                return PQOS_RETVAL_ERROR;
+        }
+
         p_pqos_mre->base_address_low = p_acpi_mre->base_address_low;
         p_pqos_mre->base_address_high = p_acpi_mre->base_address_high;
         p_pqos_mre->length_low = p_acpi_mre->length_low;
@@ -84,13 +91,31 @@ mrrm_populate_mre(struct pqos_mre_info *p_pqos_mre,
         p_pqos_mre->local_region_id = p_acpi_mre->local_region_id;
         p_pqos_mre->remote_region_id = p_acpi_mre->remote_region_id;
 
-        if (flags != REGION_ASSIGNMENT_TYPE_SET)
+        if (!(flags & REGION_ASSIGNMENT_TYPE_BIT)) {
+                if (p_acpi_mre->length != sizeof(*p_acpi_mre)) {
+                        LOG_ERROR("Static MRE contains programming "
+                                  "registers\n");
+                        return PQOS_RETVAL_ERROR;
+                }
                 return PQOS_RETVAL_OK;
+        }
 
         regs_length = p_acpi_mre->length - sizeof(*p_acpi_mre);
-        if (regs_length == 0) {
-                LOG_ERROR("MRE programming register list is empty\n");
+        if (regs_length == 0 ||
+            regs_length % ACPI_MRRM_PROGRAMMING_REGISTER_SIZE != 0) {
+                LOG_ERROR("Invalid MRE programming register list length\n");
                 return PQOS_RETVAL_ERROR;
+        }
+
+        for (offset = 0; offset < regs_length;
+             offset += ACPI_MRRM_PROGRAMMING_REGISTER_SIZE) {
+                memcpy(&reg,
+                       p_acpi_mre->region_id_programming_registers + offset,
+                       sizeof(reg));
+                if (reg % ACPI_MRRM_PROGRAMMING_REGISTER_SIZE != 0) {
+                        LOG_ERROR("Unaligned MRE programming register\n");
+                        return PQOS_RETVAL_ERROR;
+                }
         }
 
         p_pqos_mre->programming_regs = malloc(regs_length);
@@ -126,8 +151,22 @@ mrrm_populate(struct pqos_mrrm_info **mrrm_info,
         unsigned i;
         int ret;
 
+        if (header->revision != ACPI_MRRM_REVISION) {
+                LOG_ERROR("Unsupported MRRM revision %u\n",
+                          (unsigned)header->revision);
+                return PQOS_RETVAL_ERROR;
+        }
         if (header->length < sizeof(struct mrrm_header)) {
                 LOG_ERROR("Invalid MRRM length %u\n", header->length);
+                return PQOS_RETVAL_ERROR;
+        }
+        if (p_acpi_mrrm->header.flags & ~REGION_ASSIGNMENT_TYPE_BIT) {
+                LOG_ERROR("Invalid MRRM flags 0x%x\n",
+                          (unsigned)p_acpi_mrrm->header.flags);
+                return PQOS_RETVAL_ERROR;
+        }
+        if (p_acpi_mrrm->header.max_memory_regions_supported == 0) {
+                LOG_ERROR("MRRM supports no memory regions\n");
                 return PQOS_RETVAL_ERROR;
         }
 
@@ -144,6 +183,11 @@ mrrm_populate(struct pqos_mrrm_info **mrrm_info,
                 mre = (const struct mrrm_mre_list *)((const uint8_t *)mre +
                                                      mre->length);
                 mre_count++;
+        }
+
+        if (mre_count == 0) {
+                LOG_ERROR("MRRM table contains no MRE structures\n");
+                return PQOS_RETVAL_ERROR;
         }
 
         p_mrrm_info = calloc(1, sizeof(*p_mrrm_info));
