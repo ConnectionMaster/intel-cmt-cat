@@ -711,6 +711,15 @@ $(BIN_DIR)/test_iordt: test_iordt.c $(LIB_OBJS)
 		-Wl,--start-group \
 		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
 
+$(BIN_DIR)/test_mrrm: test_mrrm.c $(LIB_OBJS)
+	mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) \
+		-Wl,--wrap=acpi_init -Wl,--wrap=acpi_fini \
+		-Wl,--wrap=acpi_free -Wl,--wrap=acpi_get_sig \
+		-Wl,--wrap=acpi_print \
+		-Wl,--start-group \
+		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
+
 $(BIN_DIR)/test_iordt_assoc: test_iordt_assoc.c $(LIB_OBJS)
 	mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) \
