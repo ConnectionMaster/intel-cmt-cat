@@ -39,11 +39,11 @@
 
 #include "common.h"
 #include "log.h"
-#include "string.h"
 
 #include <inttypes.h>
+#include <string.h>
 
-/* Helper functions for MMIO data retriveal */
+/* Helper functions for MMIO data retrieval */
 
 static uint64_t *
 _get_clos_addr_by_region(uint64_t *mem,
@@ -141,9 +141,8 @@ _copy_generic_rmid_range(unsigned int rmid_first,
                          uint16_t register_offset,
                          void *rmids_val)
 {
-        unsigned int rmid_count = rmid_last - rmid_first + 1;
-        unsigned int rmid_idx, rmid_to_copy;
-        uint64_t *cur_clump_addr;
+        unsigned int rmid_count;
+        uint8_t *output = (uint8_t *)rmids_val;
 
         LOG_INFO("%s(): rmid_first: %u, rmid_last: %u,"
                  " register_base_address: %p,"
@@ -155,37 +154,27 @@ _copy_generic_rmid_range(unsigned int rmid_first,
                  register_clump_size, register_clump_stride, register_offset,
                  rmids_val);
 
-        /* Initial clump address */
-        cur_clump_addr = (uint64_t *)((uint8_t *)register_base_address +
-                                      (rmid_first / register_clump_size) *
-                                          register_clump_stride +
-                                      register_offset);
+        if (register_base_address == NULL || rmids_val == NULL ||
+            register_clump_size == 0 || rmid_first > rmid_last)
+                return PQOS_RETVAL_PARAM;
 
-        /* First RMID index in the initial clump */
-        rmid_idx = rmid_first % register_clump_size;
-
-        /* Initial number of RMIDs in clump to copy */
-        rmid_to_copy = register_clump_size - rmid_idx + 1;
-
+        rmid_count = rmid_last - rmid_first + 1;
         while (rmid_count > 0) {
-                if (rmid_count <= rmid_to_copy) {
-                        memcpy(rmids_val,
-                               (const void *)((uint8_t *)cur_clump_addr +
-                                              rmid_idx * BYTES_PER_RMID_ENTRY),
-                               rmid_count * BYTES_PER_RMID_ENTRY);
-                        break;
-                } else {
-                        memcpy(rmids_val,
-                               (const void *)((uint8_t *)cur_clump_addr +
-                                              rmid_idx * BYTES_PER_RMID_ENTRY),
-                               rmid_to_copy * BYTES_PER_RMID_ENTRY);
+                const unsigned int rmid_idx = rmid_first % register_clump_size;
+                const unsigned int available = register_clump_size - rmid_idx;
+                const unsigned int copy_count =
+                    rmid_count < available ? rmid_count : available;
+                const uint8_t *clump =
+                    (const uint8_t *)register_base_address +
+                    (rmid_first / register_clump_size) * register_clump_stride +
+                    register_offset;
 
-                        rmids_val = (uint64_t *)rmids_val + rmid_to_copy;
-                        rmid_count -= rmid_to_copy;
-                        rmid_to_copy = register_clump_size;
-                        rmid_idx = 0;
-                        cur_clump_addr += register_offset;
-                }
+                memcpy(output, clump + rmid_idx * BYTES_PER_RMID_ENTRY,
+                       copy_count * BYTES_PER_RMID_ENTRY);
+
+                output += copy_count * BYTES_PER_RMID_ENTRY;
+                rmid_first += copy_count;
+                rmid_count -= copy_count;
         }
 
         return PQOS_RETVAL_OK;

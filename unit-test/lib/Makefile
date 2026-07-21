@@ -746,6 +746,16 @@ $(BIN_DIR)/test_iordt_assoc: test_iordt_assoc.c $(LIB_OBJS)
 		-Wl,--start-group \
 		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
 
+$(BIN_DIR)/test_mmio: test_mmio.c $(LIB_OBJS)
+	mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) \
+		-Wl,--wrap=pqos_mmap_read \
+		-Wl,--wrap=pqos_munmap \
+		-Wl,--wrap=_pqos_get_erdt \
+		-Wl,--wrap=set_mba_optimal_bw_region_clos_v1 \
+		-Wl,--start-group \
+		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
+
 $(BIN_DIR)/test_acpi: test_acpi.c $(LIB_OBJS)
 	mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) \
