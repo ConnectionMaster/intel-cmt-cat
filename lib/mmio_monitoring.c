@@ -71,6 +71,19 @@ struct rmid_list_t {
         pqos_rmid_t *rmids;
 };
 
+static const struct pqos_cpu_agent_info *
+get_cpu_agent_by_core(unsigned lcore)
+{
+        const struct pqos_cores_domains *cores_domains =
+            _pqos_get_cores_domains();
+
+        if (cores_domains == NULL || cores_domains->domains == NULL ||
+            lcore >= cores_domains->num_cores)
+                return NULL;
+
+        return get_cpu_agent_by_domain(cores_domains->domains[lcore]);
+}
+
 /*
  * =======================================
  * =======================================
@@ -560,9 +573,6 @@ mmio_mon_start_counter(struct pqos_mon_data *group,
         const unsigned num_cores = group->num_cores;
         const struct pqos_cpuinfo *cpu = _pqos_get_cpu();
         pqos_rmid_t core2rmid[num_cores];
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
-        const struct pqos_cores_domains *cores_domains =
-            _pqos_get_cores_domains();
         struct pqos_mon_poll_ctx *ctxs = NULL;
         unsigned num_ctxs = 0;
         unsigned i;
@@ -582,8 +592,15 @@ mmio_mon_start_counter(struct pqos_mon_data *group,
          */
         for (i = 0; i < group->num_cores; i++) {
                 const unsigned lcore = group->cores[i];
+                const struct pqos_cpu_agent_info *cpu_agent =
+                    get_cpu_agent_by_core(lcore);
                 unsigned j;
                 unsigned cluster = 0;
+
+                if (cpu_agent == NULL) {
+                        ret = PQOS_RETVAL_PARAM;
+                        goto mmio_mon_start_counter_exit;
+                }
 
                 ret = pqos_cpu_get_clusterid(cpu, lcore, &cluster);
                 if (ret != PQOS_RETVAL_OK) {
@@ -612,9 +629,7 @@ mmio_mon_start_counter(struct pqos_mon_data *group,
 
                         ret = mmio_mon_assoc_unused(
                             &ctxs[num_ctxs], ctx_event, rmid_min,
-                            erdt->cpu_agents[cores_domains->domains[lcore]]
-                                .rmdd.max_rmids,
-                            opt);
+                            cpu_agent->rmdd.max_rmids, opt);
                         if (ret != PQOS_RETVAL_OK)
                                 goto mmio_mon_start_counter_exit;
 
@@ -1075,8 +1090,6 @@ int
 mmio_mon_read_counter(struct pqos_mon_data *group,
                       const enum pqos_mon_event event)
 {
-        const struct pqos_cores_domains *cores_domains =
-            _pqos_get_cores_domains();
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         struct pqos_event_values *pv = &group->values;
         struct pqos_region_aware_event_values *region_values =
@@ -1102,12 +1115,18 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                 for (i = 0; i < group->intl->hw.num_ctx; i++) {
                         const unsigned lcore = group->intl->hw.ctx[i].lcore;
                         const pqos_rmid_t rmid = group->intl->hw.ctx[i].rmid;
-                        const struct pqos_erdt_cmrc *cmrc =
-                            &erdt->cpu_agents[cores_domains->domains[lcore]]
-                                 .cmrc;
+                        const struct pqos_cpu_agent_info *cpu_agent =
+                            get_cpu_agent_by_core(lcore);
+                        const struct pqos_erdt_cmrc *cmrc;
 
-                        get_l3_cmt_rmid_range_v1(cmrc, rmid, rmid,
-                                                 &tmp_rmid_val);
+                        if (cpu_agent == NULL)
+                                return PQOS_RETVAL_PARAM;
+
+                        cmrc = &cpu_agent->cmrc;
+                        ret = get_l3_cmt_rmid_range_v1(cmrc, rmid, rmid,
+                                                       &tmp_rmid_val);
+                        if (ret != PQOS_RETVAL_OK)
+                                return ret;
 
                         if (!is_available_l3_cmt_rmid(tmp_rmid_val)) {
                                 LOG_ERROR("RMID %u is not available for "
@@ -1129,9 +1148,14 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                 for (i = 0; i < group->intl->hw.num_ctx; i++) {
                         const unsigned lcore = group->intl->hw.ctx[i].lcore;
                         const pqos_rmid_t rmid = group->intl->hw.ctx[i].rmid;
-                        const struct pqos_erdt_mmrc *mmrc =
-                            &erdt->cpu_agents[cores_domains->domains[lcore]]
-                                 .mmrc;
+                        const struct pqos_cpu_agent_info *cpu_agent =
+                            get_cpu_agent_by_core(lcore);
+                        const struct pqos_erdt_mmrc *mmrc;
+
+                        if (cpu_agent == NULL)
+                                return PQOS_RETVAL_PARAM;
+
+                        mmrc = &cpu_agent->mmrc;
 
                         for (j = 0; j < group->regions.num_mem_regions; j++) {
                                 int region_num = group->regions.region_num[j];
@@ -1206,8 +1230,10 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
 
                         cmrd = &erdt->dev_agents[domain_id_idx].cmrd;
 
-                        get_iol3_cmt_rmid_range_v1(cmrd, rmid, rmid,
-                                                   &tmp_rmid_val);
+                        ret = get_iol3_cmt_rmid_range_v1(cmrd, rmid, rmid,
+                                                         &tmp_rmid_val);
+                        if (ret != PQOS_RETVAL_OK)
+                                return ret;
 
                         if (!is_available_iol3_cmt_rmid(tmp_rmid_val)) {
                                 LOG_ERROR("RMID %u is not available for "
@@ -1246,8 +1272,10 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
 
                         ibrd = &erdt->dev_agents[domain_id_idx].ibrd;
 
-                        get_total_iol3_mbm_rmid_range_v1(ibrd, rmid, rmid,
-                                                         &tmp_rmid_val);
+                        ret = get_total_iol3_mbm_rmid_range_v1(ibrd, rmid, rmid,
+                                                               &tmp_rmid_val);
+                        if (ret != PQOS_RETVAL_OK)
+                                return ret;
 
                         if (!is_available_iol3_mbm_rmid(tmp_rmid_val)) {
                                 LOG_ERROR("RMID %u is not available for "
@@ -1255,6 +1283,13 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                                           rmid);
                                 return PQOS_RETVAL_UNAVAILABLE;
                         };
+
+                        if (is_overflow_iol3_mbm_rmid(tmp_rmid_val)) {
+                                LOG_ERROR("RMID %u overflowed for IO L3 total "
+                                          "monitoring!\n",
+                                          rmid);
+                                return PQOS_RETVAL_OVERFLOW;
+                        }
 
                         value += scale_io_mbm_value(
                             ibrd, rmid, iol3_mbm_rmid_to_uint64(tmp_rmid_val));
@@ -1299,8 +1334,10 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
 
                         ibrd = &erdt->dev_agents[domain_id_idx].ibrd;
 
-                        get_miss_iol3_mbm_rmid_range_v1(ibrd, rmid, rmid,
-                                                        &tmp_rmid_val);
+                        ret = get_miss_iol3_mbm_rmid_range_v1(ibrd, rmid, rmid,
+                                                              &tmp_rmid_val);
+                        if (ret != PQOS_RETVAL_OK)
+                                return ret;
 
                         if (!is_available_iol3_mbm_rmid(tmp_rmid_val)) {
                                 LOG_ERROR("RMID %u is not available for "
@@ -1308,6 +1345,13 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                                           rmid);
                                 return PQOS_RETVAL_UNAVAILABLE;
                         };
+
+                        if (is_overflow_iol3_mbm_rmid(tmp_rmid_val)) {
+                                LOG_ERROR("RMID %u overflowed for IO L3 miss "
+                                          "monitoring!\n",
+                                          rmid);
+                                return PQOS_RETVAL_OVERFLOW;
+                        }
 
                         value += scale_io_mbm_value(
                             ibrd, rmid, iol3_mbm_rmid_to_uint64(tmp_rmid_val));
