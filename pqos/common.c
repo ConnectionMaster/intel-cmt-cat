@@ -38,6 +38,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -95,6 +96,86 @@ parse_error(const char *arg, const char *note)
         printf("Error parsing \"%s\" command line argument. %s\n",
                arg ? arg : "<null>", note ? note : "");
         exit(EXIT_FAILURE);
+}
+
+int
+pqos_parse_mem_regions(const char *arg,
+                       int *regions,
+                       const unsigned max_regions)
+{
+        char *copy;
+        char *saveptr = NULL;
+        char *token;
+        unsigned count = 0;
+        unsigned i;
+
+        if (arg == NULL || regions == NULL || max_regions == 0) {
+                fprintf(stderr,
+                        "Memory region parser received invalid parameters\n");
+                return -1;
+        }
+
+        for (i = 0; i < max_regions; i++)
+                regions[i] = -1;
+
+        copy = strdup(arg);
+        if (copy == NULL) {
+                fprintf(stderr,
+                        "Failed to allocate memory for region list '%s'\n",
+                        arg);
+                return -1;
+        }
+
+        for (token = strtok_r(copy, ",", &saveptr); token != NULL;
+             token = strtok_r(NULL, ",", &saveptr)) {
+                char *endptr = NULL;
+                long value;
+
+                if (count >= max_regions) {
+                        fprintf(stderr,
+                                "Too many memory regions in '%s'; maximum is "
+                                "%u\n",
+                                arg, max_regions);
+                        free(copy);
+                        return -1;
+                }
+
+                errno = 0;
+                value = strtol(token, &endptr, 0);
+                if (errno != 0 || endptr == token || *endptr != '\0') {
+                        fprintf(stderr, "Invalid memory region '%s' in '%s'\n",
+                                token, arg);
+                        free(copy);
+                        return -1;
+                }
+                if (value < 0 || (unsigned long)value >= max_regions) {
+                        fprintf(stderr,
+                                "Memory region %ld is out of range [0, %u]\n",
+                                value, max_regions - 1);
+                        free(copy);
+                        return -1;
+                }
+
+                for (i = 0; i < count; i++)
+                        if (regions[i] == value) {
+                                fprintf(stderr,
+                                        "Memory region %ld is selected more "
+                                        "than once\n",
+                                        value);
+                                free(copy);
+                                return -1;
+                        }
+
+                regions[count++] = (int)value;
+        }
+
+        free(copy);
+        if (count == 0) {
+                fprintf(stderr, "No memory regions specified in '%s'\n", arg);
+                return -1;
+        }
+
+        return (int)count;
 }
 
 FILE *

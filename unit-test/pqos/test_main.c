@@ -29,6 +29,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "../../pqos/common.h"
 #include "main.h"
 #include "output.h"
 
@@ -172,6 +173,44 @@ test_strlisttotabrealloc_large_range(void **state)
         (void)state; /* unused */
 }
 
+static void
+test_parse_mem_regions_replaces_previous_values(void **state)
+{
+        int regions[PQOS_MAX_MEM_REGIONS];
+        int count;
+
+        count = pqos_parse_mem_regions("0,2", regions, DIM(regions));
+        assert_int_equal(count, 2);
+        assert_int_equal(regions[0], 0);
+        assert_int_equal(regions[1], 2);
+
+        count = pqos_parse_mem_regions("1", regions, DIM(regions));
+        assert_int_equal(count, 1);
+        assert_int_equal(regions[0], 1);
+        assert_int_equal(regions[1], -1);
+
+        (void)state;
+}
+
+static void
+test_parse_mem_regions_rejects_invalid_lists(void **state)
+{
+        int regions[PQOS_MAX_MEM_REGIONS];
+        int short_regions[2];
+
+        assert_int_equal(pqos_parse_mem_regions("1,1", regions, DIM(regions)),
+                         -1);
+        assert_int_equal(
+            pqos_parse_mem_regions("1,invalid", regions, DIM(regions)), -1);
+        assert_int_equal(pqos_parse_mem_regions("4", regions, DIM(regions)),
+                         -1);
+        assert_int_equal(
+            pqos_parse_mem_regions("0,1,2", short_regions, DIM(short_regions)),
+            -1);
+
+        (void)state;
+}
+
 int
 main(void)
 {
@@ -184,7 +223,9 @@ main(void)
             cmocka_unit_test(test_realloc_and_init_rejects_byte_size_overflow),
             cmocka_unit_test(test_strlisttotabrealloc_grows_array),
             cmocka_unit_test(test_strlisttotabrealloc_ignores_duplicates),
-            cmocka_unit_test(test_strlisttotabrealloc_large_range)};
+            cmocka_unit_test(test_strlisttotabrealloc_large_range),
+            cmocka_unit_test(test_parse_mem_regions_replaces_previous_values),
+            cmocka_unit_test(test_parse_mem_regions_rejects_invalid_lists)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);
 }

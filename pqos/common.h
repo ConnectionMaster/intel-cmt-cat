@@ -115,6 +115,18 @@ int safe_open(const char *pathname, int flags, mode_t mode);
 void parse_error(const char *arg, const char *note) __attribute__((noreturn));
 
 /**
+ * @brief Parse a comma-separated list of memory regions
+ *
+ * @param [in] arg memory region list
+ * @param [out] regions parsed memory regions
+ * @param [in] max_regions size of the regions array
+ *
+ * @return Number of parsed memory regions
+ * @retval -1 on error
+ */
+int pqos_parse_mem_regions(const char *arg, int *regions, unsigned max_regions);
+
+/**
  * @brief Filter directory filenames
  *
  * This function is used by the scandir function to filter directories

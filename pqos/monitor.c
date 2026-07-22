@@ -2422,44 +2422,6 @@ selfn_monitor_devs(const char *arg)
 }
 
 /**
- * @brief Verifies and translates monitoring config string into
- *        internal channel monitoring configuration.
- *
- * @param str single channel string passed to --mon-channel command line option
- */
-static void
-parse_mon_mem_regions(char *str)
-{
-        static int idx = 0;
-        unsigned int mem_region;
-        int i = 0;
-
-        mem_region = strtouint64(str);
-        if (mem_region < PQOS_MAX_MEM_REGIONS) {
-                /* Check duplicate memry region entry */
-                for (i = 0; i < sel_mon_mem_region.num_mem_regions; i++) {
-                        if (mem_region ==
-                            (unsigned int)sel_mon_mem_region.region_num[i]) {
-                                parse_error(
-                                    str, "Duplicate memory region selection");
-                                printf("The memory region %d "
-                                       "is entered 2 times\n",
-                                       mem_region);
-                                exit(EXIT_FAILURE);
-                        }
-                }
-                sel_mon_mem_region.region_num[idx] = mem_region;
-                idx++;
-                sel_mon_mem_region.num_mem_regions++;
-        } else {
-                parse_error(str, "Wrong memory region selection");
-                exit(EXIT_FAILURE);
-        }
-
-        return;
-}
-
-/**
  * @brief Selects memory regions for monitoring
  *
  * @param arg argument passed by --mon-mem-regions command line option
@@ -2467,10 +2429,7 @@ parse_mon_mem_regions(char *str)
 void
 selfn_mon_mem_regions(const char *arg)
 {
-        char *cp = NULL, *str = NULL;
-        char *saveptr = NULL;
-        unsigned int idx = 0;
-        unsigned int i = 0;
+        int count;
 
         if (arg == NULL)
                 parse_error(arg, "NULL pointer!");
@@ -2478,29 +2437,12 @@ selfn_mon_mem_regions(const char *arg)
         if (*arg == '\0')
                 parse_error(arg, "Empty string!");
 
-        selfn_strdup(&cp, arg);
+        count = pqos_parse_mem_regions(arg, sel_mon_mem_region.region_num,
+                                       DIM(sel_mon_mem_region.region_num));
+        if (count < 0)
+                parse_error(arg, "Invalid monitoring memory region selection");
 
-        sel_mon_mem_region.num_mem_regions = 0;
-        for (idx = 0; idx < PQOS_MAX_MEM_REGIONS; idx++)
-                sel_mon_mem_region.region_num[idx] = -1;
-
-        for (idx = 0, str = cp;; str = NULL, idx++) {
-                char *token = NULL;
-
-                token = strtok_r(str, ",", &saveptr);
-                if (token == NULL)
-                        break;
-                if (idx >= PQOS_MAX_MEM_REGIONS) {
-                        parse_error(token, "Wrong memory region selection");
-                        printf("Available Memory Regions: ");
-                        for (i = 0; i < PQOS_MAX_MEM_REGIONS; i++)
-                                printf("%d ", idx);
-                        exit(EXIT_FAILURE);
-                }
-                parse_mon_mem_regions(token);
-        }
-
-        free(cp);
+        sel_mon_mem_region.num_mem_regions = count;
 }
 
 /**

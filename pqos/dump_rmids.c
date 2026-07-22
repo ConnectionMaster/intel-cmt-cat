@@ -168,55 +168,10 @@ selfn_dump_rmid_domain_ids(const char *arg)
         free(str);
 }
 
-/**
- * @brief Verifies and translates memory region number string and stores into
- *        internal sel_dump_rmids_info data structure.
- *
- * @param str single region number string passed to --dump-rmid-mem-regions
- * command line option
- */
-static void
-parse_dump_mem_regions(char *str)
-{
-        static int idx = 0;
-        int mem_region;
-        int i = 0;
-        char *endptr = NULL;
-
-        mem_region = (int)strtol(str, &endptr, 0);
-        if (*endptr != '\0') {
-                parse_error(str, "Invalid memory region number");
-                exit(EXIT_FAILURE);
-        }
-
-        if (mem_region >= 0 && mem_region < PQOS_MAX_MEM_REGIONS) {
-                /* Check duplicate memory region entry */
-                for (i = 0; i < sel_dump_rmids.num_mem_regions; i++) {
-                        if (mem_region == sel_dump_rmids.region_num[i]) {
-                                parse_error(
-                                    str, "Duplicate memory region selection");
-                                printf("The memory region %d "
-                                       "is entered twice\n",
-                                       mem_region);
-                                exit(EXIT_FAILURE);
-                        }
-                }
-                sel_dump_rmids.region_num[idx] = mem_region;
-                idx++;
-                sel_dump_rmids.num_mem_regions++;
-        } else {
-                parse_error(str, "Wrong memory region selection");
-                exit(EXIT_FAILURE);
-        }
-}
-
 void
 selfn_dump_rmid_mem_regions(const char *arg)
 {
-        char *cp = NULL, *str = NULL;
-        char *saveptr = NULL;
-        unsigned int idx = 0;
-        unsigned int i = 0;
+        int count;
 
         if (arg == NULL)
                 parse_error(arg, "NULL pointer!");
@@ -224,29 +179,12 @@ selfn_dump_rmid_mem_regions(const char *arg)
         if (*arg == '\0')
                 parse_error(arg, "Empty string!");
 
-        selfn_strdup(&cp, arg);
+        count = pqos_parse_mem_regions(arg, sel_dump_rmids.region_num,
+                                       DIM(sel_dump_rmids.region_num));
+        if (count < 0)
+                parse_error(arg, "Invalid RMID memory region selection");
 
-        sel_dump_rmids.num_mem_regions = 0;
-        for (idx = 0; idx < PQOS_MAX_MEM_REGIONS; idx++)
-                sel_dump_rmids.region_num[idx] = -1;
-
-        for (idx = 0, str = cp;; str = NULL, idx++) {
-                char *token = NULL;
-
-                token = strtok_r(str, ",", &saveptr);
-                if (token == NULL)
-                        break;
-                if (idx >= PQOS_MAX_MEM_REGIONS) {
-                        parse_error(token, "Wrong memory region selection");
-                        printf("Available Memory Regions: ");
-                        for (i = 0; i < PQOS_MAX_MEM_REGIONS; i++)
-                                printf("%d ", i);
-                        exit(EXIT_FAILURE);
-                }
-                parse_dump_mem_regions(token);
-        }
-
-        free(cp);
+        sel_dump_rmids.num_mem_regions = count;
 }
 
 void
