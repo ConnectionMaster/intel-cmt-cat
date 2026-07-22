@@ -127,6 +127,24 @@ void parse_error(const char *arg, const char *note) __attribute__((noreturn));
 int pqos_parse_mem_regions(const char *arg, int *regions, unsigned max_regions);
 
 /**
+ * @brief Parse and validate a PCI identifier
+ *
+ * @param [in] arg PCI ID in [segment:]bus:device.function format
+ * @param [in] allow_vc whether a virtual channel suffix is accepted
+ * @param [out] segment PCI segment
+ * @param [out] bdf encoded bus, device and function
+ * @param [out] vc virtual channel suffix or NULL when not provided
+ *
+ * @retval 0 on success
+ * @retval -1 on error
+ */
+int pqos_parse_pci_id(char *arg,
+                      int allow_vc,
+                      uint16_t *segment,
+                      uint16_t *bdf,
+                      char **vc);
+
+/**
  * @brief Filter directory filenames
  *
  * This function is used by the scandir function to filter directories

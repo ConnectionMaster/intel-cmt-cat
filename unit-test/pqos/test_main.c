@@ -211,6 +211,50 @@ test_parse_mem_regions_rejects_invalid_lists(void **state)
         (void)state;
 }
 
+static void
+test_parse_pci_id_accepts_valid_fields(void **state)
+{
+        char full_id[] = "abcd:fe:1f.7@3";
+        char short_id[] = "02:03.1";
+        char *vc = NULL;
+        uint16_t segment;
+        uint16_t bdf;
+
+        assert_int_equal(pqos_parse_pci_id(full_id, 1, &segment, &bdf, &vc), 0);
+        assert_int_equal(segment, 0xabcd);
+        assert_int_equal(bdf, 0xfeff);
+        assert_string_equal(vc, "3");
+
+        assert_int_equal(pqos_parse_pci_id(short_id, 0, &segment, &bdf, &vc),
+                         0);
+        assert_int_equal(segment, 0);
+        assert_int_equal(bdf, 0x0219);
+        assert_null(vc);
+
+        (void)state;
+}
+
+static void
+test_parse_pci_id_rejects_invalid_fields(void **state)
+{
+        char invalid[][32] = {"10000:00:00.0", "00:100:00.0", "00:20.0",
+                              "00:00.8",       "00:00",       "00:00.0@",
+                              "00:00.0@1@2"};
+        char vc_not_allowed[] = "00:00.0@1";
+        char *vc = NULL;
+        uint16_t segment;
+        uint16_t bdf;
+        unsigned i;
+
+        for (i = 0; i < DIM(invalid); i++)
+                assert_int_equal(
+                    pqos_parse_pci_id(invalid[i], 1, &segment, &bdf, &vc), -1);
+        assert_int_equal(
+            pqos_parse_pci_id(vc_not_allowed, 0, &segment, &bdf, &vc), -1);
+
+        (void)state;
+}
+
 int
 main(void)
 {
@@ -225,7 +269,9 @@ main(void)
             cmocka_unit_test(test_strlisttotabrealloc_ignores_duplicates),
             cmocka_unit_test(test_strlisttotabrealloc_large_range),
             cmocka_unit_test(test_parse_mem_regions_replaces_previous_values),
-            cmocka_unit_test(test_parse_mem_regions_rejects_invalid_lists)};
+            cmocka_unit_test(test_parse_mem_regions_rejects_invalid_lists),
+            cmocka_unit_test(test_parse_pci_id_accepts_valid_fields),
+            cmocka_unit_test(test_parse_pci_id_rejects_invalid_fields)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -1157,77 +1157,12 @@ parse_io_dev(char *str)
         struct pci_dev *sel_pci_dev_tmp = NULL;
         uint16_t segment = 0;
         uint16_t bdf = 0;
-        uint16_t bus;
-        uint16_t device;
-        uint16_t function;
-        char *p = str;
+        char *vc = NULL;
 
-        /* Rough PCI ID validation */
-        size_t colon_count = 0;
-        size_t point_count = 0;
-
-        while (*p) {
-                if (*p == ':')
-                        ++colon_count;
-                if (*p == '.')
-                        ++point_count;
-                ++p;
-        }
-
-        if (!colon_count || (colon_count > 2) || (point_count != 1)) {
+        if (pqos_parse_pci_id(str, 0, &segment, &bdf, &vc) != 0) {
                 free(sel_pci_dev);
-                parse_error(str, "Invalid PCI ID format.");
+                parse_error(str, "Invalid PCI ID");
         }
-
-        /* PCI segment */
-        if (colon_count > 1) {
-                p = strchr(str, ':');
-                if (p == NULL) {
-                        free(sel_pci_dev);
-                        parse_error(str, "Invalid PCI ID format.");
-                }
-                *p = '\0';
-                segment = (uint16_t)strhextouint64(str);
-                str = p + 1;
-        }
-
-        /* PCI bus */
-        p = strchr(str, ':');
-        if (p == NULL) {
-                free(sel_pci_dev);
-                parse_error(str, "Invalid PCI ID format.");
-        }
-        *p = '\0';
-        bus = (uint16_t)strhextouint64(str);
-        str = p + 1;
-
-        /* PCI device */
-        p = strchr(str, '.');
-        if (p == NULL) {
-                free(sel_pci_dev);
-                parse_error(str, "Invalid PCI ID format.");
-        }
-        *p = '\0';
-        device = (uint16_t)strhextouint64(str);
-        str = p + 1;
-
-        /* Check for PCI virtual channel suffix (not supported) */
-        p = strchr(str, '@');
-        if (p) {
-                printf("Wrong format %s. --print-io-dev="
-                       "<segment>:<bus>:<device>.<function>\n",
-                       str);
-                free(sel_pci_dev);
-                parse_error(str, "Invalid PCI ID format.");
-        }
-
-        /* PCI function */
-        function = (uint16_t)strhextouint64(str);
-
-        /* PCI BDF */
-        bdf |= bus << 8;
-        bdf |= (device & 0x1F) << 3;
-        bdf |= function & 0x7;
 
         sel_pci_dev_tmp = realloc(
             sel_pci_dev, (sizeof(struct pci_dev) * (sel_pci_dev_count + 1)));

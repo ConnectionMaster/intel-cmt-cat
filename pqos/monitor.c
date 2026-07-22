@@ -992,6 +992,7 @@ grp_device_to_channel(struct mon_group *grp, const struct pqos_devinfo *devinfo)
                 return PQOS_RETVAL_PARAM;
         }
 
+        free(devices);
         grp->type = MON_GROUP_TYPE_CHANNEL;
         grp->channels = channels;
         grp->num_res = num_channels;
@@ -2212,46 +2213,81 @@ error_exit:
  * @return count of virtual channels in vc. -1 in error
  */
 static int
-parse_virtual_channels(char *str, unsigned int *vc, int max_numbers)
+parse_virtual_channels(char *str, unsigned int *vc, const int max_numbers)
 {
+        char *saveptr = NULL;
+        char *token;
         int count = 0;
-        unsigned int start = 0;
-        unsigned int end = 0;
-        unsigned int n = 0;
-        char *token = strtok(str, ",");
 
-        while (token && count < max_numbers) {
+        if (str == NULL || vc == NULL || max_numbers <= 0) {
+                fprintf(stderr,
+                        "Virtual channel parser received invalid parameters\n");
+                return -1;
+        }
+
+        for (token = strtok_r(str, ",", &saveptr); token != NULL;
+             token = strtok_r(NULL, ",", &saveptr)) {
+                uint64_t start;
+                uint64_t end;
+                uint64_t value;
+                char *dash;
+                int direction;
+
                 token = trim(token);
-                char *dash = strchr(token, '-');
-
-                if (dash) {
-                        /* Range of virtual channels */
-                        *dash = '\0';
-                        start = (unsigned int)strtouint64(token);
-                        end = (unsigned int)strtouint64(dash + 1);
-                        if (start > end) {
-                                /* Range of virtual channels are
-                                 * decremental order
-                                 */
-                                for (n = start; n >= end && count < max_numbers;
-                                     n--) {
-                                        vc[count++] = n;
-                                        if (n == 0)
-                                                break;
-                                }
-                        } else {
-                                /* Range of virtual channels are
-                                 * incremental order
-                                 */
-                                for (n = start; n <= end && count < max_numbers;
-                                     n++)
-                                        vc[count++] = n;
+                dash = strchr(token, '-');
+                if (dash != NULL) {
+                        if (dash == token || dash[1] == '\0' ||
+                            strchr(dash + 1, '-') != NULL) {
+                                fprintf(stderr,
+                                        "Invalid virtual channel range '%s'\n",
+                                        token);
+                                return -1;
                         }
-                } else {
-                        /* Single virtual channel */
-                        vc[count++] = (unsigned int)strtouint64(token);
+                        *dash = '\0';
+                        start = strtouint64(token);
+                        end = strtouint64(dash + 1);
+                } else
+                        start = end = strtouint64(token);
+
+                if (start >= PQOS_DEV_MAX_CHANNELS ||
+                    end >= PQOS_DEV_MAX_CHANNELS) {
+                        fprintf(stderr,
+                                "Virtual channel range %" PRIu64 "-%" PRIu64
+                                " exceeds supported range [0, %u]\n",
+                                start, end, PQOS_DEV_MAX_CHANNELS - 1);
+                        return -1;
                 }
-                token = strtok(NULL, ",");
+
+                direction = start <= end ? 1 : -1;
+                value = start;
+                while (1) {
+                        int i;
+
+                        if (count >= max_numbers) {
+                                fprintf(stderr,
+                                        "Too many virtual channels; maximum "
+                                        "is %d\n",
+                                        max_numbers);
+                                return -1;
+                        }
+                        for (i = 0; i < count; i++)
+                                if (vc[i] == value) {
+                                        fprintf(stderr,
+                                                "Virtual channel %" PRIu64
+                                                " is selected more than once\n",
+                                                value);
+                                        return -1;
+                                }
+                        vc[count++] = (unsigned)value;
+                        if (value == end)
+                                break;
+                        value = (uint64_t)((int64_t)value + direction);
+                }
+        }
+
+        if (count == 0) {
+                fprintf(stderr, "No virtual channels specified\n");
+                return -1;
         }
 
         return count;
@@ -2268,7 +2304,6 @@ parse_monitor_dev(char *str)
 {
         union pqos_device dev;
         uint16_t segment = 0;
-        uint16_t bus, device, function;
         uint16_t bdf = 0;
         unsigned vc[PQOS_DEV_MAX_CHANNELS];
         int vc_count = 0;
@@ -2276,6 +2311,7 @@ parse_monitor_dev(char *str)
         enum pqos_mon_event evt = (enum pqos_mon_event)0;
         char *desc = NULL;
         char *p = NULL;
+        char *vc_str = NULL;
         char *vc_desc[PQOS_DEV_MAX_CHANNELS] = {NULL};
         size_t len = 0;
 
@@ -2286,66 +2322,20 @@ parse_monitor_dev(char *str)
                 parse_error(str, "Invalid device format");
         str = p + 1;
         selfn_strdup(&desc, str);
-        p = str;
 
-        /* Rough PCI ID validation */
-        size_t colon_count = 0;
-        size_t point_count = 0;
-
-        while (*p) {
-                if (*p == ':')
-                        ++colon_count;
-                if (*p == '.')
-                        ++point_count;
-                ++p;
+        if (pqos_parse_pci_id(str, 1, &segment, &bdf, &vc_str) != 0) {
+                free(desc);
+                parse_error(str, "Invalid PCI ID");
         }
 
-        if (!colon_count || (colon_count > 2) || (point_count != 1))
-                parse_error(str, "Invalid PCI ID format.");
-
-        /* PCI segment */
-        if (colon_count > 1) {
-                p = strchr(str, ':');
-                if (p == NULL)
-                        parse_error(str, "Invalid PCI ID format.");
-                *p = '\0';
-                segment = (uint16_t)strhextouint64(str);
-                str = p + 1;
-        }
-
-        /* PCI bus */
-        p = strchr(str, ':');
-        if (p == NULL)
-                parse_error(str, "Invalid PCI ID format.");
-        *p = '\0';
-        bus = (uint16_t)strhextouint64(str);
-        str = p + 1;
-
-        /* PCI device */
-        p = strchr(str, '.');
-        if (p == NULL)
-                parse_error(str, "Invalid PCI ID format.");
-        *p = '\0';
-        device = (uint16_t)strhextouint64(str);
-        str = p + 1;
-
-        /* PCI virtual channel */
-        p = strchr(str, '@');
-        if (p) {
-                *p = '\0';
-                for (idx = 0; idx < PQOS_DEV_MAX_CHANNELS; idx++)
-                        vc[idx] = DEV_ALL_VCS;
+        if (vc_str != NULL) {
                 vc_count =
-                    parse_virtual_channels(p + 1, vc, PQOS_DEV_MAX_CHANNELS);
+                    parse_virtual_channels(vc_str, vc, PQOS_DEV_MAX_CHANNELS);
+                if (vc_count < 0) {
+                        free(desc);
+                        parse_error(vc_str, "Invalid virtual channel list");
+                }
         }
-
-        /* PCI function */
-        function = (uint16_t)strhextouint64(str);
-
-        /* PCI BDF */
-        bdf |= bus << 8;
-        bdf |= (device & 0x1F) << 3;
-        bdf |= function & 0x7;
 
         if (vc_count == 0)
                 printf("Setting up monitoring for dev %.4x:%.4x:%.2x.%x@ALL\n",
@@ -2391,6 +2381,7 @@ parse_monitor_dev(char *str)
                                 exit(EXIT_FAILURE);
                         }
                 }
+                free(desc);
         }
 }
 

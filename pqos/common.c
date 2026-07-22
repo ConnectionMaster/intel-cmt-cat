@@ -33,6 +33,7 @@
 
 #include "common.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -176,6 +177,139 @@ pqos_parse_mem_regions(const char *arg,
         }
 
         return (int)count;
+}
+
+#define PCI_ID_MAX_LEN 31
+
+static int
+parse_pci_field(const char *text,
+                const char *name,
+                const unsigned long long max,
+                unsigned *value)
+{
+        unsigned long long parsed;
+        char *endptr = NULL;
+
+        if (text == NULL || *text == '\0' || !isxdigit((unsigned char)*text)) {
+                fprintf(stderr, "Missing or invalid PCI %s '%s'\n", name,
+                        text != NULL ? text : "<null>");
+                return -1;
+        }
+
+        errno = 0;
+        parsed = strtoull(text, &endptr, 16);
+        if (errno != 0 || *endptr != '\0' || parsed > max) {
+                fprintf(stderr,
+                        "PCI %s '%s' is invalid; expected hexadecimal range "
+                        "0x0-0x%llx\n",
+                        name, text, max);
+                return -1;
+        }
+
+        *value = (unsigned)parsed;
+        return 0;
+}
+
+int
+pqos_parse_pci_id(char *arg,
+                  const int allow_vc,
+                  uint16_t *segment,
+                  uint16_t *bdf,
+                  char **vc)
+{
+        char id[PCI_ID_MAX_LEN + 1];
+        char *first_colon;
+        char *second_colon;
+        char *dot;
+        char *bus_text;
+        char *devfn_text;
+        char *at;
+        size_t id_len;
+        unsigned segment_value = 0;
+        unsigned bus;
+        unsigned device;
+        unsigned function;
+
+        if (arg == NULL || segment == NULL || bdf == NULL || vc == NULL) {
+                fprintf(stderr, "PCI ID parser received invalid parameters\n");
+                return -1;
+        }
+
+        *vc = NULL;
+        at = strchr(arg, '@');
+        if (at != NULL) {
+                if (!allow_vc) {
+                        fprintf(stderr,
+                                "PCI ID '%s' must not include a virtual "
+                                "channel\n",
+                                arg);
+                        return -1;
+                }
+                if (at[1] == '\0' || strchr(at + 1, '@') != NULL) {
+                        fprintf(stderr,
+                                "PCI ID '%s' has an invalid virtual channel "
+                                "suffix\n",
+                                arg);
+                        return -1;
+                }
+                *vc = at + 1;
+                id_len = (size_t)(at - arg);
+        } else
+                id_len = strlen(arg);
+
+        if (id_len == 0 || id_len > PCI_ID_MAX_LEN) {
+                fprintf(stderr, "PCI ID '%s' has an invalid length\n", arg);
+                return -1;
+        }
+
+        memcpy(id, arg, id_len);
+        id[id_len] = '\0';
+
+        first_colon = strchr(id, ':');
+        if (first_colon == NULL) {
+                fprintf(stderr,
+                        "PCI ID '%s' must use [segment:]bus:device.function\n",
+                        arg);
+                return -1;
+        }
+
+        second_colon = strchr(first_colon + 1, ':');
+        if (second_colon != NULL && strchr(second_colon + 1, ':') != NULL) {
+                fprintf(stderr, "PCI ID '%s' has too many separators\n", arg);
+                return -1;
+        }
+
+        *first_colon = '\0';
+        if (second_colon != NULL) {
+                *second_colon = '\0';
+                if (parse_pci_field(id, "segment", UINT16_MAX,
+                                    &segment_value) != 0)
+                        return -1;
+                bus_text = first_colon + 1;
+                devfn_text = second_colon + 1;
+        } else {
+                bus_text = id;
+                devfn_text = first_colon + 1;
+        }
+
+        dot = strchr(devfn_text, '.');
+        if (dot == NULL || strchr(dot + 1, '.') != NULL) {
+                fprintf(stderr,
+                        "PCI ID '%s' must use [segment:]bus:device.function\n",
+                        arg);
+                return -1;
+        }
+        *dot = '\0';
+
+        if (parse_pci_field(bus_text, "bus", UINT8_MAX, &bus) != 0 ||
+            parse_pci_field(devfn_text, "device", 0x1f, &device) != 0 ||
+            parse_pci_field(dot + 1, "function", 0x7, &function) != 0)
+                return -1;
+
+        *segment = (uint16_t)segment_value;
+        *bdf = (uint16_t)((bus << 8) | (device << 3) | function);
+
+        return 0;
 }
 
 FILE *

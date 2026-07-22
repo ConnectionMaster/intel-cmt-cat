@@ -1456,8 +1456,8 @@ fill_dev_tab(char *str)
 {
         unsigned cos = 0;
         uint16_t segment = 0;
-        uint16_t bus, device, function;
         uint16_t bdf = 0;
+        char *vc_str = NULL;
         unsigned vc = DEV_ALL_VCS; /* All channels by default */
         char *p = NULL;
 
@@ -1472,61 +1472,21 @@ fill_dev_tab(char *str)
 
         str = ++p;
 
-        /* Rough PCI ID validation */
-        size_t colon_count = 0;
-        size_t point_count = 0;
+        if (pqos_parse_pci_id(str, 1, &segment, &bdf, &vc_str) != 0)
+                parse_error(str, "Invalid PCI ID");
 
-        while (*p) {
-                if (*p == ':')
-                        ++colon_count;
-                if (*p == '.')
-                        ++point_count;
-                ++p;
+        if (vc_str != NULL) {
+                uint64_t value = strtouint64(vc_str);
+
+                if (value >= PQOS_DEV_MAX_CHANNELS) {
+                        fprintf(stderr,
+                                "Virtual channel %" PRIu64
+                                " is out of range [0, %u]\n",
+                                value, PQOS_DEV_MAX_CHANNELS - 1);
+                        parse_error(vc_str, "Invalid virtual channel");
+                }
+                vc = (unsigned)value;
         }
-
-        if (!colon_count || (colon_count > 2) || (point_count != 1))
-                parse_error(str, "Invalid PCI ID format.");
-
-        /* PCI segment */
-        if (colon_count > 1) {
-                p = strchr(str, ':');
-                if (p == NULL)
-                        parse_error(str, "Invalid PCI ID format.");
-                *p = '\0';
-                segment = (uint16_t)strhextouint64(str);
-                str = p + 1;
-        }
-
-        /* PCI bus */
-        p = strchr(str, ':');
-        if (p == NULL)
-                parse_error(str, "Invalid PCI ID format.");
-        *p = '\0';
-        bus = (uint16_t)strhextouint64(str);
-        str = p + 1;
-
-        /* PCI device */
-        p = strchr(str, '.');
-        if (p == NULL)
-                parse_error(str, "Invalid PCI ID format.");
-        *p = '\0';
-        device = (uint16_t)strhextouint64(str);
-        str = p + 1;
-
-        /* PCI virtual channel */
-        p = strchr(str, '@');
-        if (p) {
-                *p = '\0';
-                vc = (unsigned)strtouint64(p + 1);
-        }
-
-        /* PCI function */
-        function = (uint16_t)strhextouint64(str);
-
-        /* PCI BDF */
-        bdf |= bus << 8;
-        bdf |= (device & 0x1F) << 3;
-        bdf |= function & 0x7;
 
         if (sel_assoc_dev_num <= 0) {
                 sel_assoc_dev_num = 0;
@@ -1552,7 +1512,7 @@ fill_dev_tab(char *str)
                  * - update COS but warn about it
                  */
                 printf("warn: updating COS for dev %.4x:%.4x:%.2x.%x", segment,
-                       bus, device, function);
+                       BDF_BUS(bdf), BDF_DEV(bdf), BDF_FUNC(bdf));
                 if (vc != DEV_ALL_VCS)
                         printf("@%u", vc);
                 printf(" from %u to %u.\n", sel_assoc_dev_tab[i].class_id, cos);
