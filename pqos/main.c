@@ -2156,9 +2156,10 @@ main(int argc, char **argv)
                                  */
                                 selfn_monitor_top_pids();
                         } else {
-                                printf("Option -%c is missing required "
-                                       "argument\n",
-                                       optopt);
+                                fprintf(stderr,
+                                        "Option -%c is missing required "
+                                        "argument\n",
+                                        optopt);
                                 return EXIT_FAILURE;
                         }
                         break;
@@ -2330,15 +2331,24 @@ main(int argc, char **argv)
                         selfn_print_io_dev(optarg);
                         break;
                 default:
-                        printf("Unsupported option: -%c. "
-                               "See option -h for help.\n",
-                               optopt);
+                        fprintf(stderr,
+                                "Internal error: unsupported option code %d\n",
+                                cmd);
                         return EXIT_FAILURE;
-                        break;
                 case '?':
-                        print_help(0);
-                        return EXIT_SUCCESS;
-                        break;
+                        if (optopt != 0)
+                                fprintf(stderr,
+                                        "Unknown option '-%c'. Use -h for "
+                                        "help.\n",
+                                        optopt);
+                        else
+                                fprintf(stderr,
+                                        "Unknown option '%s'. Use -h for "
+                                        "help.\n",
+                                        optind > 0 && optind <= argc
+                                            ? argv[optind - 1]
+                                            : "<unknown>");
+                        return EXIT_FAILURE;
                 }
         }
 

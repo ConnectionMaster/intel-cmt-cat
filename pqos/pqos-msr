@@ -36,7 +36,7 @@
 # ----------------------------
 #
 # PQoS utility wrapper script to use the library MSR interface.
-# This will cause the library to read/write directly to MSR's.
+# This will cause the library to read/write MSRs directly.
 
-# Run pqos utility passing CL args
-pqos --iface=msr $@
+# Run pqos with the original argument boundaries preserved
+exec pqos --iface=msr "$@"

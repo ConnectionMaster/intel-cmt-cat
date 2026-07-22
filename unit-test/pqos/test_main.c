@@ -33,6 +33,7 @@
 #include "main.h"
 #include "output.h"
 
+#include <getopt.h>
 #include <limits.h>
 #include <setjmp.h>
 #include <stdarg.h>
@@ -43,6 +44,8 @@
 /* clang-format off */
 #include <cmocka.h>
 /* clang-format on */
+
+int appmain(int argc, char **argv);
 
 static void
 test_realloc_and_init_grows_and_zeroes_new_elements(void **state)
@@ -255,6 +258,27 @@ test_parse_pci_id_rejects_invalid_fields(void **state)
         (void)state;
 }
 
+static void
+test_unknown_option_returns_failure(void **state)
+{
+        char **argv = calloc(3, sizeof(*argv));
+
+        assert_non_null(argv);
+        argv[0] = strdup("pqos");
+        argv[1] = strdup("--not-a-pqos-option");
+        assert_non_null(argv[0]);
+        assert_non_null(argv[1]);
+
+        optind = 0;
+        opterr = 0;
+        assert_int_equal(appmain(2, argv), EXIT_FAILURE);
+
+        free(argv[0]);
+        free(argv[1]);
+        free(argv);
+        (void)state;
+}
+
 int
 main(void)
 {
@@ -271,7 +295,8 @@ main(void)
             cmocka_unit_test(test_parse_mem_regions_replaces_previous_values),
             cmocka_unit_test(test_parse_mem_regions_rejects_invalid_lists),
             cmocka_unit_test(test_parse_pci_id_accepts_valid_fields),
-            cmocka_unit_test(test_parse_pci_id_rejects_invalid_fields)};
+            cmocka_unit_test(test_parse_pci_id_rejects_invalid_fields),
+            cmocka_unit_test(test_unknown_option_returns_failure)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);
 }
