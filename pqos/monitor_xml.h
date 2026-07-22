@@ -41,9 +41,8 @@
  *
  * @param fp file descriptor
  */
-void monitor_xml_begin(FILE * fp,
-                       const int num_mem_regions,
-                       const int *region_num);
+void
+monitor_xml_begin(FILE *fp, const int num_mem_regions, const int *region_num);
 
 /**
  * @brief Print xml header
@@ -67,6 +66,17 @@ void monitor_xml_header(FILE *fp,
 void monitor_xml_row(FILE *fp,
                      const char *timestamp,
                      const struct pqos_mon_data *data);
+
+/**
+ * @brief Print region-aware monitoring data in XML format
+ *
+ * @param fp file descriptor
+ * @param [in] timestamp data timestamp
+ * @param [in] data monitoring data
+ */
+void monitor_xml_region_row(FILE *fp,
+                            const char *timestamp,
+                            const struct pqos_mon_data *data);
 
 /**
  * @brief Print xml footer

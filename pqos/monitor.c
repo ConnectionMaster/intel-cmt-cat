@@ -3235,7 +3235,10 @@ monitor_loop(void)
         } else if (strcasecmp(sel_output_type, "xml") == 0) {
                 output.begin = monitor_xml_begin;
                 output.header = monitor_xml_header;
-                output.row = monitor_xml_row;
+                if (interface == PQOS_INTER_MMIO)
+                        output.row = monitor_xml_region_row;
+                else
+                        output.row = monitor_xml_row;
                 output.footer = monitor_xml_footer;
                 output.end = monitor_xml_end;
         } else {
