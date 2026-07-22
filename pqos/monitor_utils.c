@@ -467,56 +467,82 @@ monitor_utils_get_pid_stat(const char *proc_pid_dir_name,
                            char *val)
 {
         FILE *fproc_pid_stats;
-        char buf[512]; /* line in /proc/PID/stat is quite lengthy*/
-        const char *delim = " ";
+        char buf[512];
+        char *left_paren;
+        char *right_paren;
+        char *saveptr = NULL;
+        char *token;
         size_t n_read;
-        char *token, *saveptr;
-        int col_idx = 1; /*starts from '1' like indexes on 'stat' man-page*/
+        int col_idx = 3;
 
-        if (proc_pid_dir_name == NULL || val == NULL)
+        if (proc_pid_dir_name == NULL || val == NULL || column < 1 ||
+            len_val == 0) {
+                fprintf(stderr, "Invalid process stat parser parameters\n");
                 return -1;
+        }
 
-        /*open /proc/<pid>/stat file for reading*/
         fproc_pid_stats = open_proc_stat_file(proc_pid_dir_name);
-        if (fproc_pid_stats == NULL) /*failure in reading if file is empty*/
+        if (fproc_pid_stats == NULL)
                 return -1;
 
-        /*put file into buffer to parse values from*/
         n_read = fread(buf, sizeof(char), sizeof(buf) - 1, fproc_pid_stats);
-        buf[n_read] = '\0';
-
-        /*close file as its not needed*/
+        if (ferror(fproc_pid_stats)) {
+                fprintf(stderr, "Failed to read /proc/%s/stat: %s\n",
+                        proc_pid_dir_name, strerror(errno));
+                fclose(fproc_pid_stats);
+                return -1;
+        }
         fclose(fproc_pid_stats);
 
-        /*if buffer is empty, error*/
-        if (n_read == 0)
+        if (n_read == 0) {
+                fprintf(stderr, "/proc/%s/stat is empty\n", proc_pid_dir_name);
                 return -1;
-
-        /*split buffer*/
-        token = strtok_r(buf, delim, &saveptr);
-
-        if (token == NULL)
+        }
+        if (n_read == sizeof(buf) - 1 && buf[n_read - 1] != '\n') {
+                fprintf(stderr, "/proc/%s/stat exceeds parser capacity\n",
+                        proc_pid_dir_name);
                 return -1;
+        }
+        buf[n_read] = '\0';
 
-        /*check each value from the split and disregard if not needed*/
-        do {
-                if (col_idx == column) {
-                        /*check to see if value will fit in users buffer*/
-                        if (len_val <= (strlen(token) + 1)) {
-                                return -1;
-                        } else {
-                                strncpy(val, token, len_val);
-                                val[len_val - 1] = '\0';
-                                return 0; /*value can be read from *val param*/
-                        }
+        left_paren = strchr(buf, '(');
+        right_paren = strrchr(buf, ')');
+        if (left_paren == NULL || right_paren == NULL || left_paren == buf ||
+            right_paren <= left_paren || left_paren[-1] != ' ' ||
+            right_paren[1] != ' ' || right_paren[2] == '\0') {
+                fprintf(stderr, "/proc/%s/stat has an invalid format\n",
+                        proc_pid_dir_name);
+                return -1;
+        }
+
+        if (column == 1) {
+                left_paren[-1] = '\0';
+                token = buf;
+        } else if (column == 2) {
+                right_paren[1] = '\0';
+                token = left_paren;
+        } else {
+                token = strtok_r(right_paren + 2, "\n ", &saveptr);
+                while (token != NULL && col_idx < column) {
+                        token = strtok_r(NULL, "\n ", &saveptr);
+                        col_idx++;
                 }
-                col_idx++;
-                /* Loop continues until value is found
-                 * or until there is nothing left in the buffer
-                 */
-        } while ((token = strtok_r(NULL, delim, &saveptr)) != NULL);
+        }
 
-        return -1; /*error if while loop finishes and nothing left in buffer*/
+        if (token == NULL) {
+                fprintf(stderr, "/proc/%s/stat does not contain column %d\n",
+                        proc_pid_dir_name, column);
+                return -1;
+        }
+        if (len_val < strlen(token) + 1) {
+                fprintf(stderr,
+                        "Buffer for /proc/%s/stat column %d is too small\n",
+                        proc_pid_dir_name, column);
+                return -1;
+        }
+
+        memcpy(val, token, strlen(token) + 1);
+        return 0;
 }
 
 char *

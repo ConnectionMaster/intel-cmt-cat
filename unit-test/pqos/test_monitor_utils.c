@@ -139,6 +139,28 @@ set_pid_missing(const pid_t pid)
         fixture_count++;
 }
 
+static void
+set_pid_stat(const pid_t pid, const char *comm)
+{
+        unsigned i;
+        struct pid_stat_fixture *fixture = &fixtures[fixture_count];
+        char *ptr = fixture->stat;
+        size_t remaining = sizeof(fixture->stat);
+
+        assert_true(fixture_count < DIM(fixtures));
+        assert_non_null(comm);
+
+        fixture->pid = pid;
+        fixture->available = 1;
+
+        append_stat_field(&ptr, &remaining, "%d (%s) S", pid, comm);
+        for (i = 4; i <= 52; i++)
+                append_stat_field(&ptr, &remaining, " %u", i);
+        append_stat_field(&ptr, &remaining, "\n");
+
+        fixture_count++;
+}
+
 static struct pid_stat_fixture *
 find_fixture(const pid_t pid)
 {
@@ -260,6 +282,43 @@ pqos_cap_get(const struct pqos_cap **cap, const struct pqos_cpuinfo **cpu)
         (void)cpu;
 
         return PQOS_RETVAL_OK;
+}
+
+static void
+test_monitor_utils_get_pid_stat_handles_complex_comm(void **state)
+{
+        char pid[4];
+        char comm[32];
+        char status[2];
+        char user_ticks[3];
+        char core[3];
+        char too_small[1];
+
+        reset_fixtures();
+        set_pid_stat(801, "worker name) child");
+
+        assert_int_equal(monitor_utils_get_pid_stat("801", 1, sizeof(pid), pid),
+                         0);
+        assert_string_equal(pid, "801");
+        assert_int_equal(
+            monitor_utils_get_pid_stat("801", 2, sizeof(comm), comm), 0);
+        assert_string_equal(comm, "(worker name) child)");
+        assert_int_equal(
+            monitor_utils_get_pid_stat("801", 3, sizeof(status), status), 0);
+        assert_string_equal(status, "S");
+        assert_int_equal(monitor_utils_get_pid_stat(
+                             "801", 14, sizeof(user_ticks), user_ticks),
+                         0);
+        assert_string_equal(user_ticks, "14");
+        assert_int_equal(
+            monitor_utils_get_pid_stat("801", 39, sizeof(core), core), 0);
+        assert_string_equal(core, "39");
+        assert_int_equal(
+            monitor_utils_get_pid_stat("801", 3, sizeof(too_small), too_small),
+            -1);
+        assert_int_equal(
+            monitor_utils_get_pid_stat("801", 53, sizeof(core), core), -1);
+        (void)state;
 }
 
 static void
@@ -427,6 +486,8 @@ int
 main(void)
 {
         const struct CMUnitTest tests[] = {
+            cmocka_unit_test(
+                test_monitor_utils_get_pid_stat_handles_complex_comm),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_all_resolved),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_partial_resolved),
             cmocka_unit_test(test_monitor_utils_get_pid_cores_all_missing),

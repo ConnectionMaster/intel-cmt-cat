@@ -2856,22 +2856,16 @@ proc_stats_cmp(const void *a, const void *b)
         const struct proc_stats *pa = (const struct proc_stats *)a;
         const struct proc_stats *pb = (const struct proc_stats *)b;
 
-        if (pa->ticks_delta == pb->ticks_delta) {
-                /* when tick deltas are equal then comparing cpu_avg*/
-                /* NOTE: both ratios are double numbers therefore
-                 * comparing here manually to get correct
-                 * integer compare-result (during subtracting, if
-                 * difference would be between 0 and 1.0, then it would be
-                 * wrongly returned as '0' int value (a == b))
-                 */
-                if (pa->cpu_avg_ratio < pb->cpu_avg_ratio)
-                        return -1;
-                else if (pa->cpu_avg_ratio > pb->cpu_avg_ratio)
-                        return 1;
-                else
-                        return 0;
-        } else
-                return (pa->ticks_delta - pb->ticks_delta);
+        if (pa->ticks_delta < pb->ticks_delta)
+                return -1;
+        if (pa->ticks_delta > pb->ticks_delta)
+                return 1;
+        if (pa->cpu_avg_ratio < pb->cpu_avg_ratio)
+                return -1;
+        if (pa->cpu_avg_ratio > pb->cpu_avg_ratio)
+                return 1;
+
+        return 0;
 }
 
 /**
