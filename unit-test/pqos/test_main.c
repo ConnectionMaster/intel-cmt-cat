@@ -178,6 +178,28 @@ test_strlisttotabrealloc_large_range(void **state)
 }
 
 static void
+test_parse_uint64_formats_and_errors(void **state)
+{
+        uint64_t value = 0;
+
+        (void)state;
+
+        assert_int_equal(pqos_parse_uint64("08", &value), 0);
+        assert_int_equal(value, 8);
+        assert_int_equal(pqos_parse_uint64("010", &value), 0);
+        assert_int_equal(value, 10);
+        assert_int_equal(pqos_parse_uint64("0x10", &value), 0);
+        assert_int_equal(value, 16);
+
+        assert_int_equal(pqos_parse_uint64("", &value), -1);
+        assert_int_equal(pqos_parse_uint64("-1", &value), -1);
+        assert_int_equal(pqos_parse_uint64("0x", &value), -1);
+        assert_int_equal(pqos_parse_uint64("08x", &value), -1);
+        assert_int_equal(pqos_parse_uint64("18446744073709551616", &value), -1);
+        assert_int_equal(pqos_parse_uint64(NULL, &value), -1);
+        assert_int_equal(pqos_parse_uint64("1", NULL), -1);
+}
+
 test_parse_mem_regions_replaces_previous_values(void **state)
 {
         int regions[PQOS_MAX_MEM_REGIONS];
@@ -304,6 +326,7 @@ main(void)
             cmocka_unit_test(test_strlisttotabrealloc_grows_array),
             cmocka_unit_test(test_strlisttotabrealloc_ignores_duplicates),
             cmocka_unit_test(test_strlisttotabrealloc_large_range),
+            cmocka_unit_test(test_parse_uint64_formats_and_errors),
             cmocka_unit_test(test_parse_mem_regions_replaces_previous_values),
             cmocka_unit_test(test_parse_mem_regions_rejects_invalid_lists),
             cmocka_unit_test(

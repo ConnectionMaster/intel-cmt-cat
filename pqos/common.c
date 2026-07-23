@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,6 +101,30 @@ parse_error(const char *arg, const char *note)
 }
 
 int
+pqos_parse_uint64(const char *text, uint64_t *value)
+{
+        const char *digits = text;
+        char *endptr = NULL;
+        uint64_t parsed;
+        int base = 10;
+
+        if (text == NULL || value == NULL || *text == '\0' || *text == '-')
+                return -1;
+
+        if (text[0] == '0' && (text[1] == 'x' || text[1] == 'X')) {
+                base = 16;
+                digits += 2;
+        }
+
+        errno = 0;
+        parsed = strtoull(digits, &endptr, base);
+        if (errno != 0 || endptr == digits || *endptr != '\0')
+                return -1;
+
+        *value = parsed;
+        return 0;
+}
+
 pqos_parse_mem_regions(const char *arg,
                        int *regions,
                        const unsigned max_regions)
@@ -129,8 +154,7 @@ pqos_parse_mem_regions(const char *arg,
 
         for (token = strtok_r(copy, ",", &saveptr); token != NULL;
              token = strtok_r(NULL, ",", &saveptr)) {
-                char *endptr = NULL;
-                long value;
+                uint64_t value;
 
                 if (count >= max_regions) {
                         fprintf(stderr,
@@ -141,27 +165,26 @@ pqos_parse_mem_regions(const char *arg,
                         return -1;
                 }
 
-                errno = 0;
-                value = strtol(token, &endptr, 0);
-                if (errno != 0 || endptr == token || *endptr != '\0') {
+                if (pqos_parse_uint64(token, &value) != 0) {
                         fprintf(stderr, "Invalid memory region '%s' in '%s'\n",
                                 token, arg);
                         free(copy);
                         return -1;
                 }
-                if (value < 0 || (unsigned long)value >= PQOS_MAX_MEM_REGIONS) {
+                if (value >= PQOS_MAX_MEM_REGIONS) {
                         fprintf(stderr,
-                                "Memory region %ld is out of range [0, %u]\n",
+                                "Memory region %" PRIu64
+                                " is out of range [0, %u]\n",
                                 value, PQOS_MAX_MEM_REGIONS - 1);
                         free(copy);
                         return -1;
                 }
 
                 for (i = 0; i < count; i++)
-                        if (regions[i] == value) {
+                        if ((uint64_t)regions[i] == value) {
                                 fprintf(stderr,
-                                        "Memory region %ld is selected more "
-                                        "than once\n",
+                                        "Memory region %" PRIu64
+                                        " is selected more than once\n",
                                         value);
                                 free(copy);
                                 return -1;

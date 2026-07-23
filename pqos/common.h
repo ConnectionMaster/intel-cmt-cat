@@ -115,6 +115,19 @@ int safe_open(const char *pathname, int flags, mode_t mode);
 void parse_error(const char *arg, const char *note) __attribute__((noreturn));
 
 /**
+ * @brief Parse an unsigned integer without terminating the process
+ *
+ * Decimal is used by default. A 0x or 0X prefix selects hexadecimal.
+ *
+ * @param [in] text integer text
+ * @param [out] value parsed value
+ *
+ * @retval 0 on success
+ * @retval -1 on error
+ */
+int pqos_parse_uint64(const char *text, uint64_t *value);
+
+/**
  * @brief Parse a comma-separated list of memory regions
  *
  * @param [in] arg memory region list

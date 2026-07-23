@@ -2244,10 +2244,20 @@ parse_virtual_channels(char *str, unsigned int *vc, const int max_numbers)
                                 return -1;
                         }
                         *dash = '\0';
-                        start = strtouint64(token);
-                        end = strtouint64(dash + 1);
+                        if (pqos_parse_uint64(token, &start) != 0 ||
+                            pqos_parse_uint64(dash + 1, &end) != 0) {
+                                fprintf(
+                                    stderr,
+                                    "Invalid virtual channel range '%s-%s'\n",
+                                    token, dash + 1);
+                                return -1;
+                        }
+                } else if (pqos_parse_uint64(token, &start) != 0) {
+                        fprintf(stderr, "Invalid virtual channel '%s'\n",
+                                token);
+                        return -1;
                 } else
-                        start = end = strtouint64(token);
+                        end = start;
 
                 if (start >= PQOS_DEV_MAX_CHANNELS ||
                     end >= PQOS_DEV_MAX_CHANNELS) {
