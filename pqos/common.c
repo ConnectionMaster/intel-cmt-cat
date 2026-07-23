@@ -149,10 +149,10 @@ pqos_parse_mem_regions(const char *arg,
                         free(copy);
                         return -1;
                 }
-                if (value < 0 || (unsigned long)value >= max_regions) {
+                if (value < 0 || (unsigned long)value >= PQOS_MAX_MEM_REGIONS) {
                         fprintf(stderr,
                                 "Memory region %ld is out of range [0, %u]\n",
-                                value, max_regions - 1);
+                                value, PQOS_MAX_MEM_REGIONS - 1);
                         free(copy);
                         return -1;
                 }

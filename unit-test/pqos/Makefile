@@ -53,7 +53,7 @@ TESTS = $(TESTS_SRCS:%.c=$(BIN_DIR)/%)
 
 LDFLAGS = -L$(LIB_DIR) -L$(MOCK_DIR) -L$(GRAB_OUTPUT_DIR) -lpqos -lcmocka -lpqosmock -lgraboutput\
 	-z noexecstack -z relro -z now
-CFLAGS = -I$(LIB_DIR) -I$(PQOS_DIR) -I$(MOCK_DIR) -I$(GRAB_OUTPUT_DIR) -I$(APP_MOCK_DIR)\
+CFLAGS = -I$(PQOS_DIR) -I$(LIB_DIR) -I$(MOCK_DIR) -I$(GRAB_OUTPUT_DIR) -I$(APP_MOCK_DIR)\
 	-W -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes \
 	-Wmissing-declarations -Wold-style-definition -Wpointer-arith \
 	-Wcast-qual -Wundef -Wwrite-strings \

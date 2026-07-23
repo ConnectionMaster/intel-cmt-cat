@@ -29,7 +29,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "../../pqos/common.h"
+#include "common.h"
 #include "main.h"
 #include "output.h"
 
@@ -215,6 +215,17 @@ test_parse_mem_regions_rejects_invalid_lists(void **state)
 }
 
 static void
+test_parse_mem_regions_separates_id_range_from_capacity(void **state)
+{
+        int region[1];
+
+        assert_int_equal(pqos_parse_mem_regions("3", region, DIM(region)), 1);
+        assert_int_equal(region[0], 3);
+
+        (void)state;
+}
+
+static void
 test_parse_pci_id_accepts_valid_fields(void **state)
 {
         char full_id[] = "abcd:fe:1f.7@3";
@@ -294,6 +305,8 @@ main(void)
             cmocka_unit_test(test_strlisttotabrealloc_large_range),
             cmocka_unit_test(test_parse_mem_regions_replaces_previous_values),
             cmocka_unit_test(test_parse_mem_regions_rejects_invalid_lists),
+            cmocka_unit_test(
+                test_parse_mem_regions_separates_id_range_from_capacity),
             cmocka_unit_test(test_parse_pci_id_accepts_valid_fields),
             cmocka_unit_test(test_parse_pci_id_rejects_invalid_fields),
             cmocka_unit_test(test_unknown_option_returns_failure)};
