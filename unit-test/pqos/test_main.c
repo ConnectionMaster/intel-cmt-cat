@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 /* clang-format off */
 #include <cmocka.h>
 /* clang-format on */
