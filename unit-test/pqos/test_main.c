@@ -310,7 +310,7 @@ test_unknown_option_returns_failure(void **state)
         assert_non_null(argv[0]);
         assert_non_null(argv[1]);
 
-        optind = 0;
+        optind = 1;
         opterr = 0;
         assert_int_equal(appmain(2, argv), EXIT_FAILURE);
 
