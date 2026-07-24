@@ -231,6 +231,12 @@ test_parse_mem_regions_rejects_invalid_lists(void **state)
         int regions[PQOS_MAX_MEM_REGIONS];
         int short_regions[2];
 
+        assert_int_equal(pqos_parse_mem_regions("0,,1", regions, DIM(regions)),
+                         -1);
+        assert_int_equal(pqos_parse_mem_regions(",0", regions, DIM(regions)),
+                         -1);
+        assert_int_equal(pqos_parse_mem_regions("0,", regions, DIM(regions)),
+                         -1);
         assert_int_equal(pqos_parse_mem_regions("1,1", regions, DIM(regions)),
                          -1);
         assert_int_equal(

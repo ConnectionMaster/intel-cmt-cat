@@ -138,7 +138,7 @@ pqos_parse_mem_regions(const char *arg,
                        const unsigned max_regions)
 {
         char *copy;
-        char *saveptr = NULL;
+        char *next;
         char *token;
         unsigned count = 0;
         unsigned i;
@@ -160,8 +160,9 @@ pqos_parse_mem_regions(const char *arg,
                 return -1;
         }
 
-        for (token = strtok_r(copy, ",", &saveptr); token != NULL;
-             token = strtok_r(NULL, ",", &saveptr)) {
+        next = copy;
+        for (token = strsep(&next, ","); token != NULL;
+             token = strsep(&next, ",")) {
                 uint64_t value;
 
                 if (count >= max_regions) {
