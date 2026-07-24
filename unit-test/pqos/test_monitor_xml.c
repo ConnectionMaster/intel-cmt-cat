@@ -29,10 +29,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#define _GNU_SOURCE
+
 #include "mock_test.h"
 #include "monitor_xml.c"
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static enum pqos_mon_event selected_events;
 static enum monitor_llc_format llc_format;
