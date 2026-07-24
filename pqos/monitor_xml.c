@@ -292,12 +292,20 @@ monitor_xml_common_row(FILE *fp,
                 }
 
                 {
-                        double value = region_aware
-                                           ? monitor_utils_get_region_value(
-                                                 mon_data, output[i].event,
-                                                 INVALID_REGION_NUM)
-                                           : monitor_utils_get_value(
-                                                 mon_data, output[i].event);
+                        double value;
+                        const enum pqos_mon_event event = output[i].event;
+                        const int region_event =
+                            event == PQOS_MON_EVENT_L3_OCCUP ||
+                            event == PQOS_MON_EVENT_IO_L3_OCCUP ||
+                            event == PQOS_MON_EVENT_IO_TOTAL_MEM_BW ||
+                            event == PQOS_MON_EVENT_IO_MISS_MEM_BW;
+
+                        if (region_aware && region_event)
+                                value = monitor_utils_get_region_value(
+                                    mon_data, event, INVALID_REGION_NUM);
+                        else
+                                value =
+                                    monitor_utils_get_value(mon_data, event);
 
                         print_xml_value(fp, output[i].format, value,
                                         mon_data->event & output[i].event,

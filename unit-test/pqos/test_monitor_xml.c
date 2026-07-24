@@ -104,6 +104,8 @@ monitor_utils_get_region_value(const struct pqos_mon_data *const group,
 
         if (event == PQOS_MON_EVENT_TMEM_BW)
                 return 10.0 + region_num;
+        if (event == PQOS_MON_EVENT_L3_OCCUP)
+                return 1.0;
         if (event == PQOS_MON_EVENT_IO_L3_OCCUP)
                 return 20.0;
         if (event == PQOS_MON_EVENT_IO_TOTAL_MEM_BW)
@@ -111,7 +113,7 @@ monitor_utils_get_region_value(const struct pqos_mon_data *const group,
         if (event == PQOS_MON_EVENT_IO_MISS_MEM_BW)
                 return 40.0;
 
-        return 1.0;
+        return 2.0;
 }
 
 int
@@ -154,6 +156,7 @@ test_xml_region_core_values(void **state)
         char *xml;
 
         selected_events = (enum pqos_mon_event)(PQOS_MON_EVENT_L3_OCCUP |
+                                                PQOS_MON_EVENT_LMEM_BW |
                                                 PQOS_MON_EVENT_TMEM_BW);
         llc_format = LLC_FORMAT_KILOBYTES;
         core_mode = 0;
@@ -166,6 +169,7 @@ test_xml_region_core_values(void **state)
         data.regions.region_num[1] = 3;
 
         xml = render_row(&data, 1);
+        assert_non_null(strstr(xml, "<mbm_local_MB>1.0"));
         assert_non_null(strstr(xml, "<time>2026&lt;&amp;</time>"));
         assert_non_null(strstr(xml, "<core>core&lt;&amp;</core>"));
         assert_non_null(strstr(xml, "<l3_occupancy_kB>1.0"));
