@@ -2322,6 +2322,7 @@ parse_monitor_dev(char *str)
         char *desc = NULL;
         char *p = NULL;
         char *vc_str = NULL;
+        const char *vc_arg = NULL;
         char *vc_desc[PQOS_DEV_MAX_CHANNELS] = {NULL};
         size_t len = 0;
 
@@ -2339,12 +2340,11 @@ parse_monitor_dev(char *str)
         }
 
         if (vc_str != NULL) {
+                vc_arg = desc + (vc_str - str);
                 vc_count =
                     parse_virtual_channels(vc_str, vc, PQOS_DEV_MAX_CHANNELS);
-                if (vc_count < 0) {
-                        free(desc);
-                        parse_error(vc_str, "Invalid virtual channel list");
-                }
+                if (vc_count < 0)
+                        parse_error(vc_arg, "Invalid virtual channel list");
         }
 
         if (vc_count == 0)
