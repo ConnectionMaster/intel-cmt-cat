@@ -108,10 +108,15 @@ pqos_parse_uint64(const char *text, uint64_t *value)
         uint64_t parsed;
         int base = 10;
 
-        if (text == NULL || value == NULL || *text == '\0' || *text == '-')
+        if (text == NULL || value == NULL)
                 return -1;
 
-        if (text[0] == '0' && (text[1] == 'x' || text[1] == 'X')) {
+        while (isspace((unsigned char)*digits))
+                digits++;
+        if (*digits == '\0' || *digits == '-' || *digits == '+')
+                return -1;
+
+        if (digits[0] == '0' && (digits[1] == 'x' || digits[1] == 'X')) {
                 base = 16;
                 digits += 2;
         }
