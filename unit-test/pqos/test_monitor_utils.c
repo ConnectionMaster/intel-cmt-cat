@@ -89,11 +89,15 @@ static void
 set_pid_core(const pid_t pid, const unsigned core)
 {
         unsigned i;
-        struct pid_stat_fixture *fixture = &fixtures[fixture_count];
-        char *ptr = fixture->stat;
-        size_t remaining = sizeof(fixture->stat);
+        struct pid_stat_fixture *fixture;
+        char *ptr;
+        size_t remaining;
 
         assert_true(fixture_count < DIM(fixtures));
+
+        fixture = &fixtures[fixture_count];
+        ptr = fixture->stat;
+        remaining = sizeof(fixture->stat);
 
         fixture->pid = pid;
         fixture->available = 1;
@@ -110,11 +114,15 @@ static void
 set_pid_core_raw(const pid_t pid, const char *core_field)
 {
         unsigned i;
-        struct pid_stat_fixture *fixture = &fixtures[fixture_count];
-        char *ptr = fixture->stat;
-        size_t remaining = sizeof(fixture->stat);
+        struct pid_stat_fixture *fixture;
+        char *ptr;
+        size_t remaining;
 
         assert_true(fixture_count < DIM(fixtures));
+
+        fixture = &fixtures[fixture_count];
+        ptr = fixture->stat;
+        remaining = sizeof(fixture->stat);
 
         fixture->pid = pid;
         fixture->available = 1;
@@ -130,9 +138,11 @@ set_pid_core_raw(const pid_t pid, const char *core_field)
 static void
 set_pid_missing(const pid_t pid)
 {
-        struct pid_stat_fixture *fixture = &fixtures[fixture_count];
+        struct pid_stat_fixture *fixture;
 
         assert_true(fixture_count < DIM(fixtures));
+
+        fixture = &fixtures[fixture_count];
 
         fixture->pid = pid;
         fixture->available = 0;
@@ -143,12 +153,16 @@ static void
 set_pid_stat(const pid_t pid, const char *comm)
 {
         unsigned i;
-        struct pid_stat_fixture *fixture = &fixtures[fixture_count];
-        char *ptr = fixture->stat;
-        size_t remaining = sizeof(fixture->stat);
+        struct pid_stat_fixture *fixture;
+        char *ptr;
+        size_t remaining;
 
         assert_true(fixture_count < DIM(fixtures));
         assert_non_null(comm);
+
+        fixture = &fixtures[fixture_count];
+        ptr = fixture->stat;
+        remaining = sizeof(fixture->stat);
 
         fixture->pid = pid;
         fixture->available = 1;
