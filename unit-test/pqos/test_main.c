@@ -190,7 +190,7 @@ test_parse_uint64_formats_and_errors(void **state)
         assert_int_equal(value, 10);
         assert_int_equal(pqos_parse_uint64("0x10", &value), 0);
         assert_int_equal(value, 16);
-        assert_int_equal(pqos_parse_uint64(" 10", &value), 0);
+        assert_int_equal(pqos_parse_uint64(" 10 ", &value), 0);
         assert_int_equal(value, 10);
 
         assert_int_equal(pqos_parse_uint64("", &value), -1);

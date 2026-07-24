@@ -123,6 +123,8 @@ pqos_parse_uint64(const char *text, uint64_t *value)
 
         errno = 0;
         parsed = strtoull(digits, &endptr, base);
+        while (isspace((unsigned char)*endptr))
+                endptr++;
         if (errno != 0 || endptr == digits || *endptr != '\0')
                 return -1;
 

@@ -85,6 +85,14 @@ test_selfn_allocation_assoc_negative(void **state)
             "Error parsing \"0,3-5\" command line argument. Invalid allocation "
             "class of service association format\n");
 
+        run_void_function(selfn_allocation_assoc, "dev:1=00:00.0@1,2;");
+        assert_int_equal(output_exit_was_called(), 1);
+        assert_int_equal(output_get_exit_status(), EXIT_FAILURE);
+        assert_string_equal(
+            output_get(),
+            "Error parsing \"1,2\" command line argument. Invalid "
+            "virtual channel\n");
+
         run_void_function(selfn_allocation_assoc, "pid:0,3-5;");
         assert_int_equal(output_exit_was_called(), 1);
         assert_int_equal(output_get_exit_status(), EXIT_FAILURE);

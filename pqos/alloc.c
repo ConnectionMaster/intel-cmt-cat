@@ -1476,8 +1476,10 @@ fill_dev_tab(char *str)
                 parse_error(str, "Invalid PCI ID");
 
         if (vc_str != NULL) {
-                uint64_t value = strtouint64(vc_str);
+                uint64_t value;
 
+                if (pqos_parse_uint64(vc_str, &value) != 0)
+                        parse_error(vc_str, "Invalid virtual channel");
                 if (value >= PQOS_DEV_MAX_CHANNELS) {
                         fprintf(stderr,
                                 "Virtual channel %" PRIu64
