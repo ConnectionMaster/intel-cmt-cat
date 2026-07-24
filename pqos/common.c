@@ -125,6 +125,7 @@ pqos_parse_uint64(const char *text, uint64_t *value)
         return 0;
 }
 
+int
 pqos_parse_mem_regions(const char *arg,
                        int *regions,
                        const unsigned max_regions)

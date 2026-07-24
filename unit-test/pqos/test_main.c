@@ -200,6 +200,7 @@ test_parse_uint64_formats_and_errors(void **state)
         assert_int_equal(pqos_parse_uint64("1", NULL), -1);
 }
 
+static void
 test_parse_mem_regions_replaces_previous_values(void **state)
 {
         int regions[PQOS_MAX_MEM_REGIONS];
