@@ -476,10 +476,8 @@ monitor_utils_get_pid_stat(const char *proc_pid_dir_name,
         int col_idx = 3;
 
         if (proc_pid_dir_name == NULL || val == NULL || column < 1 ||
-            len_val == 0) {
-                fprintf(stderr, "Invalid process stat parser parameters\n");
+            len_val == 0)
                 return -1;
-        }
 
         fproc_pid_stats = open_proc_stat_file(proc_pid_dir_name);
         if (fproc_pid_stats == NULL)
@@ -487,33 +485,23 @@ monitor_utils_get_pid_stat(const char *proc_pid_dir_name,
 
         n_read = fread(buf, sizeof(char), sizeof(buf) - 1, fproc_pid_stats);
         if (ferror(fproc_pid_stats)) {
-                fprintf(stderr, "Failed to read /proc/%s/stat: %s\n",
-                        proc_pid_dir_name, strerror(errno));
                 fclose(fproc_pid_stats);
                 return -1;
         }
         fclose(fproc_pid_stats);
 
-        if (n_read == 0) {
-                fprintf(stderr, "/proc/%s/stat is empty\n", proc_pid_dir_name);
+        if (n_read == 0)
                 return -1;
-        }
-        if (n_read == sizeof(buf) - 1 && buf[n_read - 1] != '\n') {
-                fprintf(stderr, "/proc/%s/stat exceeds parser capacity\n",
-                        proc_pid_dir_name);
+        if (n_read == sizeof(buf) - 1 && buf[n_read - 1] != '\n')
                 return -1;
-        }
         buf[n_read] = '\0';
 
         left_paren = strchr(buf, '(');
         right_paren = strrchr(buf, ')');
         if (left_paren == NULL || right_paren == NULL || left_paren == buf ||
             right_paren <= left_paren || left_paren[-1] != ' ' ||
-            right_paren[1] != ' ' || right_paren[2] == '\0') {
-                fprintf(stderr, "/proc/%s/stat has an invalid format\n",
-                        proc_pid_dir_name);
+            right_paren[1] != ' ' || right_paren[2] == '\0')
                 return -1;
-        }
 
         if (column == 1) {
                 left_paren[-1] = '\0';
@@ -529,17 +517,10 @@ monitor_utils_get_pid_stat(const char *proc_pid_dir_name,
                 }
         }
 
-        if (token == NULL) {
-                fprintf(stderr, "/proc/%s/stat does not contain column %d\n",
-                        proc_pid_dir_name, column);
+        if (token == NULL)
                 return -1;
-        }
-        if (len_val < strlen(token) + 1) {
-                fprintf(stderr,
-                        "Buffer for /proc/%s/stat column %d is too small\n",
-                        proc_pid_dir_name, column);
+        if (len_val < strlen(token) + 1)
                 return -1;
-        }
 
         memcpy(val, token, strlen(token) + 1);
         return 0;
