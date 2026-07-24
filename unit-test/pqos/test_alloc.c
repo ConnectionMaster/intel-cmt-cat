@@ -85,14 +85,6 @@ test_selfn_allocation_assoc_negative(void **state)
             "Error parsing \"0,3-5\" command line argument. Invalid allocation "
             "class of service association format\n");
 
-        run_void_function(selfn_allocation_assoc, "dev:1=00:00.0@1,2;");
-        assert_int_equal(output_exit_was_called(), 1);
-        assert_int_equal(output_get_exit_status(), EXIT_FAILURE);
-        assert_string_equal(
-            output_get(),
-            "Error parsing \"1,2\" command line argument. Invalid "
-            "virtual channel\n");
-
         run_void_function(selfn_allocation_assoc, "pid:0,3-5;");
         assert_int_equal(output_exit_was_called(), 1);
         assert_int_equal(output_get_exit_status(), EXIT_FAILURE);
@@ -102,6 +94,22 @@ test_selfn_allocation_assoc_negative(void **state)
             "class of service association format\n");
 
         (void)state; /* unused */
+}
+
+static void
+test_fill_dev_tab_rejects_invalid_vc(void **state)
+{
+        char arg[] = "dev:1=00:00.0@1,2";
+
+        run_void_function(fill_dev_tab, arg);
+        assert_int_equal(output_exit_was_called(), 1);
+        assert_int_equal(output_get_exit_status(), EXIT_FAILURE);
+        assert_string_equal(
+            output_get(),
+            "Error parsing \"1,2\" command line argument. Invalid "
+            "virtual channel\n");
+
+        (void)state;
 }
 
 static void
@@ -1491,7 +1499,8 @@ main(void)
                                       cleanup_alloc_opts),
             cmocka_unit_test_teardown(test_selfn_allocation_class,
                                       cleanup_alloc_opts),
-            cmocka_unit_test(test_alloc_print_config_negative)};
+            cmocka_unit_test(test_alloc_print_config_negative),
+            cmocka_unit_test(test_fill_dev_tab_rejects_invalid_vc)};
 
         const struct CMUnitTest tests_need_all_caps[] = {
             cmocka_unit_test(test_alloc_print_config_msr),
