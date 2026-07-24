@@ -2215,7 +2215,7 @@ error_exit:
 static int
 parse_virtual_channels(char *str, unsigned int *vc, const int max_numbers)
 {
-        char *saveptr = NULL;
+        char *next;
         char *token;
         int count = 0;
 
@@ -2225,8 +2225,9 @@ parse_virtual_channels(char *str, unsigned int *vc, const int max_numbers)
                 return -1;
         }
 
-        for (token = strtok_r(str, ",", &saveptr); token != NULL;
-             token = strtok_r(NULL, ",", &saveptr)) {
+        next = str;
+        for (token = strsep(&next, ","); token != NULL;
+             token = strsep(&next, ",")) {
                 uint64_t start;
                 uint64_t end;
                 uint64_t value;
