@@ -61,6 +61,12 @@ __wrap__pqos_get_erdt(void)
         return mock_ptr_type(const struct pqos_erdt_info *);
 }
 
+const struct pqos_mrrm_info *
+__wrap__pqos_get_mrrm(void)
+{
+        return mock_ptr_type(const struct pqos_mrrm_info *);
+}
+
 const struct pqos_channels_domains *
 __wrap__pqos_get_channels_domains(void)
 {
@@ -93,6 +99,48 @@ __wrap_get_miss_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
 
         *rmids_val = TOTAL_IO_BW_RMID_O_MASK;
         return mock_type(int);
+}
+
+int
+__wrap_get_mba_optimal_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
+                                         int region_num,
+                                         unsigned int clos_number,
+                                         unsigned int *value)
+{
+        check_expected_ptr(marc);
+        check_expected(region_num);
+        check_expected(clos_number);
+
+        *value = 0;
+        return PQOS_RETVAL_OK;
+}
+
+int
+__wrap_get_mba_min_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
+                                     int region_num,
+                                     unsigned int clos_number,
+                                     unsigned int *value)
+{
+        check_expected_ptr(marc);
+        check_expected(region_num);
+        check_expected(clos_number);
+
+        *value = 0;
+        return PQOS_RETVAL_OK;
+}
+
+int
+__wrap_get_mba_max_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
+                                     int region_num,
+                                     unsigned int clos_number,
+                                     unsigned int *value)
+{
+        check_expected_ptr(marc);
+        check_expected(region_num);
+        check_expected(clos_number);
+
+        *value = 0;
+        return PQOS_RETVAL_OK;
 }
 
 int
@@ -233,18 +281,40 @@ test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
 {
         struct pqos_cpu_agent_info cpu_agent = {0};
         struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm = {0};
         struct pqos_mba mba_tab[2] = {0};
         unsigned num_cos = UINT32_MAX;
+        const int num_reads = 2 * PQOS_MAX_MEM_REGIONS;
         int ret;
 
         erdt.max_clos = 2;
         erdt.num_cpu_agents = 1;
         erdt.cpu_agents = &cpu_agent;
         cpu_agent.rmdd.domain_id = 10;
+        mrrm.max_memory_regions_supported = PQOS_MAX_MEM_REGIONS + 1;
         mba_tab[0].domain_id = cpu_agent.rmdd.domain_id;
 
         will_return(__wrap__pqos_get_erdt, &erdt);
+        will_return(__wrap__pqos_get_mrrm, &mrrm);
         will_return(__wrap__pqos_get_erdt, &erdt);
+        expect_value_count(__wrap_get_mba_optimal_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_reads);
+        expect_any_count(__wrap_get_mba_optimal_bw_region_clos_v1, region_num,
+                         num_reads);
+        expect_any_count(__wrap_get_mba_optimal_bw_region_clos_v1, clos_number,
+                         num_reads);
+        expect_value_count(__wrap_get_mba_min_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_reads);
+        expect_any_count(__wrap_get_mba_min_bw_region_clos_v1, region_num,
+                         num_reads);
+        expect_any_count(__wrap_get_mba_min_bw_region_clos_v1, clos_number,
+                         num_reads);
+        expect_value_count(__wrap_get_mba_max_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_reads);
+        expect_any_count(__wrap_get_mba_max_bw_region_clos_v1, region_num,
+                         num_reads);
+        expect_any_count(__wrap_get_mba_max_bw_region_clos_v1, clos_number,
+                         num_reads);
 
         ret = mmio_mba_get(0, 2, &num_cos, mba_tab);
 
@@ -253,6 +323,8 @@ test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
         assert_int_equal(mba_tab[1].domain_id, cpu_agent.rmdd.domain_id);
         assert_int_equal(mba_tab[0].class_id, 0);
         assert_int_equal(mba_tab[1].class_id, 1);
+        assert_int_equal(mba_tab[0].num_mem_regions, PQOS_MAX_MEM_REGIONS);
+        assert_int_equal(mba_tab[1].num_mem_regions, PQOS_MAX_MEM_REGIONS);
 }
 
 static void

@@ -310,7 +310,7 @@ mmio_mba_get(const unsigned mba_id,
 {
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         const struct pqos_cpu_agent_info *cpu_agent;
-        const int num_mem_regions = mba_tab[0].num_mem_regions;
+        int num_mem_regions;
         int ret = PQOS_RETVAL_OK;
 
         ASSERT(num_cos != NULL);
@@ -318,6 +318,19 @@ mmio_mba_get(const unsigned mba_id,
         ASSERT(max_num_cos != 0);
         ASSERT(erdt != NULL);
         UNUSED_PARAM(mba_id);
+
+        num_mem_regions = mba_tab[0].num_mem_regions;
+        if (num_mem_regions == 0) {
+                const struct pqos_mrrm_info *mrrm = _pqos_get_mrrm();
+
+                if (mrrm == NULL)
+                        return PQOS_RETVAL_ERROR;
+
+                num_mem_regions =
+                    (mrrm->max_memory_regions_supported < PQOS_MAX_MEM_REGIONS)
+                        ? mrrm->max_memory_regions_supported
+                        : PQOS_MAX_MEM_REGIONS;
+        }
 
         if (erdt->max_clos > max_num_cos)
                 return PQOS_RETVAL_ERROR;
