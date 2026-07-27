@@ -2402,11 +2402,10 @@ print_domain_alloc_config(const struct pqos_capability *cap_mon,
         unsigned i;
         unsigned idx;
         unsigned clos_idx;
-        unsigned clos_num;
         unsigned num_ca;
         unsigned sock_count;
         unsigned *sockets = NULL;
-        struct pqos_mba mba;
+        struct pqos_mba *mba_tab = NULL;
         struct pqos_l3ca l3ca[PQOS_MAX_L3CA_COS];
 
         if (!sys) {
@@ -2453,30 +2452,33 @@ print_domain_alloc_config(const struct pqos_capability *cap_mon,
                 printf("\n");
         }
 
+        mba_tab = calloc(sys->erdt->max_clos, sizeof(*mba_tab));
+        if (mba_tab == NULL) {
+                printf("Error allocating memory for MBA configuration\n");
+                goto free_and_return;
+        }
+
         for (idx = 0; idx < sys->erdt->num_cpu_agents; idx++) {
+                unsigned num_mba = 0;
+
                 for (clos_idx = 0; clos_idx < sys->erdt->max_clos; clos_idx++) {
-                        memset(&mba, 0, sizeof(struct pqos_mba));
-
-                        mba.domain_id =
+                        mba_tab[clos_idx].domain_id =
                             sys->erdt->cpu_agents[idx].rmdd.domain_id;
-                        mba.num_mem_regions =
+                        mba_tab[clos_idx].num_mem_regions =
                             sys->mrrm->max_memory_regions_supported;
-                        clos_num = clos_idx;
+                }
 
-                        ret = pqos_mba_get(
-                            sys->erdt->cpu_agents[idx].rmdd.domain_id, 1,
-                            &clos_num, &mba);
-                        if (ret != PQOS_RETVAL_OK) {
-                                printf(
-                                    "Error retrieving MMIO registers for "
-                                    "Domain ID %x, class ID %u: "
-                                    "pqos_mba_get() returned %d\n",
-                                    sys->erdt->cpu_agents[idx].rmdd.domain_id,
-                                    clos_idx, ret);
-                                goto free_and_return;
-                        }
+                ret = pqos_mba_get(sys->erdt->cpu_agents[idx].rmdd.domain_id,
+                                   sys->erdt->max_clos, &num_mba, mba_tab);
+                if (ret != PQOS_RETVAL_OK) {
+                        printf("Error retrieving MMIO registers for Domain "
+                               "ID %x: pqos_mba_get() returned %d\n",
+                               sys->erdt->cpu_agents[idx].rmdd.domain_id, ret);
+                        goto free_and_return;
+                }
 
-                        print_mba(&mba);
+                for (clos_idx = 0; clos_idx < num_mba; clos_idx++) {
+                        print_mba(&mba_tab[clos_idx]);
                         printf("\n");
                 }
                 printf("\n");
@@ -2519,6 +2521,7 @@ print_domain_alloc_config(const struct pqos_capability *cap_mon,
         print_iordt_alloc(cap_mon, cap_l3ca, sys);
 
 free_and_return:
+        free(mba_tab);
         free(sockets);
 }
 

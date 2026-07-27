@@ -192,6 +192,34 @@ test_mba_set_resolves_domain_id(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
+static void
+test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mba mba_tab[2] = {0};
+        unsigned num_cos = UINT32_MAX;
+        int ret;
+
+        erdt.max_clos = 2;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+        mba_tab[0].domain_id = cpu_agent.rmdd.domain_id;
+        mba_tab[1].domain_id = cpu_agent.rmdd.domain_id;
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        will_return(__wrap__pqos_get_erdt, &erdt);
+
+        ret = mmio_mba_get(0, 2, &num_cos, mba_tab);
+
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+        assert_int_equal(num_cos, 2);
+        assert_int_equal(mba_tab[0].class_id, 0);
+        assert_int_equal(mba_tab[1].class_id, 1);
+}
+
 int
 main(void)
 {
@@ -199,7 +227,8 @@ main(void)
             cmocka_unit_test(test_cpu_cmt_range_crosses_clump),
             cmocka_unit_test(test_io_cmt_range_crosses_page),
             cmocka_unit_test(test_cmt_range_rejects_invalid_range),
-            cmocka_unit_test(test_mba_set_resolves_domain_id)};
+            cmocka_unit_test(test_mba_set_resolves_domain_id),
+            cmocka_unit_test(test_mba_get_ignores_num_cos_input)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);
 }
