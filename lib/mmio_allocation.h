@@ -83,8 +83,9 @@ PQOS_LOCAL int mmio_mba_set(const unsigned mba_id,
  * @param [in]  max_num_cos maximum number of classes of service
  *              that can be accommodated at \a mba_tab
  * @param [out] num_cos number of classes of service read into \a mba_tab
- * @param [out] mba_tab table with read classes of service.
- *              mba_tab.domain_id must be set
+ * @param [in,out] mba_tab table with read classes of service. The domain_id
+ *                 and num_mem_regions fields of mba_tab[0] must be set on
+ *                 input and are copied to all returned entries
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success

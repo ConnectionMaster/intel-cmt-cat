@@ -206,9 +206,7 @@ test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
         erdt.cpu_agents = &cpu_agent;
         cpu_agent.rmdd.domain_id = 10;
         mba_tab[0].domain_id = cpu_agent.rmdd.domain_id;
-        mba_tab[1].domain_id = cpu_agent.rmdd.domain_id;
 
-        will_return(__wrap__pqos_get_erdt, &erdt);
         will_return(__wrap__pqos_get_erdt, &erdt);
         will_return(__wrap__pqos_get_erdt, &erdt);
 
@@ -216,6 +214,7 @@ test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
 
         assert_int_equal(ret, PQOS_RETVAL_OK);
         assert_int_equal(num_cos, 2);
+        assert_int_equal(mba_tab[1].domain_id, cpu_agent.rmdd.domain_id);
         assert_int_equal(mba_tab[0].class_id, 0);
         assert_int_equal(mba_tab[1].class_id, 1);
 }

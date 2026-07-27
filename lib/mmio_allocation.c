@@ -309,6 +309,8 @@ mmio_mba_get(const unsigned mba_id,
              struct pqos_mba *mba_tab)
 {
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
+        const struct pqos_cpu_agent_info *cpu_agent;
+        const int num_mem_regions = mba_tab[0].num_mem_regions;
         int ret = PQOS_RETVAL_OK;
 
         ASSERT(num_cos != NULL);
@@ -319,21 +321,21 @@ mmio_mba_get(const unsigned mba_id,
 
         if (erdt->max_clos > max_num_cos)
                 return PQOS_RETVAL_ERROR;
+
+        cpu_agent = get_cpu_agent_by_domain(mba_tab[0].domain_id);
+        if (cpu_agent == NULL || num_mem_regions < 0 ||
+            num_mem_regions > PQOS_MAX_MEM_REGIONS)
+                return PQOS_RETVAL_PARAM;
+
         for (unsigned i = 0; i < erdt->max_clos; i++) {
-                const struct pqos_cpu_agent_info *cpu_agent =
-                    get_cpu_agent_by_domain(mba_tab[i].domain_id);
-
-                if (cpu_agent == NULL || mba_tab[i].num_mem_regions < 0 ||
-                    mba_tab[i].num_mem_regions > PQOS_MAX_MEM_REGIONS)
-                        return PQOS_RETVAL_PARAM;
-
                 mba_tab[i].ctrl = 0;
                 mba_tab[i].class_id = i;
                 mba_tab[i].mb_max = 0;
+                mba_tab[i].domain_id = mba_tab[0].domain_id;
+                mba_tab[i].num_mem_regions = num_mem_regions;
 
                 ret = _get_regions_mba(cpu_agent, mba_tab[i].class_id,
-                                       mba_tab[i].num_mem_regions,
-                                       mba_tab[i].mem_regions);
+                                       num_mem_regions, mba_tab[i].mem_regions);
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
         }

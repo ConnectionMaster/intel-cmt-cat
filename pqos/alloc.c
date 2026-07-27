@@ -2459,14 +2459,16 @@ print_domain_alloc_config(const struct pqos_capability *cap_mon,
         }
 
         for (idx = 0; idx < sys->erdt->num_cpu_agents; idx++) {
+                const int num_mem_regions =
+                    sys->mrrm->max_memory_regions_supported <
+                            PQOS_MAX_MEM_REGIONS
+                        ? sys->mrrm->max_memory_regions_supported
+                        : PQOS_MAX_MEM_REGIONS;
                 unsigned num_mba = 0;
 
-                for (clos_idx = 0; clos_idx < sys->erdt->max_clos; clos_idx++) {
-                        mba_tab[clos_idx].domain_id =
-                            sys->erdt->cpu_agents[idx].rmdd.domain_id;
-                        mba_tab[clos_idx].num_mem_regions =
-                            sys->mrrm->max_memory_regions_supported;
-                }
+                mba_tab[0].domain_id =
+                    sys->erdt->cpu_agents[idx].rmdd.domain_id;
+                mba_tab[0].num_mem_regions = num_mem_regions;
 
                 ret = pqos_mba_get(sys->erdt->cpu_agents[idx].rmdd.domain_id,
                                    sys->erdt->max_clos, &num_mba, mba_tab);
