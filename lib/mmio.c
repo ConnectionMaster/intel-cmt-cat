@@ -781,5 +781,5 @@ is_available_iol3_mbm_rmid(iol3_mbm_rmid_t value)
 int
 is_overflow_iol3_mbm_rmid(iol3_mbm_rmid_t value)
 {
-        return value & TOTAL_IO_BW_RMID_O_MASK;
+        return (value & TOTAL_IO_BW_RMID_O_MASK) != 0;
 }

@@ -1288,6 +1288,7 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                                 LOG_ERROR("RMID %u overflowed for IO L3 total "
                                           "monitoring!\n",
                                           rmid);
+                                group->intl->valid_io_total_read = 0;
                                 return PQOS_RETVAL_OVERFLOW;
                         }
 
@@ -1350,6 +1351,7 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                                 LOG_ERROR("RMID %u overflowed for IO L3 miss "
                                           "monitoring!\n",
                                           rmid);
+                                group->intl->valid_io_miss_read = 0;
                                 return PQOS_RETVAL_OVERFLOW;
                         }
 

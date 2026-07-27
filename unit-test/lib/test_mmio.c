@@ -32,6 +32,8 @@
 
 #include "mmio.h"
 #include "mmio_allocation.h"
+#include "mmio_monitoring.h"
+#include "monitoring.h"
 #include "test.h"
 
 #include <stdint.h>
@@ -57,6 +59,40 @@ const struct pqos_erdt_info *
 __wrap__pqos_get_erdt(void)
 {
         return mock_ptr_type(const struct pqos_erdt_info *);
+}
+
+const struct pqos_channels_domains *
+__wrap__pqos_get_channels_domains(void)
+{
+        return mock_ptr_type(const struct pqos_channels_domains *);
+}
+
+int
+__wrap_get_total_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
+                                        unsigned int rmid_first,
+                                        unsigned int rmid_last,
+                                        iol3_mbm_rmid_t *rmids_val)
+{
+        check_expected_ptr(ibrd);
+        check_expected(rmid_first);
+        check_expected(rmid_last);
+
+        *rmids_val = TOTAL_IO_BW_RMID_O_MASK;
+        return mock_type(int);
+}
+
+int
+__wrap_get_miss_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
+                                       unsigned int rmid_first,
+                                       unsigned int rmid_last,
+                                       iol3_mbm_rmid_t *rmids_val)
+{
+        check_expected_ptr(ibrd);
+        check_expected(rmid_first);
+        check_expected(rmid_last);
+
+        *rmids_val = TOTAL_IO_BW_RMID_O_MASK;
+        return mock_type(int);
 }
 
 int
@@ -219,6 +255,74 @@ test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
         assert_int_equal(mba_tab[1].class_id, 1);
 }
 
+static void
+assert_io_overflow_invalidates_baseline(const enum pqos_mon_event event)
+{
+        struct pqos_device_agent_info dev_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_channels_domains channels_domains = {0};
+        struct pqos_mon_poll_ctx ctx = {0};
+        struct pqos_mon_data_internal intl = {0};
+        struct pqos_mon_data group = {0};
+        pqos_channel_t channel_id = 1;
+        uint16_t domain_id = 2;
+        uint16_t domain_id_idx = 0;
+        int ret;
+
+        dev_agent.ibrd.reg_block_size = 1;
+        dev_agent.ibrd.bw_reg_clump_size = 1;
+        dev_agent.ibrd.miss_reg_clump_size = 1;
+        erdt.num_dev_agents = 1;
+        erdt.dev_agents = &dev_agent;
+        channels_domains.num_channel_ids = 1;
+        channels_domains.channel_ids = &channel_id;
+        channels_domains.domain_ids = &domain_id;
+        channels_domains.domain_id_idxs = &domain_id_idx;
+        ctx.channel_id = channel_id;
+        intl.hw.ctx = &ctx;
+        intl.hw.num_ctx = 1;
+        intl.valid_io_total_read = 1;
+        intl.valid_io_miss_read = 1;
+        group.intl = &intl;
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        will_return(__wrap__pqos_get_channels_domains, &channels_domains);
+        if (event == PQOS_MON_EVENT_IO_TOTAL_MEM_BW) {
+                expect_value(__wrap_get_total_iol3_mbm_rmid_range_v1, ibrd,
+                             &dev_agent.ibrd);
+                expect_value(__wrap_get_total_iol3_mbm_rmid_range_v1,
+                             rmid_first, 0);
+                expect_value(__wrap_get_total_iol3_mbm_rmid_range_v1, rmid_last,
+                             0);
+                will_return(__wrap_get_total_iol3_mbm_rmid_range_v1,
+                            PQOS_RETVAL_OK);
+        } else {
+                expect_value(__wrap_get_miss_iol3_mbm_rmid_range_v1, ibrd,
+                             &dev_agent.ibrd);
+                expect_value(__wrap_get_miss_iol3_mbm_rmid_range_v1, rmid_first,
+                             0);
+                expect_value(__wrap_get_miss_iol3_mbm_rmid_range_v1, rmid_last,
+                             0);
+                will_return(__wrap_get_miss_iol3_mbm_rmid_range_v1,
+                            PQOS_RETVAL_OK);
+        }
+
+        ret = mmio_mon_read_counter(&group, event);
+
+        assert_int_equal(ret, PQOS_RETVAL_OVERFLOW);
+        if (event == PQOS_MON_EVENT_IO_TOTAL_MEM_BW)
+                assert_false(intl.valid_io_total_read);
+        else
+                assert_false(intl.valid_io_miss_read);
+}
+
+static void
+test_io_overflow_invalidates_baseline(void **state __attribute__((unused)))
+{
+        assert_io_overflow_invalidates_baseline(PQOS_MON_EVENT_IO_TOTAL_MEM_BW);
+        assert_io_overflow_invalidates_baseline(PQOS_MON_EVENT_IO_MISS_MEM_BW);
+}
+
 int
 main(void)
 {
@@ -227,7 +331,8 @@ main(void)
             cmocka_unit_test(test_io_cmt_range_crosses_page),
             cmocka_unit_test(test_cmt_range_rejects_invalid_range),
             cmocka_unit_test(test_mba_set_resolves_domain_id),
-            cmocka_unit_test(test_mba_get_ignores_num_cos_input)};
+            cmocka_unit_test(test_mba_get_ignores_num_cos_input),
+            cmocka_unit_test(test_io_overflow_invalidates_baseline)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);
 }

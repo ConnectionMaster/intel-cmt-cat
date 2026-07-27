@@ -752,6 +752,9 @@ $(BIN_DIR)/test_mmio: test_mmio.c $(LIB_OBJS)
 		-Wl,--wrap=pqos_mmap_read \
 		-Wl,--wrap=pqos_munmap \
 		-Wl,--wrap=_pqos_get_erdt \
+		-Wl,--wrap=_pqos_get_channels_domains \
+		-Wl,--wrap=get_total_iol3_mbm_rmid_range_v1 \
+		-Wl,--wrap=get_miss_iol3_mbm_rmid_range_v1 \
 		-Wl,--wrap=set_mba_optimal_bw_region_clos_v1 \
 		-Wl,--start-group \
 		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
