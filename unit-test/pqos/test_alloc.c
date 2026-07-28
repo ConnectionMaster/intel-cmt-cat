@@ -180,9 +180,9 @@ test_selfn_allocation_assoc_core(void **state)
 }
 
 static void
-test_selfn_allocation_assoc_cos(void **state)
+test_selfn_allocation_assoc_clos(void **state)
 {
-        run_void_function(selfn_allocation_assoc, "cos:2=1-3;cos:7=3,4;");
+        run_void_function(selfn_allocation_assoc, "clos:2=1-3;clos:7=3,4;");
         assert_int_equal(output_exit_was_called(), 0);
         assert_int_equal(sel_assoc_pid_num, 0);
         assert_int_equal(sel_assoc_core_num, 4);
@@ -321,7 +321,7 @@ test_alloc_print_config_msr(void **state)
         for (i = 0; i < data->cpu_info->num_cores / 2; i++) {
                 expect_value(__wrap_pqos_l2ca_get, l2id, i);
                 expect_value(__wrap_pqos_l2ca_get, max_num_ca,
-                             PQOS_MAX_L2CA_COS);
+                             PQOS_MAX_L2CA_CLOS);
                 will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
                 will_return(__wrap_pqos_l2ca_get, num_l2ca);
                 will_return(__wrap_pqos_l2ca_get, l2ca);
@@ -330,7 +330,7 @@ test_alloc_print_config_msr(void **state)
         /* mock pqos_mba_get */
         for (i = 0; i < data->num_socket; i++) {
                 expect_value(__wrap_pqos_mba_get, mba_id, i);
-                expect_value(__wrap_pqos_mba_get, max_num_cos, num_mba);
+                expect_value(__wrap_pqos_mba_get, max_num_clos, num_mba);
                 will_return(__wrap_pqos_mba_get, PQOS_RETVAL_OK);
                 will_return(__wrap_pqos_mba_get, num_mba);
                 will_return(__wrap_pqos_mba_get, mba);
@@ -363,44 +363,44 @@ test_alloc_print_config_msr(void **state)
 
         /* check output */
         assert_true(
-            output_has_text("L3CA/MBA COS definitions for Socket 0:\n"
-                            "    L3CA COS0 => MASK 0xf\n"
-                            "    L3CA COS1 => MASK 0x1f\n"
-                            "    L3CA COS2 => MASK 0x3f\n"
-                            "    L3CA COS3 => MASK 0x7f\n"
-                            "    L3CA COS4 => MASK 0xff\n"
-                            "    L3CA COS5 => MASK 0x1ff\n"
-                            "    MBA COS0 => 10%% available\n"
-                            "    MBA COS1 => 20%% available\n"
-                            "    MBA COS2 => 30%% available\n"
-                            "    MBA COS3 => 40%% available\n"
-                            "L3CA/MBA COS definitions for Socket 1:\n"
-                            "    L3CA COS0 => MASK 0xf\n"
-                            "    L3CA COS1 => MASK 0x1f\n"
-                            "    L3CA COS2 => MASK 0x3f\n"
-                            "    L3CA COS3 => MASK 0x7f\n"
-                            "    L3CA COS4 => MASK 0xff\n"
-                            "    L3CA COS5 => MASK 0x1ff\n"
-                            "    MBA COS0 => 10%% available\n"
-                            "    MBA COS1 => 20%% available\n"
-                            "    MBA COS2 => 30%% available\n"
-                            "    MBA COS3 => 40%% available\n"
-                            "L2CA COS definitions for L2ID 0:\n"
-                            "    L2CA COS0 => MASK 0x1\n"
-                            "    L2CA COS1 => MASK 0x3\n"
-                            "    L2CA COS2 => MASK 0x7\n"
-                            "    L2CA COS3 => MASK 0xf\n"
-                            "L2CA COS definitions for L2ID 1:\n"
-                            "    L2CA COS0 => MASK 0x1\n"
-                            "    L2CA COS1 => MASK 0x3\n"
-                            "    L2CA COS2 => MASK 0x7\n"
-                            "    L2CA COS3 => MASK 0xf\n"
+            output_has_text("L3CA/MBA CLOS definitions for Socket 0:\n"
+                            "    L3CA CLOS0 => MASK 0xf\n"
+                            "    L3CA CLOS1 => MASK 0x1f\n"
+                            "    L3CA CLOS2 => MASK 0x3f\n"
+                            "    L3CA CLOS3 => MASK 0x7f\n"
+                            "    L3CA CLOS4 => MASK 0xff\n"
+                            "    L3CA CLOS5 => MASK 0x1ff\n"
+                            "    MBA CLOS0 => 10%% available\n"
+                            "    MBA CLOS1 => 20%% available\n"
+                            "    MBA CLOS2 => 30%% available\n"
+                            "    MBA CLOS3 => 40%% available\n"
+                            "L3CA/MBA CLOS definitions for Socket 1:\n"
+                            "    L3CA CLOS0 => MASK 0xf\n"
+                            "    L3CA CLOS1 => MASK 0x1f\n"
+                            "    L3CA CLOS2 => MASK 0x3f\n"
+                            "    L3CA CLOS3 => MASK 0x7f\n"
+                            "    L3CA CLOS4 => MASK 0xff\n"
+                            "    L3CA CLOS5 => MASK 0x1ff\n"
+                            "    MBA CLOS0 => 10%% available\n"
+                            "    MBA CLOS1 => 20%% available\n"
+                            "    MBA CLOS2 => 30%% available\n"
+                            "    MBA CLOS3 => 40%% available\n"
+                            "L2CA CLOS definitions for L2ID 0:\n"
+                            "    L2CA CLOS0 => MASK 0x1\n"
+                            "    L2CA CLOS1 => MASK 0x3\n"
+                            "    L2CA CLOS2 => MASK 0x7\n"
+                            "    L2CA CLOS3 => MASK 0xf\n"
+                            "L2CA CLOS definitions for L2ID 1:\n"
+                            "    L2CA CLOS0 => MASK 0x1\n"
+                            "    L2CA CLOS1 => MASK 0x3\n"
+                            "    L2CA CLOS2 => MASK 0x7\n"
+                            "    L2CA CLOS3 => MASK 0xf\n"
                             "Core information for socket 0:\n"
-                            "    Core 0, L2ID 0, L3ID 0 => COS0, RMID4\n"
-                            "    Core 1, L2ID 0, L3ID 0 => COS1, RMID3\n"
+                            "    Core 0, L2ID 0, L3ID 0 => CLOS0, RMID4\n"
+                            "    Core 1, L2ID 0, L3ID 0 => CLOS1, RMID3\n"
                             "Core information for socket 1:\n"
-                            "    Core 2, L2ID 1, L3ID 1 => COS2, RMID2\n"
-                            "    Core 3, L2ID 1, L3ID 1 => COS3, RMID1\n"));
+                            "    Core 2, L2ID 1, L3ID 1 => CLOS2, RMID2\n"
+                            "    Core 3, L2ID 1, L3ID 1 => CLOS3, RMID1\n"));
 
         free(l3ca);
         free(l2ca);
@@ -463,7 +463,7 @@ test_alloc_print_config_os(void **state)
         for (i = 0; i < data->cpu_info->num_cores / 2; i++) {
                 expect_value(__wrap_pqos_l2ca_get, l2id, i);
                 expect_value(__wrap_pqos_l2ca_get, max_num_ca,
-                             PQOS_MAX_L2CA_COS);
+                             PQOS_MAX_L2CA_CLOS);
                 will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
                 will_return(__wrap_pqos_l2ca_get, num_l2ca);
                 will_return(__wrap_pqos_l2ca_get, l2ca);
@@ -472,7 +472,7 @@ test_alloc_print_config_os(void **state)
         /* mock pqos_mba_get */
         for (i = 0; i < data->num_socket; i++) {
                 expect_value(__wrap_pqos_mba_get, mba_id, i);
-                expect_value(__wrap_pqos_mba_get, max_num_cos, num_mba);
+                expect_value(__wrap_pqos_mba_get, max_num_clos, num_mba);
                 will_return(__wrap_pqos_mba_get, PQOS_RETVAL_OK);
                 will_return(__wrap_pqos_mba_get, num_mba);
                 will_return(__wrap_pqos_mba_get, mba);
@@ -496,44 +496,44 @@ test_alloc_print_config_os(void **state)
                           data->sys, 1);
 
         /* check output */
-        assert_true(output_has_text("L3CA/MBA COS definitions for Socket 0:\n"
-                                    "    L3CA COS0 => MASK 0xf\n"
-                                    "    L3CA COS1 => MASK 0x1f\n"
-                                    "    L3CA COS2 => MASK 0x3f\n"
-                                    "    L3CA COS3 => MASK 0x7f\n"
-                                    "    L3CA COS4 => MASK 0xff\n"
-                                    "    L3CA COS5 => MASK 0x1ff\n"
-                                    "    MBA COS0 => 10%% available\n"
-                                    "    MBA COS1 => 20%% available\n"
-                                    "    MBA COS2 => 30%% available\n"
-                                    "    MBA COS3 => 40%% available\n"
-                                    "L3CA/MBA COS definitions for Socket 1:\n"
-                                    "    L3CA COS0 => MASK 0xf\n"
-                                    "    L3CA COS1 => MASK 0x1f\n"
-                                    "    L3CA COS2 => MASK 0x3f\n"
-                                    "    L3CA COS3 => MASK 0x7f\n"
-                                    "    L3CA COS4 => MASK 0xff\n"
-                                    "    L3CA COS5 => MASK 0x1ff\n"
-                                    "    MBA COS0 => 10%% available\n"
-                                    "    MBA COS1 => 20%% available\n"
-                                    "    MBA COS2 => 30%% available\n"
-                                    "    MBA COS3 => 40%% available\n"
-                                    "L2CA COS definitions for L2ID 0:\n"
-                                    "    L2CA COS0 => MASK 0x1\n"
-                                    "    L2CA COS1 => MASK 0x3\n"
-                                    "    L2CA COS2 => MASK 0x7\n"
-                                    "    L2CA COS3 => MASK 0xf\n"
-                                    "L2CA COS definitions for L2ID 1:\n"
-                                    "    L2CA COS0 => MASK 0x1\n"
-                                    "    L2CA COS1 => MASK 0x3\n"
-                                    "    L2CA COS2 => MASK 0x7\n"
-                                    "    L2CA COS3 => MASK 0xf\n"
+        assert_true(output_has_text("L3CA/MBA CLOS definitions for Socket 0:\n"
+                                    "    L3CA CLOS0 => MASK 0xf\n"
+                                    "    L3CA CLOS1 => MASK 0x1f\n"
+                                    "    L3CA CLOS2 => MASK 0x3f\n"
+                                    "    L3CA CLOS3 => MASK 0x7f\n"
+                                    "    L3CA CLOS4 => MASK 0xff\n"
+                                    "    L3CA CLOS5 => MASK 0x1ff\n"
+                                    "    MBA CLOS0 => 10%% available\n"
+                                    "    MBA CLOS1 => 20%% available\n"
+                                    "    MBA CLOS2 => 30%% available\n"
+                                    "    MBA CLOS3 => 40%% available\n"
+                                    "L3CA/MBA CLOS definitions for Socket 1:\n"
+                                    "    L3CA CLOS0 => MASK 0xf\n"
+                                    "    L3CA CLOS1 => MASK 0x1f\n"
+                                    "    L3CA CLOS2 => MASK 0x3f\n"
+                                    "    L3CA CLOS3 => MASK 0x7f\n"
+                                    "    L3CA CLOS4 => MASK 0xff\n"
+                                    "    L3CA CLOS5 => MASK 0x1ff\n"
+                                    "    MBA CLOS0 => 10%% available\n"
+                                    "    MBA CLOS1 => 20%% available\n"
+                                    "    MBA CLOS2 => 30%% available\n"
+                                    "    MBA CLOS3 => 40%% available\n"
+                                    "L2CA CLOS definitions for L2ID 0:\n"
+                                    "    L2CA CLOS0 => MASK 0x1\n"
+                                    "    L2CA CLOS1 => MASK 0x3\n"
+                                    "    L2CA CLOS2 => MASK 0x7\n"
+                                    "    L2CA CLOS3 => MASK 0xf\n"
+                                    "L2CA CLOS definitions for L2ID 1:\n"
+                                    "    L2CA CLOS0 => MASK 0x1\n"
+                                    "    L2CA CLOS1 => MASK 0x3\n"
+                                    "    L2CA CLOS2 => MASK 0x7\n"
+                                    "    L2CA CLOS3 => MASK 0xf\n"
                                     "Core information for socket 0:\n"
-                                    "    Core 0, L2ID 0, L3ID 0 => COS0\n"
-                                    "    Core 1, L2ID 0, L3ID 0 => COS1\n"
+                                    "    Core 0, L2ID 0, L3ID 0 => CLOS0\n"
+                                    "    Core 1, L2ID 0, L3ID 0 => CLOS1\n"
                                     "Core information for socket 1:\n"
-                                    "    Core 2, L2ID 1, L3ID 1 => COS2\n"
-                                    "    Core 3, L2ID 1, L3ID 1 => COS3\n"));
+                                    "    Core 2, L2ID 1, L3ID 1 => CLOS2\n"
+                                    "    Core 3, L2ID 1, L3ID 1 => CLOS3\n"));
         free(l3ca);
         free(l2ca);
         free(mba);
@@ -565,7 +565,7 @@ test_alloc_apply_mba(void **state)
         struct pqos_mba actual_mbas[3];
         unsigned i;
 
-        /* match set_mba_cos() initialization */
+        /* match set_mba_clos() initialization */
         memset(requested_mbas, 0, sizeof(requested_mbas));
         for (i = 0; i < 3; i++)
                 memset(requested_mbas[i].mem_regions, -1,
@@ -616,42 +616,42 @@ test_alloc_apply_mba(void **state)
 
         /* mock pqos_mba_set */
         expect_value(__wrap_pqos_mba_set, mba_id, 0);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[0],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 1);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[0],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 1);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[1],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[1]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 2);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[1],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[1]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 2);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[2],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[2]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 3);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[2],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
@@ -663,17 +663,17 @@ test_alloc_apply_mba(void **state)
 
         assert_int_equal(ret, 1);
         assert_true(output_has_text(
-            "SOCKET 0 MBA COS2 => 10%% requested, 10%% applied"));
+            "SOCKET 0 MBA CLOS2 => 10%% requested, 10%% applied"));
         assert_true(output_has_text(
-            "SOCKET 1 MBA COS2 => 10%% requested, 10%% applied"));
+            "SOCKET 1 MBA CLOS2 => 10%% requested, 10%% applied"));
         assert_true(output_has_text(
-            "SOCKET 1 MBA COS2 => 64%% requested, 60%% applied"));
+            "SOCKET 1 MBA CLOS2 => 64%% requested, 60%% applied"));
         assert_true(output_has_text(
-            "SOCKET 2 MBA COS2 => 64%% requested, 60%% applied"));
+            "SOCKET 2 MBA CLOS2 => 64%% requested, 60%% applied"));
         assert_true(output_has_text(
-            "SOCKET 2 MBA COS3 => 85%% requested, 90%% applied"));
+            "SOCKET 2 MBA CLOS3 => 85%% requested, 90%% applied"));
         assert_true(output_has_text(
-            "SOCKET 3 MBA COS3 => 85%% requested, 90%% applied"));
+            "SOCKET 3 MBA CLOS3 => 85%% requested, 90%% applied"));
         assert_true(output_has_text("Allocation configuration altered"));
 
         /* cleanup before test */
@@ -689,7 +689,7 @@ test_alloc_apply_mba_max(void **state)
         struct pqos_mba actual_mbas[3];
         unsigned i;
 
-        /* match set_mba_cos() initialization */
+        /* match set_mba_clos() initialization */
         memset(requested_mbas, 0, sizeof(requested_mbas));
         for (i = 0; i < 3; i++)
                 memset(requested_mbas[i].mem_regions, -1,
@@ -740,42 +740,42 @@ test_alloc_apply_mba_max(void **state)
 
         /* mock pqos_mba_set */
         expect_value(__wrap_pqos_mba_set, mba_id, 0);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[0],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 1);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[0],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 1);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[1],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 2);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[1],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 2);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[2],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_mba_set, &actual_mbas[0]);
 
         expect_value(__wrap_pqos_mba_set, mba_id, 3);
-        expect_value(__wrap_pqos_mba_set, num_cos, 1);
+        expect_value(__wrap_pqos_mba_set, num_clos, 1);
         expect_memory(__wrap_pqos_mba_set, requested, &requested_mbas[2],
                       sizeof(struct pqos_mba));
         will_return(__wrap_pqos_mba_set, PQOS_RETVAL_OK);
@@ -786,12 +786,12 @@ test_alloc_apply_mba_max(void **state)
                      data->cap_mba, data->cap_smba, data->cpu_info, NULL);
 
         assert_int_equal(ret, 1);
-        assert_true(output_has_text("SOCKET 0 MBA COS2 => 10 MBps"));
-        assert_true(output_has_text("SOCKET 1 MBA COS2 => 10 MBps"));
-        assert_true(output_has_text("SOCKET 1 MBA COS2 => 64 MBps"));
-        assert_true(output_has_text("SOCKET 2 MBA COS2 => 64 MBps"));
-        assert_true(output_has_text("SOCKET 2 MBA COS2 => 85 MBps"));
-        assert_true(output_has_text("SOCKET 3 MBA COS2 => 85 MBps"));
+        assert_true(output_has_text("SOCKET 0 MBA CLOS2 => 10 MBps"));
+        assert_true(output_has_text("SOCKET 1 MBA CLOS2 => 10 MBps"));
+        assert_true(output_has_text("SOCKET 1 MBA CLOS2 => 64 MBps"));
+        assert_true(output_has_text("SOCKET 2 MBA CLOS2 => 64 MBps"));
+        assert_true(output_has_text("SOCKET 2 MBA CLOS2 => 85 MBps"));
+        assert_true(output_has_text("SOCKET 3 MBA CLOS2 => 85 MBps"));
         assert_true(output_has_text("Allocation configuration altered"));
 
         sel_alloc_opt_num = 0;
@@ -878,37 +878,37 @@ test_alloc_apply_l3ca(void **state)
 
         /* mock pqos_l3ca_set */
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 0);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[0],
                       sizeof(struct pqos_l3ca) - 8);
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 1);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[0],
                       sizeof(struct pqos_l3ca) - 8);
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 0);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[1],
                       sizeof(struct pqos_l3ca) - 8);
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 1);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[1],
                       sizeof(struct pqos_l3ca) - 8);
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 2);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[2],
                       sizeof(struct pqos_l3ca) - 8);
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 3);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[2],
                       sizeof(struct pqos_l3ca) - 8);
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
@@ -918,12 +918,12 @@ test_alloc_apply_l3ca(void **state)
                      data->cap_mba, data->cap_smba, data->cpu_info, NULL);
 
         assert_int_equal(ret, 1);
-        assert_true(output_has_text("SOCKET0 L3CA COS1 => MASK 0xf"));
-        assert_true(output_has_text("SOCKET1 L3CA COS1 => MASK 0xf"));
-        assert_true(output_has_text("SOCKET0 L3CA COS2 => MASK 0xff0"));
-        assert_true(output_has_text("SOCKET1 L3CA COS2 => MASK 0xff0"));
-        assert_true(output_has_text("SOCKET2 L3CA COS3 => MASK 0x3c"));
-        assert_true(output_has_text("SOCKET3 L3CA COS3 => MASK 0x3c"));
+        assert_true(output_has_text("SOCKET0 L3CA CLOS1 => MASK 0xf"));
+        assert_true(output_has_text("SOCKET1 L3CA CLOS1 => MASK 0xf"));
+        assert_true(output_has_text("SOCKET0 L3CA CLOS2 => MASK 0xff0"));
+        assert_true(output_has_text("SOCKET1 L3CA CLOS2 => MASK 0xff0"));
+        assert_true(output_has_text("SOCKET2 L3CA CLOS3 => MASK 0x3c"));
+        assert_true(output_has_text("SOCKET3 L3CA CLOS3 => MASK 0x3c"));
         assert_true(output_has_text("Allocation configuration altered"));
 
         sel_alloc_opt_num = 0;
@@ -994,25 +994,25 @@ test_alloc_apply_l3ca_cdp(void **state)
 
         /* mock pqos_l3ca_set */
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 0);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[0],
                       sizeof(struct pqos_l3ca));
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 1);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[0],
                       sizeof(struct pqos_l3ca));
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 0);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[1],
                       sizeof(struct pqos_l3ca));
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l3ca_set, l3cat_id, 1);
-        expect_value(__wrap_pqos_l3ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l3ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l3ca_set, ca, &expected_ca[1],
                       sizeof(struct pqos_l3ca));
         will_return(__wrap_pqos_l3ca_set, PQOS_RETVAL_OK);
@@ -1022,13 +1022,13 @@ test_alloc_apply_l3ca_cdp(void **state)
                      data->cap_mba, data->cap_smba, data->cpu_info, NULL);
 
         assert_int_equal(ret, 1);
-        assert_true(output_has_text("SOCKET0 L3CA COS1 => DATA 0xff,CODE "
+        assert_true(output_has_text("SOCKET0 L3CA CLOS1 => DATA 0xff,CODE "
                                     "0xffff"));
-        assert_true(output_has_text("SOCKET1 L3CA COS1 => DATA 0xff,CODE "
+        assert_true(output_has_text("SOCKET1 L3CA CLOS1 => DATA 0xff,CODE "
                                     "0xffff"));
-        assert_true(output_has_text("SOCKET0 L3CA COS1 => DATA 0xffff,CODE "
+        assert_true(output_has_text("SOCKET0 L3CA CLOS1 => DATA 0xffff,CODE "
                                     "0xf"));
-        assert_true(output_has_text("SOCKET1 L3CA COS1 => DATA 0xffff,CODE "
+        assert_true(output_has_text("SOCKET1 L3CA CLOS1 => DATA 0xffff,CODE "
                                     "0xf"));
         assert_true(output_has_text("Allocation configuration altered"));
         sel_alloc_opt_num = 2;
@@ -1069,74 +1069,74 @@ test_alloc_apply_l2(void **state)
 
         /* mock pqos_l2ca_get*/
         expect_value(__wrap_pqos_l2ca_get, l2id, 0);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_l2ca);
         will_return(__wrap_pqos_l2ca_get, l2ca_tab);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 1);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_l2ca);
         will_return(__wrap_pqos_l2ca_get, l2ca_tab);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 2);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_l2ca);
         will_return(__wrap_pqos_l2ca_get, l2ca_tab);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 3);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_l2ca);
         will_return(__wrap_pqos_l2ca_get, l2ca_tab);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 4);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_l2ca);
         will_return(__wrap_pqos_l2ca_get, l2ca_tab);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 5);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_l2ca);
         will_return(__wrap_pqos_l2ca_get, l2ca_tab);
 
         /* mock pqos_l2ca_set*/
         expect_value(__wrap_pqos_l2ca_set, l2id, 0);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_l2ca_tab[0],
                       sizeof(struct pqos_l2ca) - 8);
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 1);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_l2ca_tab[0],
                       sizeof(struct pqos_l2ca) - 8);
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 2);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_l2ca_tab[1],
                       sizeof(struct pqos_l2ca) - 8);
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 3);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_l2ca_tab[1],
                       sizeof(struct pqos_l2ca) - 8);
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 4);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_l2ca_tab[2],
                       sizeof(struct pqos_l2ca) - 8);
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 5);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_l2ca_tab[2],
                       sizeof(struct pqos_l2ca) - 8);
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
@@ -1146,12 +1146,12 @@ test_alloc_apply_l2(void **state)
                      data->cap_mba, data->cap_smba, data->cpu_info, NULL);
 
         assert_int_equal(ret, 1);
-        assert_true(output_has_text("L2ID 0 L2CA COS0 => MASK 0x1"));
-        assert_true(output_has_text("L2ID 1 L2CA COS0 => MASK 0x1"));
-        assert_true(output_has_text("L2ID 2 L2CA COS1 => MASK 0xf"));
-        assert_true(output_has_text("L2ID 3 L2CA COS1 => MASK 0xf"));
-        assert_true(output_has_text("L2ID 4 L2CA COS2 => MASK 0xff"));
-        assert_true(output_has_text("L2ID 5 L2CA COS2 => MASK 0xff"));
+        assert_true(output_has_text("L2ID 0 L2CA CLOS0 => MASK 0x1"));
+        assert_true(output_has_text("L2ID 1 L2CA CLOS0 => MASK 0x1"));
+        assert_true(output_has_text("L2ID 2 L2CA CLOS1 => MASK 0xf"));
+        assert_true(output_has_text("L2ID 3 L2CA CLOS1 => MASK 0xf"));
+        assert_true(output_has_text("L2ID 4 L2CA CLOS2 => MASK 0xff"));
+        assert_true(output_has_text("L2ID 5 L2CA CLOS2 => MASK 0xff"));
         assert_true(output_has_text("Allocation configuration altered"));
 
         sel_alloc_opt_num = 0;
@@ -1193,50 +1193,50 @@ test_alloc_apply_l2_cdp(void **state)
 
         /* mock pqos_l2ca_get*/
         expect_value(__wrap_pqos_l2ca_get, l2id, 0);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_ca);
         will_return(__wrap_pqos_l2ca_get, ca);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 1);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_ca);
         will_return(__wrap_pqos_l2ca_get, ca);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 0);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_ca);
         will_return(__wrap_pqos_l2ca_get, ca);
 
         expect_value(__wrap_pqos_l2ca_get, l2id, 1);
-        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_COS);
+        expect_value(__wrap_pqos_l2ca_get, max_num_ca, PQOS_MAX_L2CA_CLOS);
         will_return(__wrap_pqos_l2ca_get, PQOS_RETVAL_OK);
         will_return(__wrap_pqos_l2ca_get, num_ca);
         will_return(__wrap_pqos_l2ca_get, ca);
 
         /* mock pqos_l2ca_set */
         expect_value(__wrap_pqos_l2ca_set, l2id, 0);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_ca[0],
                       sizeof(struct pqos_l2ca));
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 1);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_ca[0],
                       sizeof(struct pqos_l2ca));
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 0);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_ca[1],
                       sizeof(struct pqos_l2ca));
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
 
         expect_value(__wrap_pqos_l2ca_set, l2id, 1);
-        expect_value(__wrap_pqos_l2ca_set, num_cos, 1);
+        expect_value(__wrap_pqos_l2ca_set, num_clos, 1);
         expect_memory(__wrap_pqos_l2ca_set, ca, &expected_ca[1],
                       sizeof(struct pqos_l2ca));
         will_return(__wrap_pqos_l2ca_set, PQOS_RETVAL_OK);
@@ -1246,13 +1246,13 @@ test_alloc_apply_l2_cdp(void **state)
                      data->cap_mba, data->cap_smba, data->cpu_info, NULL);
 
         assert_int_equal(ret, 1);
-        assert_true(output_has_text("L2ID 0 L2CA COS1 => DATA 0xff,CODE "
+        assert_true(output_has_text("L2ID 0 L2CA CLOS1 => DATA 0xff,CODE "
                                     "0xffff"));
-        assert_true(output_has_text("L2ID 1 L2CA COS1 => DATA 0xff,CODE "
+        assert_true(output_has_text("L2ID 1 L2CA CLOS1 => DATA 0xff,CODE "
                                     "0xffff"));
-        assert_true(output_has_text("L2ID 0 L2CA COS1 => DATA 0xffff,CODE "
+        assert_true(output_has_text("L2ID 0 L2CA CLOS1 => DATA 0xffff,CODE "
                                     "0xf"));
-        assert_true(output_has_text("L2ID 1 L2CA COS1 => DATA 0xffff,CODE "
+        assert_true(output_has_text("L2ID 1 L2CA CLOS1 => DATA 0xffff,CODE "
                                     "0xf"));
         assert_true(output_has_text("Allocation configuration altered"));
         sel_alloc_opt_num = 2;
@@ -1493,7 +1493,7 @@ main(void)
                                       cleanup_assoc_core_and_pid_tabs),
             cmocka_unit_test_teardown(test_selfn_allocation_assoc_core,
                                       cleanup_assoc_core_and_pid_tabs),
-            cmocka_unit_test_teardown(test_selfn_allocation_assoc_cos,
+            cmocka_unit_test_teardown(test_selfn_allocation_assoc_clos,
                                       cleanup_assoc_core_and_pid_tabs),
             cmocka_unit_test_teardown(test_selfn_allocation_class_negative,
                                       cleanup_alloc_opts),

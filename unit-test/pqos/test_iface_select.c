@@ -355,7 +355,7 @@ test_scenario_alloc_assoc_core_picks_msr(void **state)
         unsigned m = IFACE_ANY;
 
         (void)state;
-        /* -a core:/cos:/llc: works over MSR or OS; MSR preferred. */
+        /* -a core:/clos:/llc: works over MSR or OS; MSR preferred. */
         m = iface_narrow(m, IFACE_MSR | IFACE_OS);
         assert_int_equal(m, IFACE_MSR | IFACE_OS);
         assert_int_equal(iface_resolve(m, 0, PQOS_INTER_AUTO, &out), 0);

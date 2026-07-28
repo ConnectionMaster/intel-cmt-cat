@@ -171,7 +171,7 @@ clang-format:
 CODESPELL?=codespell
 .PHONY: codespell
 codespell:
-	$(CODESPELL) . --skip $(OBJ_DIR) -q 2
+	$(CODESPELL) . --skip $(OBJ_DIR) -q 2 -L clos
 
 CHECKPATCH?=checkpatch.pl
 .PHONY: checkpatch

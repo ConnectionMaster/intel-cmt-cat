@@ -32,7 +32,7 @@
  */
 
 /**
- * @brief Platform QoS sample COS association application
+ * @brief Platform QoS sample CLOS association application
  *
  */
 
@@ -71,7 +71,7 @@ static struct {
  *        internal configuration.
  *
  * @param argc Number of arguments in input command
- * @param argv Input arguments for COS association
+ * @param argv Input arguments for CLOS association
  */
 static void
 enforcement_get_input(int argc, char *argv[])
@@ -81,7 +81,7 @@ enforcement_get_input(int argc, char *argv[])
         if (argc < 2)
                 sel_l3ca_assoc_num = 0;
         else if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-H")) {
-                printf("Usage: %s [<COS#> <core1> <core2> <core3> ...]\n",
+                printf("Usage: %s [<CLOS#> <core1> <core2> <core3> ...]\n",
                        argv[0]);
                 printf("Eg   : %s 1 1 3 6\n\n", argv[0]);
                 sel_l3ca_assoc_num = 0;
@@ -114,7 +114,7 @@ print_allocation_config(void)
                 printf("Error retrieving PQoS capabilities!\n");
                 return;
         }
-        /* Get CPU l3cat_id information to set COS */
+        /* Get CPU l3cat_id information to set CLOS */
         l3cat_ids = pqos_cpu_get_l3cat_ids(p_cpu, &l3cat_id_count);
         if (l3cat_ids == NULL) {
                 printf("Error retrieving CPU socket information!\n");
@@ -137,7 +137,7 @@ print_allocation_config(void)
 
                         ret = pqos_alloc_assoc_get(lcores[n], &class_id);
                         if (ret == PQOS_RETVAL_OK)
-                                printf("    Core %u => COS%u\n", lcores[n],
+                                printf("    Core %u => CLOS%u\n", lcores[n],
                                        class_id);
                         else
                                 printf("    Core %u => ERROR\n", lcores[n]);
@@ -193,7 +193,7 @@ main(int argc, char *argv[])
         /* Get input from user */
         enforcement_get_input(argc, argv);
         if (sel_l3ca_assoc_num) {
-                /* Enforce COS to the associated cores */
+                /* Enforce CLOS to the associated cores */
                 ret = set_allocation_assoc();
                 if (ret < 0) {
                         printf("CAT association error!\n");
@@ -201,7 +201,7 @@ main(int argc, char *argv[])
                 }
                 printf("Allocation configuration altered.\n");
         }
-        /* Print COS and associated cores */
+        /* Print CLOS and associated cores */
         print_allocation_config();
 error_exit:
         /* reset and deallocate all the resources */

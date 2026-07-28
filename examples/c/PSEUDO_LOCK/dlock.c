@@ -57,8 +57,8 @@ static size_t m_chunk_size = 0;
 static unsigned m_num_clos = 0;
 static struct {
         unsigned id;
-        struct pqos_l3ca *cos_tab;
-} m_l3cat_cos[MAX_L3CAT_NUM];
+        struct pqos_l3ca *clos_tab;
+} m_l3cat_clos[MAX_L3CAT_NUM];
 
 /**
  * @brief Removes the memory block from cache hierarchy
@@ -256,9 +256,9 @@ dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
         /**
          * Clear table for restoring CAT configuration
          */
-        for (i = 0; i < DIM(m_l3cat_cos); i++) {
-                m_l3cat_cos[i].id = 0;
-                m_l3cat_cos[i].cos_tab = NULL;
+        for (i = 0; i < DIM(m_l3cat_clos); i++) {
+                m_l3cat_clos[i].id = 0;
+                m_l3cat_clos[i].clos_tab = NULL;
         }
 
         /**
@@ -312,11 +312,12 @@ dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                 const uint64_t dlock_mask = (1ULL << num_cache_ways) - 1ULL;
 
                 ASSERT(m_num_clos > 0);
-                struct pqos_l3ca cos[m_num_clos];
+                struct pqos_l3ca clos_tab[m_num_clos];
                 unsigned num = 0, j;
 
                 /* get current CAT classes on this l3cat_ids */
-                res = pqos_l3ca_get(l3cat_ids[i], m_num_clos, &num, &cos[0]);
+                res =
+                    pqos_l3ca_get(l3cat_ids[i], m_num_clos, &num, &clos_tab[0]);
                 if (res != PQOS_RETVAL_OK) {
                         printf("pqos_l3ca_get() error!\n");
                         ret = -9;
@@ -331,15 +332,16 @@ dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                 }
 
                 /* save CAT classes to restore it later */
-                m_l3cat_cos[i].id = l3cat_ids[i];
-                m_l3cat_cos[i].cos_tab = malloc(m_num_clos * sizeof(cos[0]));
-                if (m_l3cat_cos[i].cos_tab == NULL) {
+                m_l3cat_clos[i].id = l3cat_ids[i];
+                m_l3cat_clos[i].clos_tab =
+                    malloc(m_num_clos * sizeof(clos_tab[0]));
+                if (m_l3cat_clos[i].clos_tab == NULL) {
                         printf("malloc() error!\n");
                         ret = -9;
                         goto dlock_init_error2;
                 }
-                memcpy(m_l3cat_cos[i].cos_tab, cos,
-                       m_num_clos * sizeof(cos[0]));
+                memcpy(m_l3cat_clos[i].clos_tab, clos_tab,
+                       m_num_clos * sizeof(clos_tab[0]));
 
                 /**
                  * Modify the classes in the following way:
@@ -350,23 +352,25 @@ dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                  *   exclude class from accessing \a num_cache_ways
                  */
                 for (j = 0; j < m_num_clos; j++) {
-                        if (cos[j].cdp) {
-                                if (cos[j].class_id == (unsigned)clos) {
-                                        cos[j].u.s.code_mask = dlock_mask;
-                                        cos[j].u.s.data_mask = dlock_mask;
+                        if (clos_tab[j].cdp) {
+                                if (clos_tab[j].class_id == (unsigned)clos) {
+                                        clos_tab[j].u.s.code_mask = dlock_mask;
+                                        clos_tab[j].u.s.data_mask = dlock_mask;
                                 } else {
-                                        cos[j].u.s.code_mask &= ~dlock_mask;
-                                        cos[j].u.s.data_mask &= ~dlock_mask;
+                                        clos_tab[j].u.s.code_mask &=
+                                            ~dlock_mask;
+                                        clos_tab[j].u.s.data_mask &=
+                                            ~dlock_mask;
                                 }
                         } else {
-                                if (cos[j].class_id == (unsigned)clos)
-                                        cos[j].u.ways_mask = dlock_mask;
+                                if (clos_tab[j].class_id == (unsigned)clos)
+                                        clos_tab[j].u.ways_mask = dlock_mask;
                                 else
-                                        cos[j].u.ways_mask &= ~dlock_mask;
+                                        clos_tab[j].u.ways_mask &= ~dlock_mask;
                         }
                 }
 
-                res = pqos_l3ca_set(l3cat_ids[i], m_num_clos, &cos[0]);
+                res = pqos_l3ca_set(l3cat_ids[i], m_num_clos, &clos_tab[0]);
                 if (res != PQOS_RETVAL_OK) {
                         printf("pqos_l3ca_set() error!\n");
                         ret = -10;
@@ -419,9 +423,9 @@ dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
         }
 
 dlock_init_error2:
-        for (i = 0; (i < DIM(m_l3cat_cos)) && (ret != 0); i++)
-                if (m_l3cat_cos[i].cos_tab != NULL)
-                        free(m_l3cat_cos[i].cos_tab);
+        for (i = 0; (i < DIM(m_l3cat_clos)) && (ret != 0); i++)
+                if (m_l3cat_clos[i].clos_tab != NULL)
+                        free(m_l3cat_clos[i].clos_tab);
 
 #ifdef __linux__
         res = sched_setaffinity(0, sizeof(cpuset_save), &cpuset_save);
@@ -461,17 +465,17 @@ dlock_exit(void)
         if (m_chunk_start == NULL)
                 return -1;
 
-        for (i = 0; i < DIM(m_l3cat_cos); i++) {
-                if (m_l3cat_cos[i].cos_tab != NULL) {
-                        int res = pqos_l3ca_set(m_l3cat_cos[i].id, m_num_clos,
-                                                m_l3cat_cos[i].cos_tab);
+        for (i = 0; i < DIM(m_l3cat_clos); i++) {
+                if (m_l3cat_clos[i].clos_tab != NULL) {
+                        int res = pqos_l3ca_set(m_l3cat_clos[i].id, m_num_clos,
+                                                m_l3cat_clos[i].clos_tab);
 
                         if (res != PQOS_RETVAL_OK)
                                 ret = -2;
                 }
-                free(m_l3cat_cos[i].cos_tab);
-                m_l3cat_cos[i].cos_tab = NULL;
-                m_l3cat_cos[i].id = 0;
+                free(m_l3cat_clos[i].clos_tab);
+                m_l3cat_clos[i].clos_tab = NULL;
+                m_l3cat_clos[i].id = 0;
         }
 
         if (m_is_chunk_allocated)

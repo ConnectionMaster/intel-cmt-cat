@@ -32,7 +32,7 @@
  */
 
 /**
- * @brief Platform QoS sample COS reset application
+ * @brief Platform QoS sample CLOS reset application
  *
  */
 
@@ -67,17 +67,18 @@ print_allocation_config(const struct pqos_capability *cap_l3ca,
                 return;
 
         for (i = 0; i < l3cat_id_count; i++) {
-                struct pqos_l3ca tab[PQOS_MAX_L3CA_COS];
+                struct pqos_l3ca tab[PQOS_MAX_L3CA_CLOS];
                 unsigned num = 0;
 
-                ret = pqos_l3ca_get(l3cat_ids[i], PQOS_MAX_L3CA_COS, &num, tab);
+                ret =
+                    pqos_l3ca_get(l3cat_ids[i], PQOS_MAX_L3CA_CLOS, &num, tab);
                 if (ret == PQOS_RETVAL_OK) {
                         unsigned n = 0;
 
-                        printf("L3CA COS definitions for Socket %u:\n",
+                        printf("L3CA CLOS definitions for Socket %u:\n",
                                l3cat_ids[i]);
                         for (n = 0; n < num; n++) {
-                                printf("   L3CA COS%u => MASK 0x%llx\n",
+                                printf("   L3CA CLOS%u => MASK 0x%llx\n",
                                        tab[n].class_id,
                                        (unsigned long long)tab[n].u.ways_mask);
                         }
@@ -103,7 +104,7 @@ print_allocation_config(const struct pqos_capability *cap_l3ca,
                                 ret1 =
                                     pqos_alloc_assoc_get(lcores[n], &class_id);
                         if (ret1 == PQOS_RETVAL_OK)
-                                printf("    Core %u => COS%u\n", lcores[n],
+                                printf("    Core %u => CLOS%u\n", lcores[n],
                                        class_id);
                         else
                                 printf("    Core %u => ERROR\n", lcores[n]);
@@ -149,7 +150,7 @@ main(int argc, char *argv[])
                 printf("CAT reset failed!\n");
         else
                 printf("CAT reset successful\n");
-        /* Get CPU l3cat_id information to set COS */
+        /* Get CPU l3cat_id information to set CLOS */
         l3cat_ids = pqos_cpu_get_l3cat_ids(p_cpu, &l3cat_id_count);
         if (l3cat_ids == NULL) {
                 printf("Error retrieving CPU socket information!\n");
@@ -157,7 +158,7 @@ main(int argc, char *argv[])
                 goto error_exit;
         }
         (void)pqos_cap_get_type(p_cap, PQOS_CAP_TYPE_L3CA, &cap_l3ca);
-        /* Print COS and associated cores */
+        /* Print CLOS and associated cores */
         print_allocation_config(cap_l3ca, l3cat_id_count, l3cat_ids, p_cpu);
 error_exit:
         /* reset and deallocate all the resources */

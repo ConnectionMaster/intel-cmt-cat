@@ -33,7 +33,7 @@
 
 /**
  * @brief Platform QoS/RDT sample application
- * to demonstrate setting MBA COS definitions
+ * to demonstrate setting MBA CLOS definitions
  */
 
 #include "pqos.h"
@@ -52,11 +52,11 @@
  */
 enum mba_type { REQUESTED = 0, ACTUAL, MAX_MBA_TYPES };
 /**
- * Maintains number of MBA COS to be set
+ * Maintains number of MBA CLOS to be set
  */
-static int sel_mba_cos_num = 0;
+static int sel_mba_clos_num = 0;
 /**
- * Table containing  MBA requested and actual COS definitions
+ * Table containing  MBA requested and actual CLOS definitions
  * Requested is set by the user
  * Actual is set by the library
  */
@@ -98,22 +98,22 @@ strtouint64(const char *s)
  *        from args into internal configuration.
  *
  * @param argc Number of arguments in input command
- * @param argv Input arguments for COS allocation
+ * @param argv Input arguments for CLOS allocation
  */
 static void
 allocation_get_input(int argc, char *argv[])
 {
         if (argc < 2)
-                sel_mba_cos_num = 0;
+                sel_mba_clos_num = 0;
         else if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-H")) {
-                printf("Usage: %s [<COS#> <Available BW>]\n", argv[0]);
+                printf("Usage: %s [<CLOS#> <Available BW>]\n", argv[0]);
                 printf("Example: %s 1 80\n\n", argv[0]);
-                sel_mba_cos_num = 0;
+                sel_mba_clos_num = 0;
         } else {
                 mba[REQUESTED].class_id = (unsigned)atoi(argv[1]);
                 mba[REQUESTED].mb_max = strtouint64(argv[2]);
                 mba[REQUESTED].ctrl = 0;
-                sel_mba_cos_num = 1;
+                sel_mba_clos_num = 1;
         }
 }
 /**
@@ -132,14 +132,14 @@ set_allocation_class(unsigned mba_count, const unsigned *mba_ids)
 {
         int ret;
 
-        while (mba_count > 0 && sel_mba_cos_num > 0) {
-                ret = pqos_mba_set(*mba_ids, sel_mba_cos_num, &mba[REQUESTED],
+        while (mba_count > 0 && sel_mba_clos_num > 0) {
+                ret = pqos_mba_set(*mba_ids, sel_mba_clos_num, &mba[REQUESTED],
                                    &mba[ACTUAL]);
                 if (ret != PQOS_RETVAL_OK) {
                         printf("Failed to set MBA!\n");
                         return -1;
                 }
-                printf("SKT%u: MBA COS%u => %u%% requested, %u%% applied\n",
+                printf("SKT%u: MBA CLOS%u => %u%% requested, %u%% applied\n",
                        *mba_ids, mba[REQUESTED].class_id, mba[REQUESTED].mb_max,
                        mba[ACTUAL].mb_max);
 
@@ -147,7 +147,7 @@ set_allocation_class(unsigned mba_count, const unsigned *mba_ids)
                 mba_ids++;
         }
 
-        return sel_mba_cos_num;
+        return sel_mba_clos_num;
 }
 /**
  * @brief Prints allocation configuration
@@ -183,10 +183,10 @@ print_allocation_config(const struct pqos_cap *p_cap,
                 if (ret == PQOS_RETVAL_OK) {
                         unsigned n = 0;
 
-                        printf("MBA COS definitions for Socket %u:\n",
+                        printf("MBA CLOS definitions for Socket %u:\n",
                                mba_ids[i]);
                         for (n = 0; n < num; n++) {
-                                printf("    MBA COS%u => %u%% available\n",
+                                printf("    MBA CLOS%u => %u%% available\n",
                                        tab[n].class_id, tab[n].mb_max);
                         }
                 } else {
@@ -223,7 +223,7 @@ main(int argc, char *argv[])
                 exit_val = EXIT_FAILURE;
                 goto error_exit;
         }
-        /* Get CPU mba_id information to set COS */
+        /* Get CPU mba_id information to set CLOS */
         p_mba_ids = pqos_cpu_get_mba_ids(p_cpu, &mba_id_count);
         if (p_mba_ids == NULL) {
                 printf("Error retrieving MBA ID information!\n");
@@ -232,8 +232,8 @@ main(int argc, char *argv[])
         }
         /* Get input from user  */
         allocation_get_input(argc, argv);
-        if (sel_mba_cos_num != 0) {
-                /* Set delay value for MBA COS allocation */
+        if (sel_mba_clos_num != 0) {
+                /* Set delay value for MBA CLOS allocation */
                 ret = set_allocation_class(mba_id_count, p_mba_ids);
                 if (ret < 0) {
                         printf("Allocation configuration error!\n");
@@ -241,7 +241,7 @@ main(int argc, char *argv[])
                 }
                 printf("Allocation configuration altered.\n");
         }
-        /* Print COS definition */
+        /* Print CLOS definition */
         ret = print_allocation_config(p_cap, mba_id_count, p_mba_ids);
         if (ret != PQOS_RETVAL_OK) {
                 printf("Allocation capability not detected!\n");

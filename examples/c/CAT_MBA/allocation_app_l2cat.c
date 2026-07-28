@@ -32,7 +32,7 @@
  */
 
 /**
- * @brief Platform QoS sample COS allocation application
+ * @brief Platform QoS sample CLOS allocation application
  *
  */
 
@@ -50,11 +50,11 @@
 /**
  * Maintains number of Class of Services supported for L2 cache allocation
  */
-static int sel_l2ca_cos_num = 0;
+static int sel_l2ca_clos_num = 0;
 /**
  * Maintains table for L2 cache allocation class of service data structure
  */
-static struct pqos_l2ca sel_l2ca_cos_tab[PQOS_MAX_L2CA_COS];
+static struct pqos_l2ca sel_l2ca_clos_tab[PQOS_MAX_L2CA_CLOS];
 /**
  * @brief Converts string into 64-bit unsigned number.
  *
@@ -91,7 +91,7 @@ strtouint64(const char *s)
  *        from args into internal configuration.
  *
  * @param argc Number of arguments in input command
- * @param argv Input arguments for COS allocation
+ * @param argv Input arguments for CLOS allocation
  */
 static void
 allocation_get_input(int argc, char *argv[])
@@ -99,16 +99,16 @@ allocation_get_input(int argc, char *argv[])
         uint64_t mask = 0;
 
         if (argc < 2)
-                sel_l2ca_cos_num = 0;
+                sel_l2ca_clos_num = 0;
         else if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-H")) {
-                printf("Usage: %s [<COS#> <COS bitmask>]\n", argv[0]);
+                printf("Usage: %s [<CLOS#> <CLOS bitmask>]\n", argv[0]);
                 printf("Example: %s 1 0xff\n\n", argv[0]);
-                sel_l2ca_cos_num = 0;
+                sel_l2ca_clos_num = 0;
         } else {
-                sel_l2ca_cos_tab[0].class_id = (unsigned)atoi(argv[1]);
+                sel_l2ca_clos_tab[0].class_id = (unsigned)atoi(argv[1]);
                 mask = strtouint64(argv[2]);
-                sel_l2ca_cos_tab[0].u.ways_mask = mask;
-                sel_l2ca_cos_num = 1;
+                sel_l2ca_clos_tab[0].u.ways_mask = mask;
+                sel_l2ca_clos_num = 1;
         }
 }
 /**
@@ -127,9 +127,9 @@ set_allocation_class(unsigned l2_count, const unsigned *l2_ids)
 {
         int ret;
 
-        while (l2_count > 0 && sel_l2ca_cos_num > 0) {
-                ret =
-                    pqos_l2ca_set(*l2_ids, sel_l2ca_cos_num, sel_l2ca_cos_tab);
+        while (l2_count > 0 && sel_l2ca_clos_num > 0) {
+                ret = pqos_l2ca_set(*l2_ids, sel_l2ca_clos_num,
+                                    sel_l2ca_clos_tab);
                 if (ret != PQOS_RETVAL_OK) {
                         printf("Setting up cache allocation class of "
                                "service failed!\n");
@@ -138,7 +138,7 @@ set_allocation_class(unsigned l2_count, const unsigned *l2_ids)
                 l2_count--;
                 l2_ids++;
         }
-        return sel_l2ca_cos_num;
+        return sel_l2ca_clos_num;
 }
 /**
  * @brief Prints allocation configuration
@@ -155,17 +155,17 @@ print_allocation_config(const unsigned l2_count, const unsigned *l2_ids)
         unsigned i;
 
         for (i = 0; i < l2_count; i++) {
-                struct pqos_l2ca tab[PQOS_MAX_L2CA_COS];
+                struct pqos_l2ca tab[PQOS_MAX_L2CA_CLOS];
                 unsigned num = 0;
 
-                ret = pqos_l2ca_get(l2_ids[i], PQOS_MAX_L2CA_COS, &num, tab);
+                ret = pqos_l2ca_get(l2_ids[i], PQOS_MAX_L2CA_CLOS, &num, tab);
                 if (ret == PQOS_RETVAL_OK) {
                         unsigned n = 0;
 
-                        printf("L2CA COS definitions for L2ID %u:\n",
+                        printf("L2CA CLOS definitions for L2ID %u:\n",
                                l2_ids[i]);
                         for (n = 0; n < num; n++) {
-                                printf("    L2CA COS%u => MASK 0x%llx\n",
+                                printf("    L2CA CLOS%u => MASK 0x%llx\n",
                                        tab[n].class_id,
                                        (unsigned long long)tab[n].u.ways_mask);
                         }
@@ -203,7 +203,7 @@ main(int argc, char *argv[])
                 exit_val = EXIT_FAILURE;
                 goto error_exit;
         }
-        /* Get L2 ids information to set COS */
+        /* Get L2 ids information to set CLOS */
         ids = pqos_cpu_get_l2ids(p_cpu, &l2_count);
         if (ids == NULL) {
                 printf("Error retrieving L2 cluster information!\n");
@@ -212,8 +212,8 @@ main(int argc, char *argv[])
         }
         /* Get input from user  */
         allocation_get_input(argc, argv);
-        if (sel_l2ca_cos_num != 0) {
-                /* Set bit mask for COS allocation */
+        if (sel_l2ca_clos_num != 0) {
+                /* Set bit mask for CLOS allocation */
                 ret = set_allocation_class(l2_count, ids);
                 if (ret < 0) {
                         printf("Allocation configuration error!\n");
@@ -221,7 +221,7 @@ main(int argc, char *argv[])
                 }
                 printf("Allocation configuration altered.\n");
         }
-        /* Print COS and associated bit mask */
+        /* Print CLOS and associated bit mask */
         ret = print_allocation_config(l2_count, ids);
         if (ret != PQOS_RETVAL_OK) {
                 printf("Allocation capability not detected!\n");

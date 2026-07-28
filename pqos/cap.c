@@ -313,7 +313,7 @@ cap_print_features_l3ca(const unsigned indent,
         printf_indent(indent + 4, "I/O RDT: %s\n",
                       l3ca->iordt ? (l3ca->iordt_on ? "enabled" : "disabled")
                                   : "unsupported");
-        printf_indent(indent + 4, "Num COS: %u\n", l3ca->num_classes);
+        printf_indent(indent + 4, "Num CLOS: %u\n", l3ca->num_classes);
 
         if (!verbose)
                 return;
@@ -351,7 +351,7 @@ cap_print_features_l2ca(const unsigned indent,
                                 : "unsupported");
         printf_indent(indent + 4, "Non-Contiguous CBM: %s\n",
                       l2ca->non_contiguous_cbm ? "supported" : "unsupported");
-        printf_indent(indent + 4, "Num COS: %u\n", l2ca->num_classes);
+        printf_indent(indent + 4, "Num CLOS: %u\n", l2ca->num_classes);
 
         if (!verbose)
                 return;
@@ -383,7 +383,7 @@ cap_print_features_mba(const unsigned indent,
         ASSERT(mba != NULL);
 
         printf_indent(indent, "Memory Bandwidth Allocation (MBA)\n");
-        printf_indent(indent + 4, "Num COS: %u\n", mba->num_classes);
+        printf_indent(indent + 4, "Num CLOS: %u\n", mba->num_classes);
 
         if (mba->ctrl != -1) {
                 const char *ctrl_status = NULL;
@@ -496,7 +496,7 @@ cap_print_features_smba(const unsigned indent,
         ASSERT(smba != NULL);
 
         printf_indent(indent, "Slow Memory Bandwidth Allocation (SMBA)\n");
-        printf_indent(indent + 4, "Num COS: %u\n", smba->num_classes);
+        printf_indent(indent + 4, "Num CLOS: %u\n", smba->num_classes);
 
         if (smba->ctrl != -1) {
                 const char *ctrl_status = NULL;
@@ -1127,8 +1127,8 @@ print_io_dev(const struct pqos_sysconfig *sys,
                 printf("\tAvailable Cache Ways: %d\n",
                        cap_l3ca->u.l3ca->num_ways);
         if (interface == PQOS_INTER_MSR) {
-                printf("\tFor example, set COS 14 to the first 4 "
-                       "L3 cache ways and COS 10 to the next 8 "
+                printf("\tFor example, set CLOS 14 to the first 4 "
+                       "L3 cache ways and CLOS 10 to the next 8 "
                        "L3 cache ways\n");
                 printf("\tpqos -e \"llc:14=0x000f;"
                        "llc:10=0x0ff0;\"\n");
@@ -1141,8 +1141,8 @@ print_io_dev(const struct pqos_sysconfig *sys,
                                            .rmdd.num_io_l3_ways);
                 }
 
-                printf("\tFor example, set COS 14 to the first 4 "
-                       "L3 cache ways and COS 10 to the next 8 "
+                printf("\tFor example, set CLOS 14 to the first 4 "
+                       "L3 cache ways and CLOS 10 to the next 8 "
                        "L3 cache ways in Device Domain 0x%x\n",
                        pci_info.domain_id);
                 printf("\tpqos --alloc-domain-id=0x%x -e "

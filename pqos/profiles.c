@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define PROFILES_MIN_COS 4
+#define PROFILES_MIN_CLOS 4
 
 /**
  * 11-cache ways
@@ -329,7 +329,7 @@ profile_l3ca_get(const char *id,
         if (id == NULL || l3ca == NULL || p_tab == NULL || p_num == NULL)
                 return PQOS_RETVAL_PARAM;
 
-        if (l3ca->num_classes < PROFILES_MIN_COS)
+        if (l3ca->num_classes < PROFILES_MIN_CLOS)
                 return PQOS_RETVAL_RESOURCE;
 
         for (i = 0; i < DIM(allocation_tab); i++) {

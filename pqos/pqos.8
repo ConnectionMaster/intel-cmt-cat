@@ -114,28 +114,28 @@ Some examples:
 Note:
 .RS
 .br
-"\-e l2:2=0x3f" means that COS2 for all L2 cache clusters is changed to 0x3f.
+"\-e l2:2=0x3f" means that CLOS2 for all L2 cache clusters is changed to 0x3f.
 .br
-"\-e l2@2:1=0xf" means that COS1 for L2 cache cluster 2 is changed to 0xf.
+"\-e l2@2:1=0xf" means that CLOS1 for L2 cache cluster 2 is changed to 0xf.
 .br
-"\-e mba:1=30" means that COS1, on all sockets, can utilize up to 30% of available memory bandwidth.
+"\-e mba:1=30" means that CLOS1, on all sockets, can utilize up to 30% of available memory bandwidth.
 .br
-"\-e smba:1=64" means that COS1, on all sockets, can utilize up to 64 units of available slow memory bandwidth.
+"\-e smba:1=64" means that CLOS1, on all sockets, can utilize up to 64 units of available slow memory bandwidth.
 .br
-"\-e mba_max:1=6000" means that COS1, on all sockets, can utilize up to 6000 MBps of memory bandwidth.
+"\-e mba_max:1=6000" means that CLOS1, on all sockets, can utilize up to 6000 MBps of memory bandwidth.
 .RE
 .RE
 .TP
 .B \-a CLASS2ID, \-\-alloc\-assoc=CLASS2ID
 associate allocation classes with cores or processes. CLASS2ID format is "TYPE:ID=CORE_LIST;..." or "TYPE:ID=TASK_LIST;...".
 .br
-For COS association required for CAT or MBA, TYPE is "cos", "llc", "core" (for COS-core association) or "pid" (for COS-process association) and ID is a class number. CORE_LIST is comma or dash separated list of cores. TASK_LIST is comma or dash separated list of process/task ID's.
+For CLOS association required for CAT or MBA, TYPE is "clos", "llc", "core" (for CLOS-core association) or "pid" (for CLOS-process association) and ID is a class number. CORE_LIST is comma or dash separated list of cores. TASK_LIST is comma or dash separated list of process/task ID's.
 .br
 For example:
 .RS
 .RS
 .br
-"\-a cos:0=0,2,4,6-10;cos:1=1;" associates cores 0, 2, 4, 6, 7, 8, 9, 10 with CAT class 0 and core 1 with class 1.
+"\-a clos:0=0,2,4,6-10;clos:1=1;" associates cores 0, 2, 4, 6, 7, 8, 9, 10 with CAT class 0 and core 1 with class 1.
 .br
 "\-a llc:0=0,2,4,6-10;llc:1=1;" associates cores 0, 2, 4, 6, 7, 8, 9, 10 with CAT class 0 and core 1 with class 1.
 .br
@@ -147,7 +147,7 @@ For example:
 Notes:
 .RS
 .br
-"llc" TYPE label is considered deprecated, please use "cos" or "core" instead.
+"llc" TYPE label is considered deprecated, please use "clos" or "core" instead.
 .br
 The \-I option must be used for PID association.
 .RE
