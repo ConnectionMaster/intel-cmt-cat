@@ -161,13 +161,13 @@ For example:
 
 /**
  * Allocation & Monitoring association MSR register
- * - bits [63..32] QE COS
+ * - bits [63..32] QE CLOS
  * - bits [31..10] Reserved
  * - bits [9..0] RMID
  */
-#define PQOS_MSR_ASSOC             0xC8F
-#define PQOS_MSR_ASSOC_QECOS_SHIFT 32
-#define PQOS_MSR_ASSOC_QECOS_MASK  0xffffffff00000000ULL
+#define PQOS_MSR_ASSOC              0xC8F
+#define PQOS_MSR_ASSOC_QECLOS_SHIFT 32
+#define PQOS_MSR_ASSOC_QECLOS_MASK  0xffffffff00000000ULL
 
 
 Public APIs in libpqos

@@ -136,14 +136,14 @@ class Resctrl:
 
         return [line.strip() for line in lines]
 
-    def get_schemata_path(self, cos=0):
-        if cos == 0:
+    def get_schemata_path(self, clos=0):
+        if clos == 0:
             return os.path.join(self.root, "schemata")
 
-        return os.path.join(self.root, f"COS{str(cos)}", "schemata")
+        return os.path.join(self.root, f"COS{str(clos)}", "schemata")
 
-    def get_schemata(self, cos=0):
-        path = self.get_schemata_path(cos)
+    def get_schemata(self, clos=0):
+        path = self.get_schemata_path(clos)
         return ResctrlSchemata(path)
 
 

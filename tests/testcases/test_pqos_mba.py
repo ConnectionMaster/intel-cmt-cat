@@ -67,64 +67,64 @@ class TestPqosMba(test.Test):
         assert "MBA capability detected" in stdout
 
 
-    ## PQOS - MBA Set COS definition
+    ## PQOS - MBA Set CLOS definition
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Verify setting MBA COS definition to 50%
+    #  Verify setting MBA CLOS definition to 50%
     #
     #  \b Instruction:
     #  Run "pqos [-I] -e 'mba:2=50'" to set mba rate.
     #
     #  \b Result:
     #  Observe the following in output
-    #  SOCKET 0 MBA COS2 => 50% requested, 50% applied
+    #  SOCKET 0 MBA CLOS2 => 50% requested, 50% applied
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("mba")
     @pytest.mark.parametrize("rate", [20, 50, 90])
     def test_pqos_mba_set(self, iface, rate):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-e mba:2={rate}")
         assert exitstatus == 0
-        assert f"SOCKET 0 MBA COS2 => {rate}% requested, {rate}% applied" in stdout
+        assert f"SOCKET 0 MBA CLOS2 => {rate}% requested, {rate}% applied" in stdout
 
 
-    ## PQOS - MBA Set COS definition - Negative
+    ## PQOS - MBA Set CLOS definition - Negative
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Unable to set MBA COS definition to invalid value
+    #  Unable to set MBA CLOS definition to invalid value
     #
     #  \b Instruction:
     #  Run "pqos [-I] -e 'mba:2=200'" to set mba rate.
     #
     #  \b Result:
-    #  Observe "MBA COS2 rate out of range (from 1-100)" in output
+    #  Observe "MBA CLOS2 rate out of range (from 1-100)" in output
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("mba")
     def test_pqos_mba_set_negative(self, iface):
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e mba:2=200")
         assert exitstatus == 1
-        assert "MBA COS2 rate out of range (from 1-100)" in stdout
+        assert "MBA CLOS2 rate out of range (from 1-100)" in stdout
 
 
-    ## PQOS - MBA Set COS association (core)
+    ## PQOS - MBA Set CLOS association (core)
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Allocate COS for the given cores
+    #  Allocate CLOS for the given cores
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -a cos:7=1,3" to set core association. Verify core association with
+    #  Run "pqos [-I] -a clos:7=1,3" to set core association. Verify core association with
     #  "pqos [-I] -s".
     #
     #  \b Result:
-    #  Observe "Allocation configuration altered." in output. Cores 1 and 3 are assigned to COS 7.
+    #  Observe "Allocation configuration altered." in output. Cores 1 and 3 are assigned to CLOS 7.
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("mba")
-    @pytest.mark.parametrize("type_id", ["cos", "llc", "core"])
+    @pytest.mark.parametrize("type_id", ["clos", "llc", "core"])
     def test_pqos_mba_association_core(self, iface, type_id):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-a {type_id}:7=1,3")
         assert exitstatus == 0
@@ -132,37 +132,37 @@ class TestPqosMba(test.Test):
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-s")
         assert exitstatus == 0
-        assert re.search("Core 1, L2ID [0-9]+, L3ID [0-9]+ => COS7", stdout) is not None
-        assert re.search("Core 3, L2ID [0-9]+, L3ID [0-9]+ => COS7", stdout) is not None
+        assert re.search("Core 1, L2ID [0-9]+, L3ID [0-9]+ => CLOS7", stdout) is not None
+        assert re.search("Core 3, L2ID [0-9]+, L3ID [0-9]+ => CLOS7", stdout) is not None
 
 
-    ## PQOS - MBA Set COS association (core) - Negative
+    ## PQOS - MBA Set CLOS association (core) - Negative
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Unable to allocate COS for the unknown/offline cores
+    #  Unable to allocate CLOS for the unknown/offline cores
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -a cos:7=1000" to set core association.
+    #  Run "pqos [-I] -a clos:7=1000" to set core association.
     #
     #  \b Result:
     #  Observe "Core number or class id is out of bounds!" in output.
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("mba")
-    @pytest.mark.parametrize("type_id", ["cos", "llc", "core"])
+    @pytest.mark.parametrize("type_id", ["clos", "llc", "core"])
     def test_pqos_mba_association_core_negative(self, iface, type_id):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-a {type_id}:7=1000")
         assert exitstatus == 1
         assert "Core number or class id is out of bounds!" in stdout
 
 
-    ## PQOS - MBA Set COS association (tasks)
+    ## PQOS - MBA Set CLOS association (tasks)
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Allocate COS for the given pids
+    #  Allocate CLOS for the given pids
     #
     #  \b Instruction:
     #  Run "pqos -I -a pid:2=1" to set pid association.
@@ -178,12 +178,12 @@ class TestPqosMba(test.Test):
         assert "Allocation configuration altered." in stdout
 
 
-    ## PQOS - MBA Set COS association (tasks) - Negative
+    ## PQOS - MBA Set CLOS association (tasks) - Negative
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Unable to allocate COS for the invalid/unknown pids
+    #  Unable to allocate CLOS for the invalid/unknown pids
     #
     #  \b Instruction:
     #  Run "pqos -I -a pid:2=9999999999" to set pid association.

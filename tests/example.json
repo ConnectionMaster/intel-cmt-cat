@@ -5,14 +5,14 @@
 	},
 	"cat" : {
 		"l3" : {
-			"cos"        : 16,
+			"clos"        : 16,
 			"ways"       : 11,
 			"cdp"        : true,
 			"minCbmBits" : 1
 		}
 	},
 	"mba" : {
-		"cos" : 8
+		"clos" : 8
 	},
 	"cmt" : {
 	    "occup_llc": true

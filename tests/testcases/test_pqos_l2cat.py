@@ -88,76 +88,76 @@ class TestPqosL2Cat(test.Test):
         assert "L2CA capability detected" in stdout
 
 
-    ## PQOS - L2 CAT Set COS definition
+    ## PQOS - L2 CAT Set CLOS definition
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Able to set up allocation COS
+    #  Able to set up allocation CLOS
     #
     #  \b Instruction:
-    #  1. Run the "pqos [-I] -e 'l2:1=0xf;l2:2=0xf0'" to set COS bitmask.
+    #  1. Run the "pqos [-I] -e 'l2:1=0xf;l2:2=0xf0'" to set CLOS bitmask.
     #  2. Verify values with "pqos -s"
     #
     #  \b Result:
     #  1. Observe in output
-    #     L2CA COS1 => MASK 0xf
-    #     L2CA COS2 => MASK 0xf0
+    #     L2CA CLOS1 => MASK 0xf
+    #     L2CA CLOS2 => MASK 0xf0
     #     Allocation configuration altered.
-    #  2. L2CA COS1 MASK for socket 0 is set to 0xf
-    #     L2CA COS2 MASK for socket 0 is set to 0xf0
+    #  2. L2CA CLOS1 MASK for socket 0 is set to 0xf
+    #     L2CA CLOS2 MASK for socket 0 is set to 0xf0
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cat_l2")
     def test_pqos_l2cat_set(self, iface):
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e l2:1=0xf;l2:2=0xf0")
         assert exitstatus == 0
-        assert "L2CA COS1 => MASK 0xf" in stdout
-        assert "L2CA COS2 => MASK 0xf0" in stdout
+        assert "L2CA CLOS1 => MASK 0xf" in stdout
+        assert "L2CA CLOS2 => MASK 0xf0" in stdout
         assert "Allocation configuration altered" in stdout
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-s")
         assert exitstatus == 0
-        assert "L2CA COS1 => MASK 0xf" in stdout
-        assert "L2CA COS2 => MASK 0xf0" in stdout
+        assert "L2CA CLOS1 => MASK 0xf" in stdout
+        assert "L2CA CLOS2 => MASK 0xf0" in stdout
 
 
-    ## PQOS - L2 CAT Set COS definition - Negative
+    ## PQOS - L2 CAT Set CLOS definition - Negative
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Unable to set up allocation COS with a bitmask more than 28 bits
+    #  Unable to set up allocation CLOS with a bitmask more than 28 bits
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -e l2:2=0xffffffff" to set the COS bitmask which is more than 28 bits.
+    #  Run "pqos [-I] -e l2:2=0xffffffff" to set the CLOS bitmask which is more than 28 bits.
     #
     #  \b Result:
-    #  Observe "SOCKET 0 L2CA COS2 - FAILED!" and "Allocation configuration error!" in output
+    #  Observe "SOCKET 0 L2CA CLOS2 - FAILED!" and "Allocation configuration error!" in output
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cat_l2")
     def test_pqos_l2cat_set_negative(self, iface):
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e l2:2=0xffffffff")
         assert exitstatus == 1
-        assert "L2CA COS2 - FAILED" in stdout
+        assert "L2CA CLOS2 - FAILED" in stdout
         assert "Allocation configuration error!" in stdout
 
 
-    ## PQOS - L2 CAT Set COS association (core)
+    ## PQOS - L2 CAT Set CLOS association (core)
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Allocate COS for the given cores
+    #  Allocate CLOS for the given cores
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -a cos:1=1,3" to set core association. Verify core association with
+    #  Run "pqos [-I] -a clos:1=1,3" to set core association. Verify core association with
     #  "pqos [-I] -s".
     #
     #  \b Result:
-    #  Observe "Allocation configuration altered." in output. Cores 1 and 3 are assigned to COS 1.
+    #  Observe "Allocation configuration altered." in output. Cores 1 and 3 are assigned to CLOS 1.
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cat_l2")
-    @pytest.mark.parametrize("type_id", ["cos", "llc", "core"])
+    @pytest.mark.parametrize("type_id", ["clos", "llc", "core"])
     def test_pqos_l2cat_association_core(self, iface, type_id):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-a {type_id}:1=1,3")
         assert exitstatus == 0
@@ -165,37 +165,37 @@ class TestPqosL2Cat(test.Test):
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-s")
         assert exitstatus == 0
-        assert re.search("Core 1, L2ID [0-9]+(, L3ID [0-9]+)? => COS1", stdout)
-        assert re.search("Core 3, L2ID [0-9]+(, L3ID [0-9]+)? => COS1", stdout)
+        assert re.search("Core 1, L2ID [0-9]+(, L3ID [0-9]+)? => CLOS1", stdout)
+        assert re.search("Core 3, L2ID [0-9]+(, L3ID [0-9]+)? => CLOS1", stdout)
 
 
-    ## PQOS - L2 CAT Set COS association (core) - Negative
+    ## PQOS - L2 CAT Set CLOS association (core) - Negative
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Unable to allocate COS for the unknown/offline cores
+    #  Unable to allocate CLOS for the unknown/offline cores
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -a cos:1=1000" to set core association.
+    #  Run "pqos [-I] -a clos:1=1000" to set core association.
     #
     #  \b Result:
     #  Observe "Core number or class id is out of bounds!" in output.
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cat_l2")
-    @pytest.mark.parametrize("type_id", ["cos", "llc", "core"])
+    @pytest.mark.parametrize("type_id", ["clos", "llc", "core"])
     def test_pqos_l2cat_association_core_negative(self, iface, type_id):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-a {type_id}:1=1000")
         assert exitstatus == 1
         assert "Core number or class id is out of bounds!" in stdout
 
 
-    ## PQOS - L2 CAT Set COS association (tasks)
+    ## PQOS - L2 CAT Set CLOS association (tasks)
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Allocate COS for the given pids
+    #  Allocate CLOS for the given pids
     #
     #  \b Instruction:
     #  Run "pqos -I -a pid:2=1" to set pid association.
@@ -211,12 +211,12 @@ class TestPqosL2Cat(test.Test):
         assert "Allocation configuration altered." in stdout
 
 
-    ## PQOS - L2 CAT Set COS association (tasks) - Negative
+    ## PQOS - L2 CAT Set CLOS association (tasks) - Negative
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Unable to allocate COS for the invalid/unknown pids
+    #  Unable to allocate CLOS for the invalid/unknown pids
     #
     #  \b Instruction:
     #  Run "pqos -I -a pid:2=9999999999" to set pid association.
@@ -325,84 +325,84 @@ class TestPqosL2Cat(test.Test):
         assert "L2 CAT details: CDP support=1, CDP on=0" in stdout
 
 
-    ## PQOS - L2 CDP Set COS definition - Code & Data
+    ## PQOS - L2 CDP Set CLOS definition - Code & Data
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Verify L2 CAT COS definition can be set for Code and Data
+    #  Verify L2 CAT CLOS definition can be set for Code and Data
     #
     #  \b Instruction:
     #  Run "pqos [-I] -R l2cdp-on" to enable L2 CDP.
-    #  Select valid COS
-    #  Run "pqos [-I] -e l2:{COS}=0xe" to set both code and data cbm.
+    #  Select valid CLOS
+    #  Run "pqos [-I] -e l2:{CLOS}=0xe" to set both code and data cbm.
     #
     #  \b Result:
-    #  Observe the following in output "L2ID 1 L2CA COS{COS} => DATA 0xe,CODE 0xe"
+    #  Observe the following in output "L2ID 1 L2CA CLOS{CLOS} => DATA 0xe,CODE 0xe"
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cdp_l2")
     def test_pqos_l2cat_set_code_and_data(self, iface):
         self.run_pqos(iface, "-R l2cdp-on")
 
-        max_cdp_cos = Env().get('cat', 'l2', 'cos') // 2 - 1
-        cos = max_cdp_cos // 2
+        max_cdp_clos = Env().get('cat', 'l2', 'clos') // 2 - 1
+        clos = max_cdp_clos // 2
 
-        (stdout, _, exitstatus) = self.run_pqos(iface, f"-e l2:{cos}=0xe")
+        (stdout, _, exitstatus) = self.run_pqos(iface, f"-e l2:{clos}=0xe")
         assert exitstatus == 0
-        assert f"L2ID 1 L2CA COS{cos} => DATA 0xe,CODE 0xe" in stdout
+        assert f"L2ID 1 L2CA CLOS{clos} => DATA 0xe,CODE 0xe" in stdout
 
 
-    ## PQOS - L2 CDP Set COS definition - Code only
+    ## PQOS - L2 CDP Set CLOS definition - Code only
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Verify L2 CAT COS definition can be set for Code only
+    #  Verify L2 CAT CLOS definition can be set for Code only
     #
     #  \b Instruction:
     #  Run "pqos [-I] -R l2cdp-on" to enable L2 CDP.
-    #  Select valid COS
-    #  Run "pqos [-I] -e l2:{COS}c=0xf" to set both code and data cbm.
+    #  Select valid CLOS
+    #  Run "pqos [-I] -e l2:{CLOS}c=0xf" to set both code and data cbm.
     #
     #  \b Result:
-    #  Observe the following in output "L2ID 1 L2CA COS{COS} => DATA 0x7ff,CODE 0xf"
+    #  Observe the following in output "L2ID 1 L2CA CLOS{CLOS} => DATA 0x7ff,CODE 0xf"
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cdp_l2")
     def test_pqos_l2cat_set_code(self, iface):
         self.run_pqos(iface, "-R l2cdp-on")
 
         default_mask = (1 << Env().get('cat', 'l2', 'ways')) - 1
-        max_cdp_cos = Env().get('cat', 'l2', 'cos') // 2 - 1
-        cos = max_cdp_cos
+        max_cdp_clos = Env().get('cat', 'l2', 'clos') // 2 - 1
+        clos = max_cdp_clos
 
-        (stdout, _, exitstatus) = self.run_pqos(iface, f"-e l2:{cos}c=0xf")
+        (stdout, _, exitstatus) = self.run_pqos(iface, f"-e l2:{clos}c=0xf")
         assert exitstatus == 0
-        assert f"L2ID 1 L2CA COS{cos} => DATA {hex(default_mask)},CODE 0xf" in stdout
+        assert f"L2ID 1 L2CA CLOS{clos} => DATA {hex(default_mask)},CODE 0xf" in stdout
 
 
-    ## PQOS - L2 CDP Set COS definition - Data only
+    ## PQOS - L2 CDP Set CLOS definition - Data only
     #
     #  \b Priority: Medium
     #
     #  \b Objective:
-    #  Verify L2 CAT COS definition can be set for Code and Data
+    #  Verify L2 CAT CLOS definition can be set for Code and Data
     #
     #  \b Instruction:
     #  Run "pqos [-I] -R l2cdp-on" to enable L2 CDP.
-    #  Select valid COS
-    #  Run "pqos [-I] -e l2:{COS}d=0xf" to set both code and data cbm.
+    #  Select valid CLOS
+    #  Run "pqos [-I] -e l2:{CLOS}d=0xf" to set both code and data cbm.
     #
     #  \b Result:
-    #  Observe the following in output "L2ID 1 L2CA COS{COS} => DATA 0xf,CODE 0x7ff"
+    #  Observe the following in output "L2ID 1 L2CA CLOS{CLOS} => DATA 0xf,CODE 0x7ff"
     @PRIORITY_MEDIUM
     @pytest.mark.rdt_supported("cdp_l2")
     def test_pqos_l2cat_set_data(self, iface):
         self.run_pqos(iface, "-R l2cdp-on")
 
         default_mask = (1 << Env().get('cat', 'l2', 'ways')) - 1
-        max_cdp_cos = Env().get('cat', 'l2', 'cos') // 2 - 1
-        cos = (max_cdp_cos // 2 + max_cdp_cos) // 2
+        max_cdp_clos = Env().get('cat', 'l2', 'clos') // 2 - 1
+        clos = (max_cdp_clos // 2 + max_cdp_clos) // 2
 
-        (stdout, _, exitstatus) = self.run_pqos(iface, f"-e l2:{cos}d=0xf")
+        (stdout, _, exitstatus) = self.run_pqos(iface, f"-e l2:{clos}d=0xf")
         assert exitstatus == 0
-        assert f"L2ID 1 L2CA COS{cos} => DATA 0xf,CODE {hex(default_mask)}" in stdout
+        assert f"L2ID 1 L2CA CLOS{clos} => DATA 0xf,CODE {hex(default_mask)}" in stdout

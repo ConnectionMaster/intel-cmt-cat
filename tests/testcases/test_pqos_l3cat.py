@@ -88,76 +88,76 @@ class TestPqosL3Cat(test.Test):
         assert "L3CA capability detected" in stdout
 
 
-    ## PQOS - L3 CAT Set COS definition
+    ## PQOS - L3 CAT Set CLOS definition
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Able to set up allocation COS
+    #  Able to set up allocation CLOS
     #
     #  \b Instruction:
-    #  1. Run the "pqos [-I] -e 'llc:1=0xf;llc:2=0xf0'" to set COS bitmask.
+    #  1. Run the "pqos [-I] -e 'llc:1=0xf;llc:2=0xf0'" to set CLOS bitmask.
     #  2. Verify values with "pqos -s"
     #
     #  \b Result:
     #  1. Observe in output
-    #     SOCKET 0 L3CA COS1 => MASK 0xf
-    #     SOCKET 0 L3CA COS2 => MASK 0xf0
+    #     SOCKET 0 L3CA CLOS1 => MASK 0xf
+    #     SOCKET 0 L3CA CLOS2 => MASK 0xf0
     #     Allocation configuration altered.
-    #  2. L3CA COS1 MASK for socket 0 is set to 0xf
-    #     L3CA COS2 MASK for socket 0 is set to 0xf0
+    #  2. L3CA CLOS1 MASK for socket 0 is set to 0xf
+    #     L3CA CLOS2 MASK for socket 0 is set to 0xf0
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cat_l3")
     def test_pqos_l3cat_set(self, iface):
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e llc:1=0xf;llc:2=0xf0")
         assert exitstatus == 0
-        assert "SOCKET 0 L3CA COS1 => MASK 0xf" in stdout
-        assert "SOCKET 0 L3CA COS2 => MASK 0xf0" in stdout
+        assert "SOCKET 0 L3CA CLOS1 => MASK 0xf" in stdout
+        assert "SOCKET 0 L3CA CLOS2 => MASK 0xf0" in stdout
         assert "Allocation configuration altered" in stdout
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-s")
         assert exitstatus == 0
-        assert "L3CA COS1 => MASK 0xf" in stdout
-        assert "L3CA COS2 => MASK 0xf0" in stdout
+        assert "L3CA CLOS1 => MASK 0xf" in stdout
+        assert "L3CA CLOS2 => MASK 0xf0" in stdout
 
 
-    ## PQOS - L3 CAT Set COS definition - Negative
+    ## PQOS - L3 CAT Set CLOS definition - Negative
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Unable to set up allocation COS with a bitmask more than 32 bits
+    #  Unable to set up allocation CLOS with a bitmask more than 32 bits
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -e llc:2=0xfffffffff" to set the COS bitmask which is more than 32 bits.
+    #  Run "pqos [-I] -e llc:2=0xfffffffff" to set the CLOS bitmask which is more than 32 bits.
     #
     #  \b Result:
-    #  Observe "SOCKET 0 L3CA COS2 - FAILED!" and "Allocation configuration error!" in output
+    #  Observe "SOCKET 0 L3CA CLOS2 - FAILED!" and "Allocation configuration error!" in output
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cat_l3")
     def test_pqos_l3cat_set_negative(self, iface):
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e llc:2=0xfffffffff")
         assert exitstatus == 1
-        assert "SOCKET 0 L3CA COS2 - FAILED" in stdout
+        assert "SOCKET 0 L3CA CLOS2 - FAILED" in stdout
         assert "Allocation configuration error!" in stdout
 
 
-    ## PQOS - L3 CAT Set COS association (core)
+    ## PQOS - L3 CAT Set CLOS association (core)
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Allocate COS for the given cores
+    #  Allocate CLOS for the given cores
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -a cos:7=1,3" to set core association. Verify core association with
+    #  Run "pqos [-I] -a clos:7=1,3" to set core association. Verify core association with
     #  "pqos [-I] -s".
     #
     #  \b Result:
-    #  Observe "Allocation configuration altered." in output. Cores 1 and 3 are assigned to COS 7.
+    #  Observe "Allocation configuration altered." in output. Cores 1 and 3 are assigned to CLOS 7.
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cat_l3")
-    @pytest.mark.parametrize("type_id", ["cos", "llc", "core"])
+    @pytest.mark.parametrize("type_id", ["clos", "llc", "core"])
     def test_pqos_l3cat_association_core(self, iface, type_id):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-a {type_id}:7=1,3")
         assert exitstatus == 0
@@ -165,37 +165,37 @@ class TestPqosL3Cat(test.Test):
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-s")
         assert exitstatus == 0
-        assert re.search("Core 1, L2ID [0-9]+, L3ID [0-9]+ => COS7", stdout) is not None
-        assert re.search("Core 3, L2ID [0-9]+, L3ID [0-9]+ => COS7", stdout) is not None
+        assert re.search("Core 1, L2ID [0-9]+, L3ID [0-9]+ => CLOS7", stdout) is not None
+        assert re.search("Core 3, L2ID [0-9]+, L3ID [0-9]+ => CLOS7", stdout) is not None
 
 
-    ## PQOS - L3 CAT Set COS association (core) - Negative
+    ## PQOS - L3 CAT Set CLOS association (core) - Negative
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Unable to allocate COS for the unknown/offline cores
+    #  Unable to allocate CLOS for the unknown/offline cores
     #
     #  \b Instruction:
-    #  Run "pqos [-I] -a cos:7=1000" to set core association.
+    #  Run "pqos [-I] -a clos:7=1000" to set core association.
     #
     #  \b Result:
     #  Observe "Core number or class id is out of bounds!" in output.
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cat_l3")
-    @pytest.mark.parametrize("type_id", ["cos", "llc", "core"])
+    @pytest.mark.parametrize("type_id", ["clos", "llc", "core"])
     def test_pqos_l3cat_association_core_negative(self, iface, type_id):
         (stdout, _, exitstatus) = self.run_pqos(iface, f"-a {type_id}:7=1000")
         assert exitstatus == 1
         assert "Core number or class id is out of bounds!" in stdout
 
 
-    ## PQOS - L3 CAT Set COS association (tasks)
+    ## PQOS - L3 CAT Set CLOS association (tasks)
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Allocate COS for the given pids
+    #  Allocate CLOS for the given pids
     #
     #  \b Instruction:
     #  Run "pqos -I -a pid:2=1" to set pid association.
@@ -211,12 +211,12 @@ class TestPqosL3Cat(test.Test):
         assert "Allocation configuration altered." in stdout
 
 
-    ## PQOS - L3 CAT Set COS association (tasks) - Negative
+    ## PQOS - L3 CAT Set CLOS association (tasks) - Negative
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Unable to allocate COS for the invalid/unknown pids
+    #  Unable to allocate CLOS for the invalid/unknown pids
     #
     #  \b Instruction:
     #  Run "pqos -I -a pid:2=9999999999" to set pid association.
@@ -325,19 +325,19 @@ class TestPqosL3Cat(test.Test):
         assert "L3 CAT details: CDP support=1, CDP on=0" in stdout
 
 
-    ## PQOS - L3 CDP Set COS definition - Code & Data
+    ## PQOS - L3 CDP Set CLOS definition - Code & Data
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Verify L3 CAT COS definition can be set for Code and Data
+    #  Verify L3 CAT CLOS definition can be set for Code and Data
     #
     #  \b Instruction:
     #  Run "pqos [-I] -R l3cdp-on" to enable L3 CDP.
     #  Run "pqos [-I] -e llc:2=0xe" to set both code and data cbm.
     #
     #  \b Result:
-    #  Observe the following in output "SOCKET 0 L3CA COS2 => DATA 0xe,CODE 0xe"
+    #  Observe the following in output "SOCKET 0 L3CA CLOS2 => DATA 0xe,CODE 0xe"
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cdp_l3")
     def test_pqos_l3cat_set_code_and_data(self, iface):
@@ -345,22 +345,22 @@ class TestPqosL3Cat(test.Test):
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e llc:2=0xe")
         assert exitstatus == 0
-        assert "SOCKET 0 L3CA COS2 => DATA 0xe,CODE 0xe" in stdout
+        assert "SOCKET 0 L3CA CLOS2 => DATA 0xe,CODE 0xe" in stdout
 
 
-    ## PQOS - L3 CDP Set COS definition - Code only
+    ## PQOS - L3 CDP Set CLOS definition - Code only
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Verify L3 CAT COS definition can be set for Code only
+    #  Verify L3 CAT CLOS definition can be set for Code only
     #
     #  \b Instruction:
     #  Run "pqos [-I] -R l3cdp-on" to enable L3 CDP.
     #  Run "pqos [-I] -e llc:4c=0xf" to set both code and data cbm.
     #
     #  \b Result:
-    #  Observe the following in output "SOCKET 0 L3CA COS4 => DATA 0x7ff,CODE 0xf"
+    #  Observe the following in output "SOCKET 0 L3CA CLOS4 => DATA 0x7ff,CODE 0xf"
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cdp_l3")
     def test_pqos_l3cat_set_code(self, iface):
@@ -370,22 +370,22 @@ class TestPqosL3Cat(test.Test):
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e llc:4c=0xf")
         assert exitstatus == 0
-        assert f"SOCKET 0 L3CA COS4 => DATA {hex(default_mask)},CODE 0xf" in stdout
+        assert f"SOCKET 0 L3CA CLOS4 => DATA {hex(default_mask)},CODE 0xf" in stdout
 
 
-    ## PQOS - L3 CDP Set COS definition - Data only
+    ## PQOS - L3 CDP Set CLOS definition - Data only
     #
     #  \b Priority: High
     #
     #  \b Objective:
-    #  Verify L3 CAT COS definition can be set for Code and Data
+    #  Verify L3 CAT CLOS definition can be set for Code and Data
     #
     #  \b Instruction:
     #  Run "pqos [-I] -R l3cdp-on" to enable L3 CDP.
     #  Run "pqos [-I] -e llc:3d=0xf" to set both code and data cbm.
     #
     #  \b Result:
-    #  Observe the following in output "SOCKET 0 L3CA COS3 => DATA 0xf,CODE 0x7ff"
+    #  Observe the following in output "SOCKET 0 L3CA CLOS3 => DATA 0xf,CODE 0x7ff"
     @PRIORITY_HIGH
     @pytest.mark.rdt_supported("cdp_l3")
     def test_pqos_l3cat_set_data(self, iface):
@@ -395,4 +395,4 @@ class TestPqosL3Cat(test.Test):
 
         (stdout, _, exitstatus) = self.run_pqos(iface, "-e llc:3d=0xf")
         assert exitstatus == 0
-        assert f"SOCKET 0 L3CA COS3 => DATA 0xf,CODE {hex(default_mask)}" in stdout
+        assert f"SOCKET 0 L3CA CLOS3 => DATA 0xf,CODE {hex(default_mask)}" in stdout
