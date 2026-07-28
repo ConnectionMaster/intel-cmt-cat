@@ -57,7 +57,7 @@
  *        using the region_num already stored in the mem_region.
  *
  * @param [in]     cpu_agent CPU agent containing the domain's MBA registers
- * @param [in]     class_id COS to extract MBA information for
+ * @param [in]     class_id CLOS to extract MBA information for
  * @param [in,out] mem_region mem region whose region_num identifies the region
  *                            and whose bw_ctrl_val fields are populated
  *
@@ -97,7 +97,7 @@ _get_region_mba(const struct pqos_cpu_agent_info *cpu_agent,
  * @brief Populate mem_regions data structure for a given CLOS
  *
  * @param [in]  cpu_agent CPU agent containing the domain's MBA registers
- * @param [in]  class_id COS to extract MBA information for
+ * @param [in]  class_id CLOS to extract MBA information for
  * @param [out] num_mem_regions how many mem_regions to populate
  * @param [out] mem_regions mem regions to save MBA information
  *
@@ -211,7 +211,7 @@ mmio_alloc_reset_mba(void)
 
 int
 mmio_mba_set(const unsigned mba_id,
-             const unsigned num_cos,
+             const unsigned num_clos,
              const struct pqos_mba *requested,
              struct pqos_mba *actual)
 {
@@ -219,11 +219,11 @@ mmio_mba_set(const unsigned mba_id,
         int current_bw;
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
 
-        ASSERT(num_cos != 0);
+        ASSERT(num_clos != 0);
         ASSERT(erdt != NULL);
         UNUSED_PARAM(mba_id);
 
-        for (unsigned i = 0; i < num_cos; i++) {
+        for (unsigned i = 0; i < num_clos; i++) {
                 const struct pqos_cpu_agent_info *cpu_agent =
                     get_cpu_agent_by_domain(requested[i].domain_id);
 
@@ -304,8 +304,8 @@ mmio_mba_set(const unsigned mba_id,
 
 int
 mmio_mba_get(const unsigned mba_id,
-             const unsigned max_num_cos,
-             unsigned *num_cos,
+             const unsigned max_num_clos,
+             unsigned *num_clos,
              struct pqos_mba *mba_tab)
 {
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
@@ -313,9 +313,9 @@ mmio_mba_get(const unsigned mba_id,
         int num_mem_regions;
         int ret = PQOS_RETVAL_OK;
 
-        ASSERT(num_cos != NULL);
+        ASSERT(num_clos != NULL);
         ASSERT(mba_tab != NULL);
-        ASSERT(max_num_cos != 0);
+        ASSERT(max_num_clos != 0);
         ASSERT(erdt != NULL);
         UNUSED_PARAM(mba_id);
 
@@ -332,7 +332,7 @@ mmio_mba_get(const unsigned mba_id,
                         : PQOS_MAX_MEM_REGIONS;
         }
 
-        if (erdt->max_clos > max_num_cos)
+        if (erdt->max_clos > max_num_clos)
                 return PQOS_RETVAL_ERROR;
 
         cpu_agent = get_cpu_agent_by_domain(mba_tab[0].domain_id);
@@ -353,7 +353,7 @@ mmio_mba_get(const unsigned mba_id,
                         return ret;
         }
 
-        *num_cos = erdt->max_clos;
+        *num_clos = erdt->max_clos;
 
         return PQOS_RETVAL_OK;
 }
@@ -394,7 +394,7 @@ mmio_l3ca_set(const unsigned l3cat_id,
                                  ->rmdd.num_io_l3_ways) -
                     1ULL;
                 if (ca[i].u.ways_mask > io_l3_ways_mask) {
-                        LOG_ERROR("L3 CAT COS%u Requested Cache Ways "
+                        LOG_ERROR("L3 CAT CLOS%u Requested Cache Ways "
                                   "%#" PRIx64 ". But available Cache Ways "
                                   "%#" PRIx64 ".\n",
                                   ca[i].class_id, ca[i].u.ways_mask,
@@ -406,9 +406,9 @@ mmio_l3ca_set(const unsigned l3cat_id,
         for (i = 0; i < num_ca; i++) {
                 /* Check L3 CBM is non-contiguous */
                 if (!cap_get_mmio_l3ca_non_contiguous(ca[i].domain_id)) {
-                        /* Check all COS CBM are contiguous */
+                        /* Check all CLOS CBM are contiguous */
                         if (!IS_CONTIGNOUS(ca[i])) {
-                                LOG_ERROR("L3 CAT COS%u bit mask is not "
+                                LOG_ERROR("L3 CAT CLOS%u bit mask is not "
                                           "contiguous!\n",
                                           ca[i].class_id);
                                 return PQOS_RETVAL_PARAM;
@@ -418,7 +418,7 @@ mmio_l3ca_set(const unsigned l3cat_id,
                 /* Check L3 CBM is zero-length bitmask */
                 if (ca[i].u.ways_mask == 0 &&
                     !cap_get_mmio_l3ca_zero_length(ca[i].domain_id)) {
-                        LOG_ERROR("L3 CAT COS%u bit mask is 0 and Zero-length "
+                        LOG_ERROR("L3 CAT CLOS%u bit mask is 0 and Zero-length "
                                   "bitmask is not supported in Domain id %d.\n",
                                   ca[i].class_id, ca[i].domain_id);
                         return PQOS_RETVAL_PARAM;

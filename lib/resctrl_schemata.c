@@ -47,19 +47,19 @@
 struct resctrl_schemata {
         unsigned l3ids_num; /**< Number of L3 */
         unsigned *l3ids;
-        struct pqos_l3ca *l3ca; /**< L3 COS definitions */
+        struct pqos_l3ca *l3ca; /**< L3 CLOS definitions */
 
         unsigned mbaids_num; /**< Number of mba ids */
         unsigned *mbaids;
-        struct pqos_mba *mba; /**< MBA COS definitions */
+        struct pqos_mba *mba; /**< MBA CLOS definitions */
 
         unsigned smbaids_num; /**< Number of smba ids */
         unsigned *smbaids;
-        struct pqos_mba *smba; /**< SMBA COS definitions */
+        struct pqos_mba *smba; /**< SMBA CLOS definitions */
 
         unsigned l2ids_num; /**< Number of L2 clusters */
         unsigned *l2ids;
-        struct pqos_l2ca *l2ca; /**< L2 COS definitions */
+        struct pqos_l2ca *l2ca; /**< L2 CLOS definitions */
 };
 
 void
@@ -638,7 +638,7 @@ resctrl_schemata_read(FILE *fd, struct resctrl_schemata *schemata)
                         continue;
 
                 /**
-                 * Parse COS masks
+                 * Parse CLOS masks
                  */
                 for (++p;; p = NULL) {
                         char *token = NULL;

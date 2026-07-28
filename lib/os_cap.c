@@ -741,7 +741,7 @@ os_cap_get_mba_ctrl(const struct pqos_cap *cap,
                 free(mba_ids);
         }
 
-        /* get free COS and try to write value over the mba_max */
+        /* get free CLOS and try to write value over the mba_max */
         if (*enabled == -1) {
                 unsigned grp;
                 unsigned count = 0;

@@ -279,11 +279,11 @@ __wrap_pqos_alloc_reset(const enum pqos_cdp_config l3_cdp_cfg,
 
 int
 __wrap_pqos_l3ca_set(const unsigned l3cat_id,
-                     const unsigned num_cos,
+                     const unsigned num_clos,
                      const struct pqos_l3ca *ca)
 {
         check_expected(l3cat_id);
-        check_expected(num_cos);
+        check_expected(num_clos);
         check_expected_ptr(ca);
         return mock_type(int);
 }
@@ -324,11 +324,11 @@ __wrap_pqos_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 
 int
 __wrap_pqos_l2ca_set(const unsigned l2id,
-                     const unsigned num_cos,
+                     const unsigned num_clos,
                      const struct pqos_l2ca *ca)
 {
         check_expected(l2id);
-        check_expected(num_cos);
+        check_expected(num_clos);
         check_expected_ptr(ca);
         return mock_type(int);
 }
@@ -370,14 +370,14 @@ __wrap_pqos_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 
 int
 __wrap_pqos_mba_set(const unsigned mba_id,
-                    const unsigned num_cos,
+                    const unsigned num_clos,
                     const struct pqos_mba *requested,
                     struct pqos_mba *actual)
 {
         int ret;
 
         check_expected(mba_id);
-        check_expected(num_cos);
+        check_expected(num_clos);
         check_expected_ptr(requested);
 
         ret = mock_type(int);
@@ -390,24 +390,24 @@ __wrap_pqos_mba_set(const unsigned mba_id,
 
 int
 __wrap_pqos_mba_get(const unsigned mba_id,
-                    const unsigned max_num_cos,
-                    unsigned *num_cos,
+                    const unsigned max_num_clos,
+                    unsigned *num_clos,
                     struct pqos_mba *mba_tab)
 {
         int ret;
 
         check_expected(mba_id);
-        check_expected(max_num_cos);
+        check_expected(max_num_clos);
 
         ret = mock_type(int);
         if (ret == PQOS_RETVAL_OK) {
-                assert_non_null(num_cos);
+                assert_non_null(num_clos);
                 assert_non_null(mba_tab);
 
-                *num_cos = mock_type(unsigned);
+                *num_clos = mock_type(unsigned);
 
                 memcpy(mba_tab, mock_ptr_type(struct pqos_mba *),
-                       sizeof(struct pqos_mba) * *num_cos);
+                       sizeof(struct pqos_mba) * *num_clos);
         }
         return ret;
 }

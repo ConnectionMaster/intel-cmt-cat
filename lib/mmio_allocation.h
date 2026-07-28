@@ -63,7 +63,7 @@ PQOS_LOCAL int mmio_alloc_reset_mba(void);
  *
  * @param [in]  mba_id MBA resource id. Ignored. Preserved for code
  *              compatibility.
- * @param [in]  num_cos number of classes of service at \a ca
+ * @param [in]  num_clos number of classes of service at \a ca
  * @param [in]  requested table with class of service definitions
  * @param [out] actual table with class of service definitions
  *
@@ -71,7 +71,7 @@ PQOS_LOCAL int mmio_alloc_reset_mba(void);
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int mmio_mba_set(const unsigned mba_id,
-                            const unsigned num_cos,
+                            const unsigned num_clos,
                             const struct pqos_mba *requested,
                             struct pqos_mba *actual);
 
@@ -80,9 +80,9 @@ PQOS_LOCAL int mmio_mba_set(const unsigned mba_id,
  *
  * @param [in]  mba_id MBA resource id. Ignored. Preserved for code
  *              compatibility.
- * @param [in]  max_num_cos maximum number of classes of service
+ * @param [in]  max_num_clos maximum number of classes of service
  *              that can be accommodated at \a mba_tab
- * @param [out] num_cos number of classes of service read into \a mba_tab
+ * @param [out] num_clos number of classes of service read into \a mba_tab
  * @param [in,out] mba_tab table with read classes of service. The domain_id
  *                 field of mba_tab[0] must be set on input. A nonzero
  *                 num_mem_regions limits the regions read; zero selects all
@@ -93,8 +93,8 @@ PQOS_LOCAL int mmio_mba_set(const unsigned mba_id,
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int mmio_mba_get(const unsigned mba_id,
-                            const unsigned max_num_cos,
-                            unsigned *num_cos,
+                            const unsigned max_num_clos,
+                            unsigned *num_clos,
                             struct pqos_mba *mba_tab);
 
 /**
@@ -147,9 +147,9 @@ PQOS_LOCAL int mmio_alloc_reset_cat(void);
  * allocation technologies
  *
  * Reverts CAT/MBA state to the one after reset:
- * - all cores associated with COS0
- * - all COS are set to give access to entire resource
- * - all device channels associated with COS0
+ * - all cores associated with CLOS0
+ * - all CLOS are set to give access to entire resource
+ * - all device channels associated with CLOS0
  *
  * As part of allocation reset CDP, MBA, I/O RDT reconfiguration
  * can be performed. This can be requested via \a cfg.

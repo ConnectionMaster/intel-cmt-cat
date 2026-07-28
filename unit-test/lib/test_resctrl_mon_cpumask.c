@@ -47,7 +47,7 @@ test_resctrl_mon_cpumask_read(void **state __attribute__((unused)))
 
         memset(&mask, 0, sizeof(mask));
 
-        /* COS 0 */
+        /* CLOS 0 */
         class_id = 0;
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/mon_groups/test/cpus");
@@ -61,7 +61,7 @@ test_resctrl_mon_cpumask_read(void **state __attribute__((unused)))
         ret = resctrl_mon_cpumask_read(class_id, resctrl_group, &mask);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
-        /* COS 1 */
+        /* CLOS 1 */
         class_id = 1;
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/COS1/mon_groups/test/cpus");
@@ -108,7 +108,7 @@ test_resctrl_mon_cpumask_write(void **state __attribute__((unused)))
 
         memset(&mask, 0, sizeof(mask));
 
-        /* COS 0 */
+        /* CLOS 0 */
         class_id = 0;
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/mon_groups/test/cpus");
@@ -122,7 +122,7 @@ test_resctrl_mon_cpumask_write(void **state __attribute__((unused)))
         ret = resctrl_mon_cpumask_write(class_id, resctrl_group, &mask);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
-        /* COS 1 */
+        /* CLOS 1 */
         class_id = 1;
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/COS1/mon_groups/test/cpus");
@@ -167,7 +167,7 @@ test_resctrl_mon_cpumask_write_invalid(void **state __attribute__((unused)))
 
         memset(&mask, 0, sizeof(mask));
 
-        /* COS 0 */
+        /* CLOS 0 */
         class_id = 0;
         expect_string(__wrap_pqos_fopen, name,
                       "/sys/fs/resctrl/mon_groups/test/cpus");

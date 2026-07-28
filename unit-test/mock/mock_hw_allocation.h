@@ -45,7 +45,7 @@ int __wrap_hw_alloc_release(const unsigned *core_array,
                             const unsigned core_num);
 int __wrap_hw_alloc_reset(const struct pqos_alloc_config *cfg);
 int __wrap_hw_l3ca_set(const unsigned l3cat_id,
-                       const unsigned num_cos,
+                       const unsigned num_clos,
                        const struct pqos_l3ca *ca);
 int __wrap_hw_l3ca_get(const unsigned l3cat_id,
                        const unsigned max_num_ca,
@@ -53,7 +53,7 @@ int __wrap_hw_l3ca_get(const unsigned l3cat_id,
                        struct pqos_l3ca *ca);
 int __wrap_hw_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits);
 int __wrap_hw_l2ca_set(const unsigned l2id,
-                       const unsigned num_cos,
+                       const unsigned num_clos,
                        const struct pqos_l2ca *ca);
 int __wrap_hw_l2ca_get(const unsigned l2id,
                        const unsigned max_num_ca,
@@ -61,12 +61,12 @@ int __wrap_hw_l2ca_get(const unsigned l2id,
                        struct pqos_l2ca *ca);
 int __wrap_hw_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits);
 int __wrap_hw_mba_set(const unsigned mba_id,
-                      const unsigned num_cos,
+                      const unsigned num_clos,
                       const struct pqos_mba *requested,
                       struct pqos_mba *actual);
 int __wrap_hw_mba_get(const unsigned mba_id,
-                      const unsigned max_num_cos,
-                      unsigned *num_cos,
+                      const unsigned max_num_clos,
+                      unsigned *num_clos,
                       struct pqos_mba *mba_tab);
 int __wrap_hw_alloc_assoc_write(const unsigned lcore, const unsigned class_id);
 int __real_hw_alloc_assoc_write(const unsigned lcore, const unsigned class_id);

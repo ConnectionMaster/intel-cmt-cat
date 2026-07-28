@@ -50,8 +50,8 @@
 #define CDP_ENABLED  1
 #define CDP_DISABLED 0
 
-#define MAX_COS 1
-#define COS_ONE 1
+#define MAX_CLOS 1
+#define CLOS_ONE 1
 
 #define L2_CAT_ID 0
 #define L3_CAT_ID 0
@@ -119,10 +119,10 @@ hw_alloc_reset_l2cdp(const unsigned l2id_num,
 }
 
 int
-hw_alloc_reset_cos(const unsigned msr_start,
-                   const unsigned msr_num,
-                   const unsigned coreid,
-                   const uint64_t msr_val)
+hw_alloc_reset_clos(const unsigned msr_start,
+                    const unsigned msr_num,
+                    const unsigned coreid,
+                    const uint64_t msr_val)
 {
         check_expected(msr_start);
         check_expected(msr_num);
@@ -291,25 +291,25 @@ test_hw_l3ca_set_param(void **state __attribute__((unused)))
         ca[CA_IDX_ZERO].cdp = CDP_DISABLED;
         ca[CA_IDX_ZERO].u.ways_mask = NON_CONTIGUOUS_CBM;
 
-        ret = hw_l3ca_set(L3_CAT_ID, MAX_COS, ca);
+        ret = hw_l3ca_set(L3_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         /* Test Non-Contiguous data mask */
-        ca[CA_IDX_ZERO].class_id = COS_ONE;
+        ca[CA_IDX_ZERO].class_id = CLOS_ONE;
         ca[CA_IDX_ZERO].cdp = CDP_ENABLED;
         ca[CA_IDX_ZERO].u.s.data_mask = NON_CONTIGUOUS_CBM;
         ca[CA_IDX_ZERO].u.s.code_mask = CONTIGUOUS_CBM;
 
-        ret = hw_l3ca_set(L3_CAT_ID, MAX_COS, ca);
+        ret = hw_l3ca_set(L3_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         /* Test Non-Contiguous code mask */
-        ca[CA_IDX_ZERO].class_id = COS_ONE;
+        ca[CA_IDX_ZERO].class_id = CLOS_ONE;
         ca[CA_IDX_ZERO].cdp = CDP_ENABLED;
         ca[CA_IDX_ZERO].u.s.data_mask = CONTIGUOUS_CBM;
         ca[CA_IDX_ZERO].u.s.code_mask = NON_CONTIGUOUS_CBM;
 
-        ret = hw_l3ca_set(L3_CAT_ID, MAX_COS, ca);
+        ret = hw_l3ca_set(L3_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
@@ -357,7 +357,7 @@ test_hw_l3ca_set_non_contiguous_cbm(void **state __attribute__((unused)))
         expect_value(__wrap_msr_write, value, ca[CA_IDX_ZERO].u.s.code_mask);
         will_return(__wrap_msr_write, PQOS_RETVAL_OK);
 
-        ret = hw_l3ca_set(L3_CAT_ID, MAX_COS, ca);
+        ret = hw_l3ca_set(L3_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
         /* Test Non-Contiguous code mask */
@@ -380,7 +380,7 @@ test_hw_l3ca_set_non_contiguous_cbm(void **state __attribute__((unused)))
         expect_value(__wrap_msr_write, value, ca[CA_IDX_ZERO].u.s.code_mask);
         will_return(__wrap_msr_write, PQOS_RETVAL_OK);
 
-        ret = hw_l3ca_set(L3_CAT_ID, MAX_COS, ca);
+        ret = hw_l3ca_set(L3_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -654,25 +654,25 @@ test_hw_l2ca_set_param(void **state __attribute__((unused)))
         ca[CA_IDX_ZERO].cdp = CDP_DISABLED;
         ca[CA_IDX_ZERO].u.ways_mask = NON_CONTIGUOUS_CBM;
 
-        ret = hw_l2ca_set(L2_CAT_ID, MAX_COS, ca);
+        ret = hw_l2ca_set(L2_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         /* Test Non-Contiguous data mask */
-        ca[CA_IDX_ZERO].class_id = COS_ONE;
+        ca[CA_IDX_ZERO].class_id = CLOS_ONE;
         ca[CA_IDX_ZERO].cdp = CDP_ENABLED;
         ca[CA_IDX_ZERO].u.s.data_mask = NON_CONTIGUOUS_CBM;
         ca[CA_IDX_ZERO].u.s.code_mask = CONTIGUOUS_CBM;
 
-        ret = hw_l2ca_set(L2_CAT_ID, MAX_COS, ca);
+        ret = hw_l2ca_set(L2_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         /* Test Non-Contiguous code mask */
-        ca[CA_IDX_ZERO].class_id = COS_ONE;
+        ca[CA_IDX_ZERO].class_id = CLOS_ONE;
         ca[CA_IDX_ZERO].cdp = CDP_ENABLED;
         ca[CA_IDX_ZERO].u.s.data_mask = CONTIGUOUS_CBM;
         ca[CA_IDX_ZERO].u.s.code_mask = NON_CONTIGUOUS_CBM;
 
-        ret = hw_l2ca_set(L2_CAT_ID, MAX_COS, ca);
+        ret = hw_l2ca_set(L2_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
@@ -720,7 +720,7 @@ test_hw_l2ca_set_non_contiguous_cbm(void **state __attribute__((unused)))
         expect_value(__wrap_msr_write, value, ca[CA_IDX_ZERO].u.s.code_mask);
         will_return(__wrap_msr_write, PQOS_RETVAL_OK);
 
-        ret = hw_l2ca_set(L2_CAT_ID, MAX_COS, ca);
+        ret = hw_l2ca_set(L2_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
         /* Test Non-Contiguous code mask */
@@ -743,7 +743,7 @@ test_hw_l2ca_set_non_contiguous_cbm(void **state __attribute__((unused)))
         expect_value(__wrap_msr_write, value, ca[CA_IDX_ZERO].u.s.code_mask);
         will_return(__wrap_msr_write, PQOS_RETVAL_OK);
 
-        ret = hw_l2ca_set(L2_CAT_ID, MAX_COS, ca);
+        ret = hw_l2ca_set(L2_CAT_ID, MAX_CLOS, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1007,8 +1007,8 @@ test_hw_mba_get(void **state)
         struct test_data *data = (struct test_data *)*state;
         int ret;
         unsigned mba_id = 0;
-        unsigned max_num_cos = data->cap_mba.num_classes;
-        unsigned num_cos;
+        unsigned max_num_clos = data->cap_mba.num_classes;
+        unsigned num_clos;
         struct pqos_mba mba_tab[4];
         unsigned class_id;
 
@@ -1023,9 +1023,9 @@ test_hw_mba_get(void **state)
                 will_return(__wrap_msr_read, class_id * 10);
         }
 
-        ret = hw_mba_get(mba_id, max_num_cos, &num_cos, mba_tab);
+        ret = hw_mba_get(mba_id, max_num_clos, &num_clos, mba_tab);
         assert_int_equal(ret, PQOS_RETVAL_OK);
-        assert_int_equal(num_cos, data->cap_mba.num_classes);
+        assert_int_equal(num_clos, data->cap_mba.num_classes);
 
         for (class_id = 0; class_id < data->cap_mba.num_classes; ++class_id) {
                 assert_int_equal(mba_tab[class_id].class_id, class_id);
@@ -1367,11 +1367,11 @@ test_hw_alloc_reset_l3ca(void **state)
                                                    &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);
@@ -1413,11 +1413,11 @@ test_hw_alloc_reset_l3cdp_enable(void **state)
                                                    &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);
@@ -1466,11 +1466,11 @@ test_hw_alloc_reset_l3cdp_disable(void **state)
                                                    &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);
@@ -1517,11 +1517,11 @@ test_hw_alloc_reset_l2ca(void **state)
                 ret = pqos_cpu_get_one_by_l2id(data->cpu, l2ids[i], &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);
@@ -1565,11 +1565,11 @@ test_hw_alloc_reset_l2cdp_enable(void **state)
                 ret = pqos_cpu_get_one_by_l2id(data->cpu, l2ids[i], &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);
@@ -1617,11 +1617,11 @@ test_hw_alloc_reset_l2cdp_disable(void **state)
                 ret = pqos_cpu_get_one_by_l2id(data->cpu, l2ids[i], &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);
@@ -1669,11 +1669,11 @@ test_hw_alloc_reset_mba(void **state)
                     pqos_cpu_get_one_by_mba_id(data->cpu, mba_ids[i], &coreid);
                 assert_int_equal(ret, PQOS_RETVAL_OK);
 
-                expect_value(hw_alloc_reset_cos, msr_start, msr_start);
-                expect_value(hw_alloc_reset_cos, msr_num, msr_num);
-                expect_value(hw_alloc_reset_cos, coreid, coreid);
-                expect_value(hw_alloc_reset_cos, msr_val, msr_val);
-                will_return(hw_alloc_reset_cos, PQOS_RETVAL_OK);
+                expect_value(hw_alloc_reset_clos, msr_start, msr_start);
+                expect_value(hw_alloc_reset_clos, msr_num, msr_num);
+                expect_value(hw_alloc_reset_clos, coreid, coreid);
+                expect_value(hw_alloc_reset_clos, msr_val, msr_val);
+                will_return(hw_alloc_reset_clos, PQOS_RETVAL_OK);
         }
 
         will_return(hw_alloc_reset_assoc, PQOS_RETVAL_OK);

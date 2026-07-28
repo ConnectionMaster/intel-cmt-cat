@@ -264,7 +264,7 @@ mon_assoc_write(const unsigned lcore, const pqos_rmid_t rmid)
         if (ret != MACHINE_RETVAL_OK)
                 return PQOS_RETVAL_ERROR;
 
-        val &= PQOS_MSR_ASSOC_QECOS_MASK;
+        val &= PQOS_MSR_ASSOC_QECLOS_MASK;
         val |= (uint64_t)(rmid & PQOS_MSR_ASSOC_RMID_MASK);
 
         ret = msr_write(lcore, reg, val);

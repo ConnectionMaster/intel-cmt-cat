@@ -127,7 +127,7 @@ struct pqos_mon_data_internal {
                 struct pqos_event_values values_storage; /**< stores values
                                                             of monitoring group
                                                             that was moved to
-                                                            another COS */
+                                                            another CLOS */
                 unsigned *l3id;    /**< list of l3ids being monitored */
                 unsigned num_l3id; /**< Number of l3ids */
 

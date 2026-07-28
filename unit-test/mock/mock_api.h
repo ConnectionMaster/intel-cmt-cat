@@ -84,7 +84,7 @@ int __wrap_pqos_alloc_reset(const enum pqos_cdp_config l3_cdp_cfg,
                             const enum pqos_cdp_config l2_cdp_cfg,
                             const enum pqos_mba_config mba_cfg);
 int __wrap_pqos_l3ca_set(const unsigned l3cat_id,
-                         const unsigned num_cos,
+                         const unsigned num_clos,
                          const struct pqos_l3ca *ca);
 int __wrap_pqos_l3ca_get(const unsigned l3cat_id,
                          const unsigned max_num_ca,
@@ -92,7 +92,7 @@ int __wrap_pqos_l3ca_get(const unsigned l3cat_id,
                          struct pqos_l3ca *ca);
 int __wrap_pqos_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits);
 int __wrap_pqos_l2ca_set(const unsigned l2id,
-                         const unsigned num_cos,
+                         const unsigned num_clos,
                          const struct pqos_l2ca *ca);
 int __wrap_pqos_l2ca_get(const unsigned l2id,
                          const unsigned max_num_ca,
@@ -100,12 +100,12 @@ int __wrap_pqos_l2ca_get(const unsigned l2id,
                          struct pqos_l2ca *ca);
 int __wrap_pqos_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits);
 int __wrap_pqos_mba_set(const unsigned mba_id,
-                        const unsigned num_cos,
+                        const unsigned num_clos,
                         const struct pqos_mba *requested,
                         struct pqos_mba *actual);
 int __wrap_pqos_mba_get(const unsigned mba_id,
-                        const unsigned max_num_cos,
-                        unsigned *num_cos,
+                        const unsigned max_num_clos,
+                        unsigned *num_clos,
                         struct pqos_mba *mba_tab);
 unsigned *__wrap_pqos_cpu_get_cores_l3cat_id(const struct pqos_cpuinfo *cpu,
                                              const unsigned l3cat_id,

@@ -581,8 +581,8 @@ hw_cap_l3ca_iordt(const struct pqos_cpuinfo *cpu, int *enabled)
  * @brief Detects presence of L3 CAT based on register probing.
  *
  * This method of detecting CAT does the following steps.
- * - probe COS registers one by one and exit on first error
- * - if procedure fails on COS0 then CAT is not supported
+ * - probe CLOS registers one by one and exit on first error
+ * - if procedure fails on CLOS0 then CAT is not supported
  * - use CPUID.0x4.0x3 to get number of cache ways
  *
  * @param cap CAT structure to be initialized
@@ -616,7 +616,7 @@ hw_cap_l3ca_probe(struct pqos_cap_l3ca *cap, const struct pqos_cpuinfo *cpu)
         }
 
         if (i == 0) {
-                LOG_WARN("Error probing COS0 on core %u\n", lcore);
+                LOG_WARN("Error probing CLOS0 on core %u\n", lcore);
                 return PQOS_RETVAL_RESOURCE;
         }
 
@@ -1205,7 +1205,7 @@ hw_cap_mba_discover(struct pqos_cap_mba *cap, const struct pqos_cpuinfo *cpu)
          * Detect MBA version
          *  - MBA4.0 extensions
          *  - MBA3.0 introduces per-thread MBA controls
-         *  - MBA2.0 increases number of MBA COS to 15
+         *  - MBA2.0 increases number of MBA CLOS to 15
          */
         if (!hw_cap_mba40_model() && msr_core_caps_available)
                 detect_mba40(cpu, &mba40_supported);

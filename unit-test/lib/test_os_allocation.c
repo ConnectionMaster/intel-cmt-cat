@@ -267,7 +267,7 @@ test_os_l3ca_set_cdp_off(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
         unsigned l3cat_id = 0;
 
@@ -284,7 +284,7 @@ test_os_l3ca_set_cdp_off(void **state)
         will_return(__wrap_resctrl_lock_exclusive, PQOS_RETVAL_OK);
         will_return(__wrap_resctrl_lock_release, PQOS_RETVAL_OK);
 
-        ret = os_l3ca_set(l3cat_id, num_cos, ca);
+        ret = os_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 }
 
@@ -293,7 +293,7 @@ test_os_l3ca_set_cdp_on(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
         unsigned l3cat_id = 0;
 
@@ -323,7 +323,7 @@ test_os_l3ca_set_cdp_on(void **state)
                      PQOS_TECHNOLOGY_L3CA);
         will_return(__wrap_resctrl_alloc_schemata_write, PQOS_RETVAL_OK);
 
-        ret = os_l3ca_set(l3cat_id, num_cos, ca);
+        ret = os_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -332,7 +332,7 @@ test_os_l3ca_set(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
         unsigned l3cat_id = 0;
 
@@ -361,7 +361,7 @@ test_os_l3ca_set(void **state)
                      PQOS_TECHNOLOGY_L3CA);
         will_return(__wrap_resctrl_alloc_schemata_write, PQOS_RETVAL_OK);
 
-        ret = os_l3ca_set(l3cat_id, num_cos, ca);
+        ret = os_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -479,7 +479,7 @@ test_os_l2ca_set_cdp_off(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
         unsigned l2cat_id = 0;
 
@@ -496,7 +496,7 @@ test_os_l2ca_set_cdp_off(void **state)
         will_return(__wrap_resctrl_lock_exclusive, PQOS_RETVAL_OK);
         will_return(__wrap_resctrl_lock_release, PQOS_RETVAL_OK);
 
-        ret = os_l2ca_set(l2cat_id, num_cos, ca);
+        ret = os_l2ca_set(l2cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 }
 
@@ -505,7 +505,7 @@ test_os_l2ca_set_cdp_on(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
         unsigned l2cat_id = 0;
 
@@ -535,7 +535,7 @@ test_os_l2ca_set_cdp_on(void **state)
                      PQOS_TECHNOLOGY_L2CA);
         will_return(__wrap_resctrl_alloc_schemata_write, PQOS_RETVAL_OK);
 
-        ret = os_l2ca_set(l2cat_id, num_cos, ca);
+        ret = os_l2ca_set(l2cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -544,7 +544,7 @@ test_os_l2ca_set(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
         unsigned l2cat_id = 0;
 
@@ -573,7 +573,7 @@ test_os_l2ca_set(void **state)
                      PQOS_TECHNOLOGY_L2CA);
         will_return(__wrap_resctrl_alloc_schemata_write, PQOS_RETVAL_OK);
 
-        ret = os_l2ca_set(l2cat_id, num_cos, ca);
+        ret = os_l2ca_set(l2cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -691,7 +691,7 @@ test_os_mba_set_ctrl_off(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba ca[1];
         unsigned mbat_id = 0;
 
@@ -707,7 +707,7 @@ test_os_mba_set_ctrl_off(void **state)
         will_return(__wrap_resctrl_lock_exclusive, PQOS_RETVAL_OK);
         will_return(__wrap_resctrl_lock_release, PQOS_RETVAL_OK);
 
-        ret = os_mba_set(mbat_id, num_cos, ca, NULL);
+        ret = os_mba_set(mbat_id, num_clos, ca, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
@@ -716,7 +716,7 @@ test_os_mba_set_ctrl_on(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba ca[1];
         unsigned mbat_id = 0;
 
@@ -745,7 +745,7 @@ test_os_mba_set_ctrl_on(void **state)
                      PQOS_TECHNOLOGY_MBA);
         will_return(__wrap_resctrl_alloc_schemata_write, PQOS_RETVAL_OK);
 
-        ret = os_mba_set(mbat_id, num_cos, ca, NULL);
+        ret = os_mba_set(mbat_id, num_clos, ca, NULL);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -754,7 +754,7 @@ test_os_mba_set(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba ca[1];
         unsigned mbat_id = 0;
 
@@ -783,7 +783,7 @@ test_os_mba_set(void **state)
                      PQOS_TECHNOLOGY_MBA);
         will_return(__wrap_resctrl_alloc_schemata_write, PQOS_RETVAL_OK);
 
-        ret = os_mba_set(mbat_id, num_cos, ca, NULL);
+        ret = os_mba_set(mbat_id, num_clos, ca, NULL);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 

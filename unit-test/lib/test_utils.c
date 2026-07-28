@@ -298,42 +298,42 @@ test_pqos_cap_get_type(void **state)
         }
 }
 
-/* ======== pqos_l3ca_get_cos_num ======== */
+/* ======== pqos_l3ca_get_clos_num ======== */
 
 static void
-test_pqos_l3ca_get_cos_num(void **state)
+test_pqos_l3ca_get_clos_num(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num = -1;
+        unsigned clos_num = -1;
         int ret;
 
-        ret = pqos_l3ca_get_cos_num(data->cap, &cos_num);
+        ret = pqos_l3ca_get_clos_num(data->cap, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_OK);
-        assert_int_equal(cos_num, data->cap_l3ca.num_classes);
+        assert_int_equal(clos_num, data->cap_l3ca.num_classes);
 }
 
 static void
-test_pqos_l3ca_get_cos_num_param(void **state)
+test_pqos_l3ca_get_clos_num_param(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num;
+        unsigned clos_num;
         int ret;
 
-        ret = pqos_l3ca_get_cos_num(data->cap, NULL);
+        ret = pqos_l3ca_get_clos_num(data->cap, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_l3ca_get_cos_num(NULL, &cos_num);
+        ret = pqos_l3ca_get_clos_num(NULL, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
 static void
-test_pqos_l3ca_get_cos_num_unsupported(void **state)
+test_pqos_l3ca_get_clos_num_unsupported(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num;
+        unsigned clos_num;
         int ret;
 
-        ret = pqos_l3ca_get_cos_num(data->cap, &cos_num);
+        ret = pqos_l3ca_get_clos_num(data->cap, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 }
 
@@ -383,81 +383,81 @@ test_pqos_cap_get_event_unsupported(void **state)
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 }
 
-/* ======== pqos_l2ca_get_cos_num ======== */
+/* ======== pqos_l2ca_get_clos_num ======== */
 
 static void
-test_pqos_l2ca_get_cos_num(void **state)
+test_pqos_l2ca_get_clos_num(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num = -1;
+        unsigned clos_num = -1;
         int ret;
 
-        ret = pqos_l2ca_get_cos_num(data->cap, &cos_num);
+        ret = pqos_l2ca_get_clos_num(data->cap, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_OK);
-        assert_int_equal(cos_num, data->cap_l2ca.num_classes);
+        assert_int_equal(clos_num, data->cap_l2ca.num_classes);
 }
 
 static void
-test_pqos_l2ca_get_cos_num_param(void **state)
+test_pqos_l2ca_get_clos_num_param(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num;
+        unsigned clos_num;
         int ret;
 
-        ret = pqos_l2ca_get_cos_num(data->cap, NULL);
+        ret = pqos_l2ca_get_clos_num(data->cap, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_l2ca_get_cos_num(NULL, &cos_num);
+        ret = pqos_l2ca_get_clos_num(NULL, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
 static void
-test_pqos_l2ca_get_cos_num_unsupported(void **state)
+test_pqos_l2ca_get_clos_num_unsupported(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num;
+        unsigned clos_num;
         int ret;
 
-        ret = pqos_l2ca_get_cos_num(data->cap, &cos_num);
+        ret = pqos_l2ca_get_clos_num(data->cap, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 }
 
-/* ======== pqos_mba_get_cos_num ======== */
+/* ======== pqos_mba_get_clos_num ======== */
 
 static void
-test_pqos_mba_get_cos_num(void **state)
+test_pqos_mba_get_clos_num(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num = -1;
+        unsigned clos_num = -1;
         int ret;
 
-        ret = pqos_mba_get_cos_num(data->cap, &cos_num);
+        ret = pqos_mba_get_clos_num(data->cap, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_OK);
-        assert_int_equal(cos_num, data->cap_mba.num_classes);
+        assert_int_equal(clos_num, data->cap_mba.num_classes);
 }
 
 static void
-test_pqos_mba_get_cos_num_param(void **state)
+test_pqos_mba_get_clos_num_param(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num;
+        unsigned clos_num;
         int ret;
 
-        ret = pqos_mba_get_cos_num(data->cap, NULL);
+        ret = pqos_mba_get_clos_num(data->cap, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_mba_get_cos_num(NULL, &cos_num);
+        ret = pqos_mba_get_clos_num(NULL, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
 static void
-test_pqos_mba_get_cos_num_unsupported(void **state)
+test_pqos_mba_get_clos_num_unsupported(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
-        unsigned cos_num;
+        unsigned clos_num;
         int ret;
 
-        ret = pqos_mba_get_cos_num(data->cap, &cos_num);
+        ret = pqos_mba_get_clos_num(data->cap, &clos_num);
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 }
 
@@ -879,12 +879,12 @@ main(void)
             cmocka_unit_test(test_pqos_get_vendor),
             cmocka_unit_test(test_pqos_cap_get_event),
             cmocka_unit_test(test_pqos_cap_get_event_param),
-            cmocka_unit_test(test_pqos_l3ca_get_cos_num),
-            cmocka_unit_test(test_pqos_l3ca_get_cos_num_param),
-            cmocka_unit_test(test_pqos_l2ca_get_cos_num),
-            cmocka_unit_test(test_pqos_l2ca_get_cos_num_param),
-            cmocka_unit_test(test_pqos_mba_get_cos_num),
-            cmocka_unit_test(test_pqos_mba_get_cos_num_param),
+            cmocka_unit_test(test_pqos_l3ca_get_clos_num),
+            cmocka_unit_test(test_pqos_l3ca_get_clos_num_param),
+            cmocka_unit_test(test_pqos_l2ca_get_clos_num),
+            cmocka_unit_test(test_pqos_l2ca_get_clos_num_param),
+            cmocka_unit_test(test_pqos_mba_get_clos_num),
+            cmocka_unit_test(test_pqos_mba_get_clos_num_param),
             cmocka_unit_test(test_pqos_l3ca_cdp_enabled),
             cmocka_unit_test(test_pqos_l3ca_cdp_enabled_param),
             cmocka_unit_test(test_pqos_l2ca_cdp_enabled),
@@ -896,8 +896,8 @@ main(void)
         const struct CMUnitTest tests_l3ca[] = {
             cmocka_unit_test(test_pqos_cap_get_type_resource),
             cmocka_unit_test(test_pqos_cap_get_event_unsupported),
-            cmocka_unit_test(test_pqos_l2ca_get_cos_num_unsupported),
-            cmocka_unit_test(test_pqos_mba_get_cos_num_unsupported),
+            cmocka_unit_test(test_pqos_l2ca_get_clos_num_unsupported),
+            cmocka_unit_test(test_pqos_mba_get_clos_num_unsupported),
             cmocka_unit_test(test_pqos_mba_ctrl_enabled_unsupported),
             cmocka_unit_test(test_pqos_l2ca_cdp_enabled_unsupported),
         };
@@ -905,8 +905,8 @@ main(void)
         const struct CMUnitTest tests_l2ca[] = {
             cmocka_unit_test(test_pqos_cap_get_type_resource),
             cmocka_unit_test(test_pqos_cap_get_event_unsupported),
-            cmocka_unit_test(test_pqos_l3ca_get_cos_num_unsupported),
-            cmocka_unit_test(test_pqos_mba_get_cos_num_unsupported),
+            cmocka_unit_test(test_pqos_l3ca_get_clos_num_unsupported),
+            cmocka_unit_test(test_pqos_mba_get_clos_num_unsupported),
             cmocka_unit_test(test_pqos_l3ca_cdp_enabled_unsupported),
             cmocka_unit_test(test_pqos_mba_ctrl_enabled_unsupported),
         };

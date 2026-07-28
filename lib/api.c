@@ -166,20 +166,20 @@ static struct pqos_api {
         /** Associates channel with given class of service */
         int (*alloc_assoc_set_channel)(const pqos_channel_t channel,
                                        const unsigned class_id);
-        /** Assign first available COS */
+        /** Assign first available CLOS */
         int (*alloc_assign)(const unsigned technology,
                             const unsigned *core_array,
                             const unsigned core_num,
                             unsigned *class_id);
-        /** Reassign cores to default COS */
+        /** Reassign cores to default CLOS */
         int (*alloc_release)(const unsigned *core_array,
                              const unsigned core_num);
-        /** Assign first available COS to tasks */
+        /** Assign first available CLOS to tasks */
         int (*alloc_assign_pid)(const unsigned technology,
                                 const pid_t *task_array,
                                 const unsigned task_num,
                                 unsigned *class_id);
-        /** Reassign tasks to default COS */
+        /** Reassign tasks to default CLOS */
         int (*alloc_release_pid)(const pid_t *task_array,
                                  const unsigned task_num);
         /** Resets configuration of allocation technologies */
@@ -187,7 +187,7 @@ static struct pqos_api {
 
         /** Sets L3 classes of service */
         int (*l3ca_set)(const unsigned l3cat_id,
-                        const unsigned num_cos,
+                        const unsigned num_clos,
                         const struct pqos_l3ca *ca);
         /** Reads L3 classes of service */
         int (*l3ca_get)(const unsigned l3cat_id,
@@ -199,7 +199,7 @@ static struct pqos_api {
 
         /** Sets L2 classes of service */
         int (*l2ca_set)(const unsigned l2id,
-                        const unsigned num_cos,
+                        const unsigned num_clos,
                         const struct pqos_l2ca *ca);
         /** Reads L2 classes of service */
         int (*l2ca_get)(const unsigned l2id,
@@ -211,15 +211,15 @@ static struct pqos_api {
 
         /** Set MBA */
         int (*mba_get)(const unsigned mba_id,
-                       const unsigned max_num_cos,
-                       unsigned *num_cos,
+                       const unsigned max_num_clos,
+                       unsigned *num_clos,
                        struct pqos_mba *mba_tab);
         /** Get MBA mask */
         int (*mba_set)(const unsigned mba_id,
-                       const unsigned num_cos,
+                       const unsigned num_clos,
                        const struct pqos_mba *requested,
                        struct pqos_mba *actual);
-        /** Retrieves tasks associated with COS */
+        /** Retrieves tasks associated with CLOS */
         unsigned *(*pid_get_pid_assoc)(const unsigned class_id,
                                        unsigned *count);
         /** Dump a memory region */
@@ -572,13 +572,13 @@ pqos_pid_get_pid_assoc(const unsigned class_id, unsigned *count)
 
 int
 pqos_l3ca_set(const unsigned l3cat_id,
-              const unsigned num_cos,
+              const unsigned num_clos,
               const struct pqos_l3ca *ca)
 {
-        if (ca == NULL || num_cos == 0)
+        if (ca == NULL || num_clos == 0)
                 return PQOS_RETVAL_PARAM;
 
-        return API_CALL(l3ca_set, l3cat_id, num_cos, ca);
+        return API_CALL(l3ca_set, l3cat_id, num_clos, ca);
 }
 
 int
@@ -610,18 +610,18 @@ pqos_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 
 int
 pqos_l2ca_set(const unsigned l2id,
-              const unsigned num_cos,
+              const unsigned num_clos,
               const struct pqos_l2ca *ca)
 {
         unsigned i;
 
-        if (ca == NULL || num_cos == 0)
+        if (ca == NULL || num_clos == 0)
                 return PQOS_RETVAL_PARAM;
 
         /**
          * Check if class bitmasks are zero.
          */
-        for (i = 0; i < num_cos; i++) {
+        for (i = 0; i < num_clos; i++) {
                 int is_non_zero = 0;
 
                 if (ca[i].cdp)
@@ -631,12 +631,12 @@ pqos_l2ca_set(const unsigned l2id,
                         is_non_zero = ca[i].u.ways_mask;
 
                 if (!is_non_zero) {
-                        LOG_ERROR("L2 COS%u bit mask is 0!\n", ca[i].class_id);
+                        LOG_ERROR("L2 CLOS%u bit mask is 0!\n", ca[i].class_id);
                         return PQOS_RETVAL_PARAM;
                 }
         }
 
-        return API_CALL(l2ca_set, l2id, num_cos, ca);
+        return API_CALL(l2ca_set, l2id, num_clos, ca);
 }
 
 int
@@ -668,7 +668,7 @@ pqos_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 
 int
 pqos_mba_set(const unsigned mba_id,
-             const unsigned num_cos,
+             const unsigned num_clos,
              const struct pqos_mba *requested,
              struct pqos_mba *actual)
 {
@@ -676,7 +676,7 @@ pqos_mba_set(const unsigned mba_id,
         unsigned i;
         enum pqos_interface interface = _pqos_get_inter();
 
-        if (requested == NULL || num_cos == 0)
+        if (requested == NULL || num_clos == 0)
                 return PQOS_RETVAL_PARAM;
 
         lock_get();
@@ -690,14 +690,14 @@ pqos_mba_set(const unsigned mba_id,
         /**
          * Check if MBA rate is within allowed range
          */
-        for (i = 0; i < num_cos && interface != PQOS_INTER_MMIO; i++) {
+        for (i = 0; i < num_clos && interface != PQOS_INTER_MMIO; i++) {
                 const struct cpuinfo_config *vconfig;
 
                 cpuinfo_get_config(&vconfig);
                 if (requested[i].ctrl == 0 &&
                     (requested[i].mb_max == 0 ||
                      requested[i].mb_max > vconfig->mba_max)) {
-                        LOG_ERROR("MBA COS%u rate out of range (from 1-%d)!\n",
+                        LOG_ERROR("MBA CLOS%u rate out of range (from 1-%d)!\n",
                                   requested[i].class_id, vconfig->mba_max);
                         lock_release();
                         return PQOS_RETVAL_PARAM;
@@ -705,7 +705,7 @@ pqos_mba_set(const unsigned mba_id,
         }
 
         if (api.mba_set != NULL)
-                ret = api.mba_set(mba_id, num_cos, requested, actual);
+                ret = api.mba_set(mba_id, num_clos, requested, actual);
         else {
                 LOG_INFO(UNSUPPORTED_INTERFACE);
                 ret = PQOS_RETVAL_RESOURCE;
@@ -718,14 +718,14 @@ pqos_mba_set(const unsigned mba_id,
 
 int
 pqos_mba_get(const unsigned mba_id,
-             const unsigned max_num_cos,
-             unsigned *num_cos,
+             const unsigned max_num_clos,
+             unsigned *num_clos,
              struct pqos_mba *mba_tab)
 {
-        if (num_cos == NULL || mba_tab == NULL || max_num_cos == 0)
+        if (num_clos == NULL || mba_tab == NULL || max_num_clos == 0)
                 return PQOS_RETVAL_PARAM;
 
-        return API_CALL(mba_get, mba_id, max_num_cos, num_cos, mba_tab);
+        return API_CALL(mba_get, mba_id, max_num_clos, num_clos, mba_tab);
 }
 
 /*

@@ -113,16 +113,16 @@ PQOS_LOCAL int hw_alloc_assoc_write(const unsigned lcore,
 PQOS_LOCAL int hw_alloc_assoc_read(const unsigned lcore, unsigned *class_id);
 
 /**
- * @brief Gets unused COS on a socket or L2 cluster
+ * @brief Gets unused CLOS on a socket or L2 cluster
  *
- * The lowest acceptable COS is 1, as 0 is a default one
+ * The lowest acceptable CLOS is 1, as 0 is a default one
  *
  * @param [in] technology selection of allocation technologies
  * @param [in] l3cat_id L3 CAT resource id
  * @param [in] l2cat_id L2 CAT resource id
  * @param [in] mba_id MBA resource id
  * @param [in] smba_id SMBA resource id
- * @param [out] class_id unused COS
+ * @param [out] class_id unused CLOS
  *
  * NOTE: It is our assumption that mba id and cat ids are same for
  * a core. In future, if a core can have different mba id and cat ids
@@ -163,9 +163,9 @@ PQOS_LOCAL int hw_alloc_assoc_get(const unsigned lcore, unsigned *class_id);
 
 /**
  * @brief Hardware interface to assign first available
- *        COS to cores in \a core_array
+ *        CLOS to cores in \a core_array
  *
- * While searching for available COS take technologies it is intended to use
+ * While searching for available CLOS take technologies it is intended to use
  * with into account.
  * Note on \a technology and \a core_array selection:
  * - if L2 CAT technology is requested then cores need to belong to
@@ -177,7 +177,7 @@ PQOS_LOCAL int hw_alloc_assoc_get(const unsigned lcore, unsigned *class_id);
  *             (1 << enum pqos_cap_type)
  * @param [in] core_array list of core ids
  * @param [in] core_num number of core ids in the \a core_array
- * @param [out] class_id place to store reserved COS id
+ * @param [out] class_id place to store reserved CLOS id
  *
  * @return Operations status
  */
@@ -188,7 +188,7 @@ PQOS_LOCAL int hw_alloc_assign(const unsigned technology,
 
 /**
  * @brief Hardware interface to reassign cores
- *        in \a core_array to default COS#0
+ *        in \a core_array to default CLOS#0
  *
  * @param [in] core_array list of core ids
  * @param [in] core_num number of core ids in the \a core_array
@@ -203,9 +203,9 @@ PQOS_LOCAL int hw_alloc_release(const unsigned *core_array,
  *        of allocation technologies
  *
  * Reverts CAT/MBA state to the one after reset:
- * - all cores associated with COS0
- * - all COS are set to give access to entire resource
- * - all device channels associated with COS0
+ * - all cores associated with CLOS0
+ * - all CLOS are set to give access to entire resource
+ * - all device channels associated with CLOS0
  *
  * As part of allocation reset CDP, MBA, I/O RDT reconfiguration
  * can be performed. This can be requested via \a cfg.
@@ -261,7 +261,7 @@ PQOS_LOCAL int hw_alloc_reset_l2cdp(const unsigned l2id_num,
                                     const int enable);
 
 /**
- * @brief Associates each of the cores and channels with COS0
+ * @brief Associates each of the cores and channels with CLOS0
  *
  * Operates on m_cpu structure.
  *
@@ -272,7 +272,7 @@ PQOS_LOCAL int hw_alloc_reset_l2cdp(const unsigned l2id_num,
 PQOS_LOCAL int hw_alloc_reset_assoc(void);
 
 /**
- * @brief Associates each of the cores with COS0
+ * @brief Associates each of the cores with CLOS0
  *
  * Operates on m_cpu structure.
  *
@@ -283,7 +283,7 @@ PQOS_LOCAL int hw_alloc_reset_assoc(void);
 PQOS_LOCAL int hw_alloc_reset_assoc_cores(void);
 
 /**
- * @brief Associates each of the channels with COS0
+ * @brief Associates each of the channels with CLOS0
  *
  * Operates on m_cpu structure.
  *
@@ -294,7 +294,7 @@ PQOS_LOCAL int hw_alloc_reset_assoc_cores(void);
 PQOS_LOCAL int hw_alloc_reset_assoc_channels(void);
 
 /**
- * @brief Writes range of MBA/CAT COS MSR's with \a msr_val value
+ * @brief Writes range of MBA/CAT CLOS MSR's with \a msr_val value
  *
  * Used as part of CAT/MBA reset process.
  *
@@ -307,13 +307,13 @@ PQOS_LOCAL int hw_alloc_reset_assoc_channels(void);
  * @retval PQOS_RETVAL_OK on success
  * @retval PQOS_RETVAL_ERROR on MSR write error
  */
-PQOS_LOCAL int hw_alloc_reset_cos(const unsigned msr_start,
-                                  const unsigned msr_num,
-                                  const unsigned coreid,
-                                  const uint64_t msr_val);
+PQOS_LOCAL int hw_alloc_reset_clos(const unsigned msr_start,
+                                   const unsigned msr_num,
+                                   const unsigned coreid,
+                                   const uint64_t msr_val);
 
 /**
- * @brief Writes range of MBA/CAT COS MSR's with \a msr_val value
+ * @brief Writes range of MBA/CAT CLOS MSR's with \a msr_val value
  *
  * Used as part of CAT/MBA reset process.
  *
@@ -364,14 +364,14 @@ PQOS_LOCAL int hw_l3ca_get(const unsigned l3cat_id,
 /**
  * @brief Probe hardware for minimum number of bits that must be set
  *
- * @note Uses free COS to determine lowest number of bits accepted
- * @note If no free COS is available PQOS_RETVAL_RESOURCE will be returned
+ * @note Uses free CLOS to determine lowest number of bits accepted
+ * @note If no free CLOS is available PQOS_RETVAL_RESOURCE will be returned
  *
  * @param [out] min_cbm_bits minimum number of bits that must be set
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK on success
- * @retval PQOS_RETVAL_RESOURCE when no free COS found
+ * @retval PQOS_RETVAL_RESOURCE when no free CLOS found
  */
 PQOS_LOCAL int hw_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits);
 
@@ -380,14 +380,14 @@ PQOS_LOCAL int hw_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits);
  *        service defined by \a ca on \a l2id
  *
  * @param [in] l2id unique L2 cache identifier
- * @param [in] num_cos number of classes of service at \a ca
+ * @param [in] num_clos number of classes of service at \a ca
  * @param [in] ca table with class of service definitions
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_l2ca_set(const unsigned l2id,
-                           const unsigned num_cos,
+                           const unsigned num_clos,
                            const struct pqos_l2ca *ca);
 
 /**
@@ -410,14 +410,14 @@ PQOS_LOCAL int hw_l2ca_get(const unsigned l2id,
 /**
  * @brief Probe hardware for minimum number of bits that must be set
  *
- * @note Uses free COS to determine lowest number of bits accepted
- * @note If no free COS is available PQOS_RETVAL_RESOURCE will be returned
+ * @note Uses free CLOS to determine lowest number of bits accepted
+ * @note If no free CLOS is available PQOS_RETVAL_RESOURCE will be returned
  *
  * @param [out] min_cbm_bits minimum number of bits that must be set
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK on success
- * @retval PQOS_RETVAL_RESOURCE when no free COS found
+ * @retval PQOS_RETVAL_RESOURCE when no free CLOS found
  */
 PQOS_LOCAL int hw_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits);
 
@@ -426,7 +426,7 @@ PQOS_LOCAL int hw_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits);
  *        defined by \a MBA  on \a mba id
  *
  * @param [in]  mba_id MBA resource id
- * @param [in]  num_cos number of classes of service at \a ca
+ * @param [in]  num_clos number of classes of service at \a ca
  * @param [in]  requested table with class of service definitions
  * @param [out] actual table with class of service definitions
  *
@@ -434,7 +434,7 @@ PQOS_LOCAL int hw_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits);
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_mba_set(const unsigned mba_id,
-                          const unsigned num_cos,
+                          const unsigned num_clos,
                           const struct pqos_mba *requested,
                           struct pqos_mba *actual);
 
@@ -444,7 +444,7 @@ PQOS_LOCAL int hw_mba_set(const unsigned mba_id,
  * @note: This function is specific to AMD
  *
  * @param [in]  mba_id
- * @param [in]  num_cos number of classes of service at \a ca
+ * @param [in]  num_clos number of classes of service at \a ca
  * @param [in]  requested table with class of service definitions
  * @param [out] actual table with class of service definitions
  *
@@ -452,7 +452,7 @@ PQOS_LOCAL int hw_mba_set(const unsigned mba_id,
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_mba_set_amd(const unsigned mba_id,
-                              const unsigned num_cos,
+                              const unsigned num_clos,
                               const struct pqos_mba *requested,
                               struct pqos_mba *actual);
 
@@ -460,17 +460,17 @@ PQOS_LOCAL int hw_mba_set_amd(const unsigned mba_id,
  * @brief Hardware interface to read MBA from \a mba_id
  *
  * @param [in]  mba_id MBA resource id
- * @param [in]  max_num_cos maximum number of classes of service
+ * @param [in]  max_num_clos maximum number of classes of service
  *              that can be accommodated at \a mba_tab
- * @param [out] num_cos number of classes of service read into \a mba_tab
+ * @param [out] num_clos number of classes of service read into \a mba_tab
  * @param [out] mba_tab table with read classes of service
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_mba_get(const unsigned mba_id,
-                          const unsigned max_num_cos,
-                          unsigned *num_cos,
+                          const unsigned max_num_clos,
+                          unsigned *num_clos,
                           struct pqos_mba *mba_tab);
 
 /**
@@ -478,17 +478,17 @@ PQOS_LOCAL int hw_mba_get(const unsigned mba_id,
  * @note: This function is specific to AMD
  *
  * @param [in]  mba_id MBA resource id
- * @param [in]  max_num_cos maximum number of classes of service
+ * @param [in]  max_num_clos maximum number of classes of service
  *              that can be accommodated at \a mba_tab
- * @param [out] num_cos number of classes of service read into \a mba_tab
+ * @param [out] num_clos number of classes of service read into \a mba_tab
  * @param [out] mba_tab table with read classes of service
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_mba_get_amd(const unsigned mba_id,
-                              const unsigned max_num_cos,
-                              unsigned *num_cos,
+                              const unsigned max_num_clos,
+                              unsigned *num_clos,
                               struct pqos_mba *mba_tab);
 
 /**
@@ -566,17 +566,17 @@ PQOS_LOCAL int hw_alloc_assoc_set_dev(const uint16_t segment,
  * @NOTE: This function is specific to AMD
  *
  * @param [in]  smba_id SMBA resource id
- * @param [in]  max_num_cos maximum number of classes of service
+ * @param [in]  max_num_clos maximum number of classes of service
  *              that can be accommodated at \a smba_tab
- * @param [out] num_cos number of classes of service read into \a smba_tab
+ * @param [out] num_clos number of classes of service read into \a smba_tab
  * @param [out] smba_tab table with read classes of service
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_smba_get_amd(const unsigned smba_id,
-                               const unsigned max_num_cos,
-                               unsigned *num_cos,
+                               const unsigned max_num_clos,
+                               unsigned *num_clos,
                                struct pqos_mba *smba_tab);
 /**
  * @brief Hardware interface to set classes of service
@@ -584,7 +584,7 @@ PQOS_LOCAL int hw_smba_get_amd(const unsigned smba_id,
  * @NOTE: This function is specific to AMD
  *
  * @param [in]  smba_id
- * @param [in]  num_cos number of classes of service at \a ca
+ * @param [in]  num_clos number of classes of service at \a ca
  * @param [in]  requested table with class of service definitions
  * @param [out] actual table with class of service definitions
  *
@@ -592,7 +592,7 @@ PQOS_LOCAL int hw_smba_get_amd(const unsigned smba_id,
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int hw_smba_set_amd(const unsigned smba_id,
-                               const unsigned num_cos,
+                               const unsigned num_clos,
                                const struct pqos_mba *requested,
                                struct pqos_mba *actual);
 

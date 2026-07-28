@@ -44,17 +44,17 @@ extern "C" {
 
 /**
  * Allocation & Monitoring association MSR register
- * - bits [63..32] QE COS
+ * - bits [63..32] QE CLOS
  * - bits [31..10] Reserved
  * - bits [9..0] RMID
  */
-#define PQOS_MSR_ASSOC             0xC8F
-#define PQOS_MSR_ASSOC_QECOS_SHIFT 32
-#define PQOS_MSR_ASSOC_QECOS_MASK  0xffffffff00000000ULL
-#define PQOS_MSR_ASSOC_RMID_MASK   ((1ULL << 10) - 1ULL)
+#define PQOS_MSR_ASSOC              0xC8F
+#define PQOS_MSR_ASSOC_QECLOS_SHIFT 32
+#define PQOS_MSR_ASSOC_QECLOS_MASK  0xffffffff00000000ULL
+#define PQOS_MSR_ASSOC_RMID_MASK    ((1ULL << 10) - 1ULL)
 
 /**
- * Allocation class of service (COS) MSR registers
+ * Allocation class of service (CLOS) MSR registers
  */
 #define PQOS_MSR_L3CA_MASK_START 0xC90
 #define PQOS_MSR_L3CA_MASK_END   0xD0F
@@ -65,12 +65,12 @@ extern "C" {
 #define PQOS_MSR_MBA_MASK_START  0xD50
 
 /**
- * MBA Allocation class of service (COS) MSR register for AMD
+ * MBA Allocation class of service (CLOS) MSR register for AMD
  */
 #define PQOS_MSR_MBA_MASK_START_AMD 0xC0000200
 
 /**
- * SMBA Allocation class of service (COS) MSR register for AMD
+ * SMBA Allocation class of service (CLOS) MSR register for AMD
  */
 #define PQOS_MSR_SMBA_MASK_START_AMD 0xC0000280
 

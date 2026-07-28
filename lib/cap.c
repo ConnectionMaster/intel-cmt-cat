@@ -425,7 +425,7 @@ discover_capabilities(struct pqos_cap **p_cap,
         case PQOS_RETVAL_OK:
                 LOG_INFO("L3CA capability detected\n");
                 LOG_INFO("L3 CAT details: CDP support=%d, CDP on=%d, "
-                         "#COS=%u, #ways=%u, ways contention bit-mask 0x%lx\n",
+                         "#CLOS=%u, #ways=%u, ways contention bit-mask 0x%lx\n",
                          det_l3ca->cdp, det_l3ca->cdp_on, det_l3ca->num_classes,
                          det_l3ca->num_ways,
                          (unsigned long)det_l3ca->way_contention);
@@ -454,7 +454,7 @@ discover_capabilities(struct pqos_cap **p_cap,
         case PQOS_RETVAL_OK:
                 LOG_INFO("L2CA capability detected\n");
                 LOG_INFO("L2 CAT details: CDP support=%d, CDP on=%d, "
-                         "#COS=%u, #ways=%u, ways contention bit-mask 0x%lx\n",
+                         "#CLOS=%u, #ways=%u, ways contention bit-mask 0x%lx\n",
                          det_l2ca->cdp, det_l2ca->cdp_on, det_l2ca->num_classes,
                          det_l2ca->num_ways,
                          (unsigned long)det_l2ca->way_contention);
@@ -481,7 +481,7 @@ discover_capabilities(struct pqos_cap **p_cap,
         case PQOS_RETVAL_OK:
                 LOG_INFO("MBA capability detected\n");
                 LOG_INFO("MBA details: "
-                         "#COS=%u, %slinear, max=%u, step=%u\n",
+                         "#CLOS=%u, %slinear, max=%u, step=%u\n",
                          det_mba->num_classes, det_mba->is_linear ? "" : "non-",
                          det_mba->throttle_max, det_mba->throttle_step);
                 sz += sizeof(struct pqos_capability);
@@ -503,7 +503,7 @@ discover_capabilities(struct pqos_cap **p_cap,
         case PQOS_RETVAL_OK:
                 LOG_INFO("SMBA capability detected\n");
                 LOG_INFO("SMBA details: "
-                         "#COS=%u, %slinear, max=%u, step=%u\n",
+                         "#CLOS=%u, %slinear, max=%u, step=%u\n",
                          det_smba->num_classes,
                          det_smba->is_linear ? "" : "non-",
                          det_smba->throttle_max, det_smba->throttle_step);

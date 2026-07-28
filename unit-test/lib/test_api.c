@@ -892,7 +892,7 @@ test_pqos_l3ca_set_init(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l3cat_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_INIT);
@@ -901,7 +901,7 @@ test_pqos_l3ca_set_init(void **state __attribute__((unused)))
         ca[0].cdp = 0;
         ca[0].u.ways_mask = 0xf;
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_INIT);
 }
 
@@ -910,7 +910,7 @@ test_pqos_l3ca_set_hw(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l3cat_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -920,11 +920,11 @@ test_pqos_l3ca_set_hw(void **state __attribute__((unused)))
         ca[0].u.ways_mask = 0xf;
 
         expect_value(__wrap_hw_l3ca_set, l3cat_id, l3cat_id);
-        expect_value(__wrap_hw_l3ca_set, num_cos, num_cos);
+        expect_value(__wrap_hw_l3ca_set, num_clos, num_clos);
         expect_value(__wrap_hw_l3ca_set, ca, ca);
         will_return(__wrap_hw_l3ca_set, PQOS_RETVAL_OK);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -933,7 +933,7 @@ test_pqos_l3ca_set_hw_cdp(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l3cat_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -944,11 +944,11 @@ test_pqos_l3ca_set_hw_cdp(void **state __attribute__((unused)))
         ca[0].u.s.code_mask = 0xf0;
 
         expect_value(__wrap_hw_l3ca_set, l3cat_id, l3cat_id);
-        expect_value(__wrap_hw_l3ca_set, num_cos, num_cos);
+        expect_value(__wrap_hw_l3ca_set, num_clos, num_clos);
         expect_value(__wrap_hw_l3ca_set, ca, ca);
         will_return(__wrap_hw_l3ca_set, PQOS_RETVAL_OK);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -957,7 +957,7 @@ test_pqos_l3ca_set_os(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l3cat_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -967,11 +967,11 @@ test_pqos_l3ca_set_os(void **state __attribute__((unused)))
         ca[0].u.ways_mask = 0xf;
 
         expect_value(__wrap_os_l3ca_set, l3cat_id, l3cat_id);
-        expect_value(__wrap_os_l3ca_set, num_cos, num_cos);
+        expect_value(__wrap_os_l3ca_set, num_clos, num_clos);
         expect_value(__wrap_os_l3ca_set, ca, ca);
         will_return(__wrap_os_l3ca_set, PQOS_RETVAL_OK);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -980,7 +980,7 @@ test_pqos_l3ca_set_param(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l3cat_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l3ca ca[1];
 
         memset(ca, 0, sizeof(*ca));
@@ -988,7 +988,7 @@ test_pqos_l3ca_set_param(void **state __attribute__((unused)))
         ret = pqos_l3ca_set(l3cat_id, 0, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, NULL);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         ca[0].class_id = 1;
@@ -997,7 +997,7 @@ test_pqos_l3ca_set_param(void **state __attribute__((unused)))
 
         wrap_check_init(1, PQOS_RETVAL_OK);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 
         ca[0].class_id = 1;
@@ -1007,7 +1007,7 @@ test_pqos_l3ca_set_param(void **state __attribute__((unused)))
 
         wrap_check_init(1, PQOS_RETVAL_OK);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 
         ca[0].class_id = 1;
@@ -1017,7 +1017,7 @@ test_pqos_l3ca_set_param(void **state __attribute__((unused)))
 
         wrap_check_init(1, PQOS_RETVAL_OK);
 
-        ret = pqos_l3ca_set(l3cat_id, num_cos, ca);
+        ret = pqos_l3ca_set(l3cat_id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_RESOURCE);
 }
 
@@ -1161,7 +1161,7 @@ test_pqos_l2ca_set_init(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l2id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_INIT);
@@ -1170,7 +1170,7 @@ test_pqos_l2ca_set_init(void **state __attribute__((unused)))
         ca[0].cdp = 0;
         ca[0].u.ways_mask = 0xf;
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_INIT);
 }
 
@@ -1179,7 +1179,7 @@ test_pqos_l2ca_set_hw(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l2id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1189,11 +1189,11 @@ test_pqos_l2ca_set_hw(void **state __attribute__((unused)))
         ca[0].u.ways_mask = 0xf;
 
         expect_value(__wrap_hw_l2ca_set, l2id, l2id);
-        expect_value(__wrap_hw_l2ca_set, num_cos, num_cos);
+        expect_value(__wrap_hw_l2ca_set, num_clos, num_clos);
         expect_value(__wrap_hw_l2ca_set, ca, ca);
         will_return(__wrap_hw_l2ca_set, PQOS_RETVAL_OK);
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1202,7 +1202,7 @@ test_pqos_l2ca_set_hw_cdp(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l2id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1213,11 +1213,11 @@ test_pqos_l2ca_set_hw_cdp(void **state __attribute__((unused)))
         ca[0].u.s.code_mask = 0xf0;
 
         expect_value(__wrap_hw_l2ca_set, l2id, l2id);
-        expect_value(__wrap_hw_l2ca_set, num_cos, num_cos);
+        expect_value(__wrap_hw_l2ca_set, num_clos, num_clos);
         expect_value(__wrap_hw_l2ca_set, ca, ca);
         will_return(__wrap_hw_l2ca_set, PQOS_RETVAL_OK);
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1226,7 +1226,7 @@ test_pqos_l2ca_set_os(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l2id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1236,11 +1236,11 @@ test_pqos_l2ca_set_os(void **state __attribute__((unused)))
         ca[0].u.ways_mask = 0xf;
 
         expect_value(__wrap_os_l2ca_set, l2id, l2id);
-        expect_value(__wrap_os_l2ca_set, num_cos, num_cos);
+        expect_value(__wrap_os_l2ca_set, num_clos, num_clos);
         expect_value(__wrap_os_l2ca_set, ca, ca);
         will_return(__wrap_os_l2ca_set, PQOS_RETVAL_OK);
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1249,7 +1249,7 @@ test_pqos_l2ca_set_param(void **state __attribute__((unused)))
 {
         int ret;
         unsigned l2id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_l2ca ca[1];
 
         memset(ca, 0, sizeof(*ca));
@@ -1257,14 +1257,14 @@ test_pqos_l2ca_set_param(void **state __attribute__((unused)))
         ret = pqos_l2ca_set(l2id, 0, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_l2ca_set(l2id, num_cos, NULL);
+        ret = pqos_l2ca_set(l2id, num_clos, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         ca[0].class_id = 1;
         ca[0].cdp = 0;
         ca[0].u.ways_mask = 0;
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         ca[0].class_id = 1;
@@ -1272,7 +1272,7 @@ test_pqos_l2ca_set_param(void **state __attribute__((unused)))
         ca[0].u.s.data_mask = 0x0;
         ca[0].u.s.code_mask = 0xf0;
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         ca[0].class_id = 1;
@@ -1280,7 +1280,7 @@ test_pqos_l2ca_set_param(void **state __attribute__((unused)))
         ca[0].u.s.data_mask = 0xf0;
         ca[0].u.s.code_mask = 0x0;
 
-        ret = pqos_l2ca_set(l2id, num_cos, ca);
+        ret = pqos_l2ca_set(l2id, num_clos, ca);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
@@ -1424,7 +1424,7 @@ test_pqos_mba_set_init(void **state __attribute__((unused)))
 {
         int ret;
         unsigned mba_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba requested[1];
 
         wrap_check_init(1, PQOS_RETVAL_INIT);
@@ -1434,7 +1434,7 @@ test_pqos_mba_set_init(void **state __attribute__((unused)))
         requested[0].ctrl = 0;
         requested[0].mb_max = 50;
 
-        ret = pqos_mba_set(mba_id, num_cos, requested, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, requested, NULL);
         assert_int_equal(ret, PQOS_RETVAL_INIT);
 }
 
@@ -1444,7 +1444,7 @@ test_pqos_mba_set_os(void **state __attribute__((unused)))
         int ret;
         struct cpuinfo_config config;
         unsigned mba_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba requested[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1453,7 +1453,7 @@ test_pqos_mba_set_os(void **state __attribute__((unused)))
         will_return(__wrap__pqos_get_inter, PQOS_INTER_OS);
 
         expect_value(__wrap_os_mba_set, mba_id, mba_id);
-        expect_value(__wrap_os_mba_set, num_cos, num_cos);
+        expect_value(__wrap_os_mba_set, num_clos, num_clos);
         expect_value(__wrap_os_mba_set, requested, &requested);
         expect_value(__wrap_os_mba_set, actual, NULL);
         will_return(__wrap_os_mba_set, PQOS_RETVAL_OK);
@@ -1464,7 +1464,7 @@ test_pqos_mba_set_os(void **state __attribute__((unused)))
         requested[0].ctrl = 0;
         requested[0].mb_max = 50;
 
-        ret = pqos_mba_set(mba_id, num_cos, requested, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, requested, NULL);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1474,7 +1474,7 @@ test_pqos_mba_set_os_ctrl(void **state __attribute__((unused)))
         int ret;
         struct cpuinfo_config config;
         unsigned mba_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba requested[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1483,7 +1483,7 @@ test_pqos_mba_set_os_ctrl(void **state __attribute__((unused)))
         will_return(__wrap__pqos_get_inter, PQOS_INTER_OS);
 
         expect_value(__wrap_os_mba_set, mba_id, mba_id);
-        expect_value(__wrap_os_mba_set, num_cos, num_cos);
+        expect_value(__wrap_os_mba_set, num_clos, num_clos);
         expect_value(__wrap_os_mba_set, requested, &requested);
         expect_value(__wrap_os_mba_set, actual, NULL);
         will_return(__wrap_os_mba_set, PQOS_RETVAL_OK);
@@ -1494,7 +1494,7 @@ test_pqos_mba_set_os_ctrl(void **state __attribute__((unused)))
         requested[0].ctrl = 1;
         requested[0].mb_max = 200;
 
-        ret = pqos_mba_set(mba_id, num_cos, requested, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, requested, NULL);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1504,7 +1504,7 @@ test_pqos_mba_set_hw(void **state __attribute__((unused)))
         int ret;
         struct cpuinfo_config config;
         unsigned mba_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba requested[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1513,7 +1513,7 @@ test_pqos_mba_set_hw(void **state __attribute__((unused)))
         will_return(__wrap__pqos_get_inter, PQOS_INTER_OS);
 
         expect_value(__wrap_hw_mba_set, mba_id, mba_id);
-        expect_value(__wrap_hw_mba_set, num_cos, num_cos);
+        expect_value(__wrap_hw_mba_set, num_clos, num_clos);
         expect_value(__wrap_hw_mba_set, requested, &requested);
         expect_value(__wrap_hw_mba_set, actual, NULL);
         will_return(__wrap_hw_mba_set, PQOS_RETVAL_OK);
@@ -1524,7 +1524,7 @@ test_pqos_mba_set_hw(void **state __attribute__((unused)))
         requested[0].ctrl = 0;
         requested[0].mb_max = 50;
 
-        ret = pqos_mba_set(mba_id, num_cos, requested, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, requested, NULL);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1534,7 +1534,7 @@ test_pqos_mba_set_param(void **state __attribute__((unused)))
         int ret;
         struct cpuinfo_config config;
         unsigned mba_id = 1;
-        unsigned num_cos = 1;
+        unsigned num_clos = 1;
         struct pqos_mba requested[1];
 
         config.mba_max = 100;
@@ -1550,7 +1550,7 @@ test_pqos_mba_set_param(void **state __attribute__((unused)))
 
         will_return(__wrap__pqos_get_inter, PQOS_INTER_OS);
 
-        ret = pqos_mba_set(mba_id, num_cos, NULL, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, NULL, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1561,7 +1561,7 @@ test_pqos_mba_set_param(void **state __attribute__((unused)))
         requested[0].ctrl = 0;
         requested[0].mb_max = 200;
 
-        ret = pqos_mba_set(mba_id, num_cos, requested, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, requested, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
         wrap_check_init(1, PQOS_RETVAL_OK);
@@ -1572,7 +1572,7 @@ test_pqos_mba_set_param(void **state __attribute__((unused)))
         requested[0].ctrl = 0;
         requested[0].mb_max = 0;
 
-        ret = pqos_mba_set(mba_id, num_cos, requested, NULL);
+        ret = pqos_mba_set(mba_id, num_clos, requested, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
@@ -1583,13 +1583,13 @@ test_pqos_mba_get_init(void **state __attribute__((unused)))
 {
         int ret;
         unsigned mba_id = 1;
-        unsigned max_num_cos = 1;
-        unsigned num_cos;
+        unsigned max_num_clos = 1;
+        unsigned num_clos;
         struct pqos_mba mba_tab[1];
 
         wrap_check_init(1, PQOS_RETVAL_INIT);
 
-        ret = pqos_mba_get(mba_id, max_num_cos, &num_cos, mba_tab);
+        ret = pqos_mba_get(mba_id, max_num_clos, &num_clos, mba_tab);
         assert_int_equal(ret, PQOS_RETVAL_INIT);
 }
 
@@ -1598,19 +1598,19 @@ test_pqos_mba_get_os(void **state __attribute__((unused)))
 {
         int ret;
         unsigned mba_id = 1;
-        unsigned max_num_cos = 1;
-        unsigned num_cos;
+        unsigned max_num_clos = 1;
+        unsigned num_clos;
         struct pqos_mba mba_tab[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
 
         expect_value(__wrap_os_mba_get, mba_id, mba_id);
-        expect_value(__wrap_os_mba_get, max_num_cos, max_num_cos);
-        expect_value(__wrap_os_mba_get, num_cos, &num_cos);
+        expect_value(__wrap_os_mba_get, max_num_clos, max_num_clos);
+        expect_value(__wrap_os_mba_get, num_clos, &num_clos);
         expect_value(__wrap_os_mba_get, mba_tab, mba_tab);
         will_return(__wrap_os_mba_get, PQOS_RETVAL_OK);
 
-        ret = pqos_mba_get(mba_id, max_num_cos, &num_cos, mba_tab);
+        ret = pqos_mba_get(mba_id, max_num_clos, &num_clos, mba_tab);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1619,19 +1619,19 @@ test_pqos_mba_get_hw(void **state __attribute__((unused)))
 {
         int ret;
         unsigned mba_id = 1;
-        unsigned max_num_cos = 1;
-        unsigned num_cos;
+        unsigned max_num_clos = 1;
+        unsigned num_clos;
         struct pqos_mba mba_tab[1];
 
         wrap_check_init(1, PQOS_RETVAL_OK);
 
         expect_value(__wrap_hw_mba_get, mba_id, mba_id);
-        expect_value(__wrap_hw_mba_get, max_num_cos, max_num_cos);
-        expect_value(__wrap_hw_mba_get, num_cos, &num_cos);
+        expect_value(__wrap_hw_mba_get, max_num_clos, max_num_clos);
+        expect_value(__wrap_hw_mba_get, num_clos, &num_clos);
         expect_value(__wrap_hw_mba_get, mba_tab, mba_tab);
         will_return(__wrap_hw_mba_get, PQOS_RETVAL_OK);
 
-        ret = pqos_mba_get(mba_id, max_num_cos, &num_cos, mba_tab);
+        ret = pqos_mba_get(mba_id, max_num_clos, &num_clos, mba_tab);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -1640,17 +1640,17 @@ test_pqos_mba_get_param(void **state __attribute__((unused)))
 {
         int ret;
         unsigned mba_id = 1;
-        unsigned max_num_cos = 1;
-        unsigned num_cos;
+        unsigned max_num_clos = 1;
+        unsigned num_clos;
         struct pqos_mba mba_tab[1];
 
-        ret = pqos_mba_get(mba_id, 0, &num_cos, mba_tab);
+        ret = pqos_mba_get(mba_id, 0, &num_clos, mba_tab);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_mba_get(mba_id, max_num_cos, NULL, mba_tab);
+        ret = pqos_mba_get(mba_id, max_num_clos, NULL, mba_tab);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 
-        ret = pqos_mba_get(mba_id, max_num_cos, &num_cos, NULL);
+        ret = pqos_mba_get(mba_id, max_num_clos, &num_clos, NULL);
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 

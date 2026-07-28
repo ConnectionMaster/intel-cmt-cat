@@ -50,9 +50,9 @@ extern "C" {
  *        of allocation technologies
  *
  * Reverts CAT/MBA state to the one after reset:
- * - all cores associated with COS0
- * - all COS are set to give access to entire resource
- * - all device channels associated with COS0
+ * - all cores associated with CLOS0
+ * - all CLOS are set to give access to entire resource
+ * - all device channels associated with CLOS0
  *
  * As part of allocation reset CDP, MBA, I/O RDT reconfiguration
  * can be performed. This can be requested via \a cfg.

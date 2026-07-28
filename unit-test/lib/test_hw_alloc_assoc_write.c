@@ -51,7 +51,7 @@ test_hw_alloc_assoc_write(void **state __attribute__((unused)))
         expect_value(__wrap_msr_write, lcore, lcore);
         expect_value(__wrap_msr_write, reg, PQOS_MSR_ASSOC);
         expect_value(__wrap_msr_write, value,
-                     ((uint64_t)class_id) << PQOS_MSR_ASSOC_QECOS_SHIFT);
+                     ((uint64_t)class_id) << PQOS_MSR_ASSOC_QECLOS_SHIFT);
         will_return(__wrap_msr_write, PQOS_RETVAL_OK);
 
         ret = hw_alloc_assoc_write(lcore, class_id);
@@ -88,7 +88,7 @@ test_hw_alloc_assoc_write_error_write(void **state __attribute__((unused)))
         expect_value(__wrap_msr_write, lcore, lcore);
         expect_value(__wrap_msr_write, reg, PQOS_MSR_ASSOC);
         expect_value(__wrap_msr_write, value,
-                     ((uint64_t)class_id) << PQOS_MSR_ASSOC_QECOS_SHIFT);
+                     ((uint64_t)class_id) << PQOS_MSR_ASSOC_QECLOS_SHIFT);
         will_return(__wrap_msr_write, PQOS_RETVAL_ERROR);
 
         ret = hw_alloc_assoc_write(lcore, class_id);

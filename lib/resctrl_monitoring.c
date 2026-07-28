@@ -207,7 +207,7 @@ resctrl_mon_fini(void)
  * @brief Get core association with ctrl group
  *
  * @param [in] lcore core id
- * @param [out] class_id COS id
+ * @param [out] class_id CLOS id
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK on success
@@ -216,16 +216,16 @@ static int
 alloc_assoc_get(const unsigned lcore, unsigned *class_id)
 {
         int ret;
-        unsigned max_cos;
+        unsigned max_clos;
         const struct pqos_cap *cap = _pqos_get_cap();
 
         ASSERT(class_id != NULL);
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
-        if (max_cos == 0) {
+        if (max_clos == 0) {
                 *class_id = 0;
                 return PQOS_RETVAL_OK;
         }
@@ -241,7 +241,7 @@ alloc_assoc_get(const unsigned lcore, unsigned *class_id)
  * @brief Get task association with ctrl group
  *
  * @param [in] tid task id
- * @param [out] class_id COS id
+ * @param [out] class_id CLOS id
  *
  * @return Operational status
  * @retval PQOS_RETVAL_OK on success
@@ -250,16 +250,16 @@ static int
 alloc_assoc_get_pid(const pid_t tid, unsigned *class_id)
 {
         int ret;
-        unsigned max_cos;
+        unsigned max_clos;
         const struct pqos_cap *cap = _pqos_get_cap();
 
         ASSERT(class_id != NULL);
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
-        if (max_cos == 0) {
+        if (max_clos == 0) {
                 *class_id = 0;
                 return PQOS_RETVAL_OK;
         }
@@ -280,7 +280,7 @@ alloc_assoc_get_pid(const pid_t tid, unsigned *class_id)
 /**
  * @brief Obtain path to monitoring group
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] file file name inside group
  * @param [out] buf Buffer to store path
@@ -305,10 +305,10 @@ resctrl_mon_group_path(const unsigned class_id,
         if (resctrl_group == NULL && class_id == 0)
                 len = snprintf(buf, buf_size, RESCTRL_PATH "%s", suffix);
         else if (resctrl_group == NULL)
-                len = snprintf(buf, buf_size, RESCTRL_PATH "/COS%u%s", class_id,
-                               suffix);
+                len = snprintf(buf, buf_size, RESCTRL_PATH "/COS%u%s",
+                               class_id, suffix);
 
-        /* mon group for COS 0 */
+        /* mon group for CLOS 0 */
         else if (class_id == 0)
                 len = snprintf(buf, buf_size, RESCTRL_PATH "/mon_groups/%s%s",
                                resctrl_group, suffix);
@@ -327,7 +327,7 @@ resctrl_mon_group_path(const unsigned class_id,
 /**
  * @brief Write CPU mask to file
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] mask CPU mask to write
  *
@@ -365,7 +365,7 @@ resctrl_mon_cpumask_write(const unsigned class_id,
 /**
  * @brief Read CPU mask from file
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [out] mask CPU mask to write
  *
@@ -402,7 +402,7 @@ resctrl_mon_cpumask_read(const unsigned class_id,
 /**
  * @brief Read counter value
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] l3id l3id to read from
  * @param [in] event resctrl mon event
@@ -559,7 +559,7 @@ resctrl_mon_read_tel_pkgs(const unsigned class_id,
 /**
  * @brief Read counter value from requested \a l3ids
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] l3ids l3ids to read from
  * @param [in] l3ids_num number of l3ids
@@ -676,7 +676,7 @@ resctrl_mon_file_empty(const char *path)
 /**
  * @brief Check if monitored group is junk (no cores/tasks assigned/low llc)
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] resctrl_group mon group name
  * @param [in] l3id  l3ids to read from
  * @param [in] l3id_num number of l3ids
@@ -756,7 +756,7 @@ resctrl_mon_empty(const unsigned class_id,
 /**
  * @brief Create monitoring group directory if not exists
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param[in] name mon group name
  *
  * @return Operation status
@@ -790,7 +790,7 @@ resctrl_mon_mkdir(const unsigned class_id, const char *name)
 /**
  * @brief Remove monitoring group directory if exists
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param[in] name mon group name
  *
  * @return Operation status
@@ -839,7 +839,7 @@ resctrl_mon_assoc_get(const unsigned lcore,
                 return ret;
         num_groups = scandir(dir, &namelist, filter, NULL);
         if (num_groups < 0) {
-                LOG_ERROR("Failed to read monitoring groups for COS %u\n",
+                LOG_ERROR("Failed to read monitoring groups for CLOS %u\n",
                           class_id);
                 return PQOS_RETVAL_ERROR;
         }
@@ -973,7 +973,7 @@ resctrl_mon_assoc_get_pid(const pid_t task,
                 return ret;
         num_groups = scandir(dir, &namelist, filter, NULL);
         if (num_groups < 0) {
-                LOG_ERROR("Failed to read monitoring groups for COS %u\n",
+                LOG_ERROR("Failed to read monitoring groups for CLOS %u\n",
                           class_id);
                 return PQOS_RETVAL_ERROR;
         }
@@ -1092,7 +1092,7 @@ static int
 resctrl_mon_parse(struct resctrl_core_group **cgrp, unsigned *cgrp_num)
 {
         int ret = PQOS_RETVAL_OK;
-        unsigned cos = 0;
+        unsigned clos = 0;
         unsigned ctrl_grps;
         const struct pqos_cap *cap = _pqos_get_cap();
         const struct pqos_cpuinfo *cpu = _pqos_get_cpu();
@@ -1132,14 +1132,14 @@ resctrl_mon_parse(struct resctrl_core_group **cgrp, unsigned *cgrp_num)
                 char dir[256];
                 int i;
 
-                ret = resctrl_mon_group_path(cos, "", NULL, dir, sizeof(dir));
+                ret = resctrl_mon_group_path(clos, "", NULL, dir, sizeof(dir));
                 if (ret != PQOS_RETVAL_OK)
                         goto resctrl_mon_parse_exit;
                 num_groups = scandir(dir, &namelist, filter, NULL);
                 if (num_groups < 0) {
                         LOG_ERROR(
-                            "Failed to read monitoring groups for COS %u\n",
-                            cos);
+                            "Failed to read monitoring groups for CLOS %u\n",
+                            clos);
                         ret = PQOS_RETVAL_ERROR;
                         goto resctrl_mon_parse_exit;
                 }
@@ -1177,7 +1177,7 @@ resctrl_mon_parse(struct resctrl_core_group **cgrp, unsigned *cgrp_num)
                                 continue;
 
                         /* Some tasks are assigned to group? */
-                        ret = resctrl_mon_group_path(cos, grp->name, "/tasks",
+                        ret = resctrl_mon_group_path(clos, grp->name, "/tasks",
                                                      path, sizeof(path));
                         if (ret != PQOS_RETVAL_OK)
                                 break;
@@ -1192,7 +1192,7 @@ resctrl_mon_parse(struct resctrl_core_group **cgrp, unsigned *cgrp_num)
 
                         /* Cores assigned to group */
                         ret =
-                            resctrl_mon_cpumask_read(cos, grp->name, &cpumask);
+                            resctrl_mon_cpumask_read(clos, grp->name, &cpumask);
                         if (ret != PQOS_RETVAL_OK)
                                 break;
 
@@ -1216,7 +1216,7 @@ resctrl_mon_parse(struct resctrl_core_group **cgrp, unsigned *cgrp_num)
 
                 if (ret != PQOS_RETVAL_OK)
                         break;
-        } while (++cos < ctrl_grps);
+        } while (++clos < ctrl_grps);
 
 resctrl_mon_parse_exit:
         if (ret != PQOS_RETVAL_OK)
@@ -1268,7 +1268,7 @@ resctrl_mon_assign(struct pqos_mon_data *group)
                 const struct pqos_cpuinfo *cpu = _pqos_get_cpu();
                 const struct pqos_cap *cap = _pqos_get_cap();
                 unsigned max_threshold_occupancy;
-                unsigned max_cos;
+                unsigned max_clos;
 
                 /* list L3IDs for requested cores */
                 for (i = 0; i < group->num_cores; i++) {
@@ -1290,7 +1290,7 @@ resctrl_mon_assign(struct pqos_mon_data *group)
                                 return NULL;
                 }
 
-                ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+                ret = resctrl_alloc_get_grps_num(cap, &max_clos);
                 if (ret != PQOS_RETVAL_OK)
                         return NULL;
 
@@ -1316,7 +1316,7 @@ resctrl_mon_assign(struct pqos_mon_data *group)
                                 PQOS_MON_EVENT_L3_OCCUP)) {
                                 for (l3id = 0; l3id < RESCTRL_CORE_MAX_L3ID;
                                      l3id++) {
-                                        unsigned cos = 0;
+                                        unsigned clos = 0;
 
                                         if ((l3ids & (1LLU << l3id)) == 0)
                                                 continue;
@@ -1326,7 +1326,7 @@ resctrl_mon_assign(struct pqos_mon_data *group)
                                                 char buf[128];
 
                                                 ret = resctrl_mon_group_path(
-                                                    cos, grp->name, NULL, buf,
+                                                    clos, grp->name, NULL, buf,
                                                     sizeof(buf));
                                                 if (ret != PQOS_RETVAL_OK)
                                                         goto mon_assign_exit;
@@ -1334,14 +1334,14 @@ resctrl_mon_assign(struct pqos_mon_data *group)
                                                         continue;
 
                                                 ret = resctrl_mon_read_counter(
-                                                    cos, grp->name, l3id,
+                                                    clos, grp->name, l3id,
                                                     PQOS_MON_EVENT_L3_OCCUP,
                                                     &val);
                                                 if (ret != PQOS_RETVAL_OK)
                                                         goto mon_assign_exit;
 
                                                 llc += val;
-                                        } while (++cos < max_cos);
+                                        } while (++clos < max_clos);
                                 }
                                 if (llc > max_threshold_occupancy)
                                         continue;
@@ -1437,17 +1437,17 @@ resctrl_mon_start_exit:
                 if (group->num_pids > 0 &&
                     group->intl->resctrl.mon_group != NULL) {
                         const struct pqos_cap *cap = _pqos_get_cap();
-                        unsigned max_cos;
+                        unsigned max_clos;
 
-                        if (resctrl_alloc_get_grps_num(cap, &max_cos) ==
+                        if (resctrl_alloc_get_grps_num(cap, &max_clos) ==
                             PQOS_RETVAL_OK) {
-                                unsigned cos = 0;
+                                unsigned clos = 0;
 
                                 do {
                                         (void)resctrl_mon_rmdir(
-                                            cos,
+                                            clos,
                                             group->intl->resctrl.mon_group);
-                                } while (++cos < max_cos);
+                                } while (++clos < max_clos);
                         }
 
                         free(group->intl->resctrl.mon_group);
@@ -1476,22 +1476,22 @@ static int
 resctrl_mon_delete(const char *resctrl_group)
 {
         int ret;
-        unsigned max_cos;
-        unsigned cos = 0;
+        unsigned max_clos;
+        unsigned clos = 0;
         const struct pqos_cap *cap = _pqos_get_cap();
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
         do {
-                ret = resctrl_mon_rmdir(cos, resctrl_group);
+                ret = resctrl_mon_rmdir(clos, resctrl_group);
                 if (ret != PQOS_RETVAL_OK) {
                         LOG_ERROR("Failed to remove resctrl "
                                   "monitoring group\n");
                         return PQOS_RETVAL_ERROR;
                 }
-        } while (++cos < max_cos);
+        } while (++clos < max_clos);
 
         return PQOS_RETVAL_OK;
 }
@@ -1509,8 +1509,8 @@ resctrl_mon_delete(const char *resctrl_group)
 static int
 resctrl_mon_shared(struct pqos_mon_data *group, unsigned *shared)
 {
-        unsigned max_cos;
-        unsigned cos;
+        unsigned max_clos;
+        unsigned clos;
         int ret;
         const struct pqos_cap *cap = _pqos_get_cap();
         const struct pqos_cpuinfo *cpu = _pqos_get_cpu();
@@ -1521,18 +1521,18 @@ resctrl_mon_shared(struct pqos_mon_data *group, unsigned *shared)
         if (group->num_pids > 0)
                 return PQOS_RETVAL_OK;
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
-        cos = 0;
+        clos = 0;
         do {
                 char path[128];
                 struct resctrl_cpumask mask;
                 unsigned i;
 
                 /* check if group exists */
-                ret = resctrl_mon_group_path(cos, mon_group, NULL, path,
+                ret = resctrl_mon_group_path(clos, mon_group, NULL, path,
                                              sizeof(path));
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
@@ -1540,7 +1540,7 @@ resctrl_mon_shared(struct pqos_mon_data *group, unsigned *shared)
                         continue;
 
                 /* read assigned cores */
-                ret = resctrl_mon_cpumask_read(cos, mon_group, &mask);
+                ret = resctrl_mon_cpumask_read(clos, mon_group, &mask);
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
 
@@ -1563,7 +1563,7 @@ resctrl_mon_shared(struct pqos_mon_data *group, unsigned *shared)
                                 return PQOS_RETVAL_OK;
                 }
 
-        } while (++cos < max_cos);
+        } while (++clos < max_clos);
 
         return ret;
 }
@@ -1634,13 +1634,13 @@ int
 resctrl_mon_stop(struct pqos_mon_data *group)
 {
         int ret;
-        unsigned max_cos;
+        unsigned max_clos;
         unsigned i;
         const struct pqos_cap *cap = _pqos_get_cap();
 
         ASSERT(group != NULL);
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
@@ -1669,20 +1669,20 @@ resctrl_mon_stop(struct pqos_mon_data *group)
         if (group->num_cores > 0) {
                 const char *mon_group = group->intl->resctrl.mon_group;
                 char path[128];
-                unsigned cos = 0;
+                unsigned clos = 0;
 
                 do {
                         struct resctrl_cpumask cpumask;
 
-                        ret = resctrl_mon_group_path(cos, mon_group, NULL, path,
-                                                     sizeof(path));
+                        ret = resctrl_mon_group_path(clos, mon_group, NULL,
+                                                     path, sizeof(path));
                         if (ret != PQOS_RETVAL_OK)
                                 goto resctrl_mon_stop_exit;
                         if (!pqos_dir_exists(path))
                                 continue;
 
                         ret =
-                            resctrl_mon_cpumask_read(cos, mon_group, &cpumask);
+                            resctrl_mon_cpumask_read(clos, mon_group, &cpumask);
                         if (ret != PQOS_RETVAL_OK)
                                 goto resctrl_mon_stop_exit;
 
@@ -1692,11 +1692,11 @@ resctrl_mon_stop(struct pqos_mon_data *group)
                                 resctrl_cpumask_unset(core, &cpumask);
                         }
 
-                        ret =
-                            resctrl_mon_cpumask_write(cos, mon_group, &cpumask);
+                        ret = resctrl_mon_cpumask_write(clos, mon_group,
+                                                        &cpumask);
                         if (ret != PQOS_RETVAL_OK)
                                 goto resctrl_mon_stop_exit;
-                } while (++cos < max_cos);
+                } while (++clos < max_clos);
         }
 
         if (group->intl->resctrl.mon_group != NULL) {
@@ -1764,8 +1764,8 @@ get_delta(const uint64_t old_value, const uint64_t new_value)
 static int
 resctrl_mon_purge(struct pqos_mon_data *group)
 {
-        unsigned max_cos;
-        unsigned cos;
+        unsigned max_clos;
+        unsigned clos;
         int ret;
         unsigned shared;
         const struct pqos_cap *cap = _pqos_get_cap();
@@ -1778,24 +1778,25 @@ resctrl_mon_purge(struct pqos_mon_data *group)
         if (shared)
                 return PQOS_RETVAL_OK;
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
-        cos = 0;
+        clos = 0;
         do {
                 int empty;
                 uint64_t value;
                 char buf[128];
                 const char *name = group->intl->resctrl.mon_group;
 
-                ret = resctrl_mon_group_path(cos, name, NULL, buf, sizeof(buf));
+                ret =
+                    resctrl_mon_group_path(clos, name, NULL, buf, sizeof(buf));
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
                 if (!pqos_dir_exists(buf))
                         continue;
 
-                ret = resctrl_mon_empty(cos, group->intl->resctrl.mon_group,
+                ret = resctrl_mon_empty(clos, group->intl->resctrl.mon_group,
                                         group->intl->resctrl.l3id,
                                         group->intl->resctrl.num_l3id, &empty);
                 if (ret != PQOS_RETVAL_OK)
@@ -1807,7 +1808,7 @@ resctrl_mon_purge(struct pqos_mon_data *group)
                 /* store counter values */
                 if (resctrl_mon_is_event_supported(PQOS_MON_EVENT_LMEM_BW)) {
                         ret = resctrl_mon_read_counters(
-                            cos, group->intl->resctrl.mon_group,
+                            clos, group->intl->resctrl.mon_group,
                             group->intl->resctrl.l3id,
                             group->intl->resctrl.num_l3id,
                             PQOS_MON_EVENT_LMEM_BW, &value);
@@ -1817,7 +1818,7 @@ resctrl_mon_purge(struct pqos_mon_data *group)
                 }
                 if (resctrl_mon_is_event_supported(PQOS_MON_EVENT_TMEM_BW)) {
                         ret = resctrl_mon_read_counters(
-                            cos, group->intl->resctrl.mon_group,
+                            clos, group->intl->resctrl.mon_group,
                             group->intl->resctrl.l3id,
                             group->intl->resctrl.num_l3id,
                             PQOS_MON_EVENT_TMEM_BW, &value);
@@ -1827,7 +1828,7 @@ resctrl_mon_purge(struct pqos_mon_data *group)
                         group->intl->resctrl.values_storage.mbm_total += value;
                 }
 
-                ret = resctrl_mon_rmdir(cos, name);
+                ret = resctrl_mon_rmdir(clos, name);
                 if (ret != PQOS_RETVAL_OK) {
                         LOG_WARN("Failed to remove empty mon group %s: %m\n",
                                  buf);
@@ -1836,7 +1837,7 @@ resctrl_mon_purge(struct pqos_mon_data *group)
 
                 LOG_INFO("Deleted empty mon group %s\n", buf);
 
-        } while (++cos < max_cos);
+        } while (++clos < max_clos);
 
         return ret;
 }
@@ -1858,20 +1859,20 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
 {
         int ret;
         uint64_t value = 0;
-        unsigned max_cos;
-        unsigned cos;
+        unsigned max_clos;
+        unsigned clos;
         unsigned i;
         uint64_t old_value;
         const struct pqos_cap *cap = _pqos_get_cap();
 
         ASSERT(group != NULL);
 
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
         /*
-         * When core COS assoc changes then kernel resets monitoring group
+         * When core CLOS assoc changes then kernel resets monitoring group
          * assoc. We need to restore monitoring assoc for cores
          */
         for (i = 0; i < group->num_cores; i++) {
@@ -1891,11 +1892,11 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
                                      ? PQOS_TEL_SLOT_CORE_ENERGY
                                      : PQOS_TEL_SLOT_ACTIVITY;
                 double total = 0.0;
-                unsigned cos2 = 0;
-                unsigned max_cos2;
+                unsigned clos2 = 0;
+                unsigned max_clos2;
                 const struct pqos_cap *cap2 = _pqos_get_cap();
 
-                ret = resctrl_alloc_get_grps_num(cap2, &max_cos2);
+                ret = resctrl_alloc_get_grps_num(cap2, &max_clos2);
                 if (ret != PQOS_RETVAL_OK)
                         goto resctrl_mon_poll_exit;
 
@@ -1904,20 +1905,20 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
                         double pval = 0.0;
 
                         ret = resctrl_mon_group_path(
-                            cos2, group->intl->resctrl.mon_group, NULL,
+                            clos2, group->intl->resctrl.mon_group, NULL,
                             mon_path, sizeof(mon_path));
                         if (ret != PQOS_RETVAL_OK)
                                 goto resctrl_mon_poll_exit;
                         if (!pqos_dir_exists(mon_path))
                                 continue;
                         ret = resctrl_mon_read_tel_pkgs(
-                            cos2, group->intl->resctrl.mon_group, filename,
+                            clos2, group->intl->resctrl.mon_group, filename,
                             group->intl->resctrl.pkgids,
                             group->intl->resctrl.num_pkgids, &pval);
                         if (ret != PQOS_RETVAL_OK)
                                 goto resctrl_mon_poll_exit;
                         total += pval;
-                } while (++cos2 < max_cos2);
+                } while (++clos2 < max_clos2);
 
                 group->intl->resctrl.tel[slot].previous =
                     group->intl->resctrl.tel[slot].current;
@@ -1946,14 +1947,14 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
                 goto resctrl_mon_poll_exit;
         }
 
-        /* Search COSes for given resctrl mon group */
-        cos = 0;
+        /* Search CLOSes for given resctrl mon group */
+        clos = 0;
         do {
                 uint64_t val;
                 char buf[128];
 
                 ret =
-                    resctrl_mon_group_path(cos, group->intl->resctrl.mon_group,
+                    resctrl_mon_group_path(clos, group->intl->resctrl.mon_group,
                                            NULL, buf, sizeof(buf));
                 if (ret != PQOS_RETVAL_OK)
                         goto resctrl_mon_poll_exit;
@@ -1961,7 +1962,7 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
                         continue;
 
                 ret = resctrl_mon_read_counters(
-                    cos, group->intl->resctrl.mon_group,
+                    clos, group->intl->resctrl.mon_group,
                     group->intl->resctrl.l3id, group->intl->resctrl.num_l3id,
                     event, &val);
                 if (ret != PQOS_RETVAL_OK)
@@ -1969,7 +1970,7 @@ resctrl_mon_poll(struct pqos_mon_data *group, const enum pqos_mon_event event)
 
                 value += val;
 
-        } while (++cos < max_cos);
+        } while (++clos < max_clos);
 
         /**
          * Set value
@@ -2014,7 +2015,7 @@ resctrl_mon_reset(void)
         int ret;
         unsigned grps;
         int num_groups;
-        unsigned cos = 0;
+        unsigned clos = 0;
         const struct pqos_cap *cap = _pqos_get_cap();
 
         if (!resctrl_mon_is_supported())
@@ -2029,19 +2030,19 @@ resctrl_mon_reset(void)
                 char dir[256];
                 int i;
 
-                ret = resctrl_mon_group_path(cos, "", NULL, dir, sizeof(dir));
+                ret = resctrl_mon_group_path(clos, "", NULL, dir, sizeof(dir));
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
                 num_groups = scandir(dir, &namelist, filter, NULL);
                 if (num_groups < 0) {
                         LOG_ERROR("Failed to read monitoring groups for "
-                                  "COS %u\n",
-                                  cos);
+                                  "CLOS %u\n",
+                                  clos);
                         return PQOS_RETVAL_ERROR;
                 }
 
                 for (i = 0; i < num_groups; i++) {
-                        ret = resctrl_mon_rmdir(cos, namelist[i]->d_name);
+                        ret = resctrl_mon_rmdir(clos, namelist[i]->d_name);
                         if (ret != PQOS_RETVAL_OK) {
                                 free_scandir(namelist, num_groups);
                                 return ret;
@@ -2049,7 +2050,7 @@ resctrl_mon_reset(void)
                 }
 
                 free_scandir(namelist, num_groups);
-        } while (++cos < grps);
+        } while (++clos < grps);
 
         return ret;
 }

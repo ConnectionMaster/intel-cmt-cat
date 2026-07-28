@@ -97,11 +97,11 @@ __wrap_hw_alloc_reset(const struct pqos_alloc_config *cfg)
 
 int
 __wrap_hw_l3ca_set(const unsigned l3cat_id,
-                   const unsigned num_cos,
+                   const unsigned num_clos,
                    const struct pqos_l3ca *ca)
 {
         check_expected(l3cat_id);
-        check_expected(num_cos);
+        check_expected(num_clos);
         check_expected_ptr(ca);
 
         return mock_type(int);
@@ -131,11 +131,11 @@ __wrap_hw_l3ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 
 int
 __wrap_hw_l2ca_set(const unsigned l2id,
-                   const unsigned num_cos,
+                   const unsigned num_clos,
                    const struct pqos_l2ca *ca)
 {
         check_expected(l2id);
-        check_expected(num_cos);
+        check_expected(num_clos);
         check_expected_ptr(ca);
 
         return mock_type(int);
@@ -165,12 +165,12 @@ __wrap_hw_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 
 int
 __wrap_hw_mba_set(const unsigned mba_id,
-                  const unsigned num_cos,
+                  const unsigned num_clos,
                   const struct pqos_mba *requested,
                   struct pqos_mba *actual)
 {
         check_expected(mba_id);
-        check_expected(num_cos);
+        check_expected(num_clos);
         check_expected_ptr(requested);
         check_expected_ptr(actual);
 
@@ -179,13 +179,13 @@ __wrap_hw_mba_set(const unsigned mba_id,
 
 int
 __wrap_hw_mba_get(const unsigned mba_id,
-                  const unsigned max_num_cos,
-                  unsigned *num_cos,
+                  const unsigned max_num_clos,
+                  unsigned *num_clos,
                   struct pqos_mba *mba_tab)
 {
         check_expected(mba_id);
-        check_expected(max_num_cos);
-        check_expected_ptr(num_cos);
+        check_expected(max_num_clos);
+        check_expected_ptr(num_clos);
         check_expected_ptr(mba_tab);
 
         return mock_type(int);

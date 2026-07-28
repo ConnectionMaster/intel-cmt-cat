@@ -62,11 +62,11 @@ extern "C" {
  * =======================================
  */
 
-#define PQOS_VERSION      70100 /**< version 7.1.0 */
-#define PQOS_MAX_COS      16    /**< 16 x COS */
-#define PQOS_MAX_L3CA_COS PQOS_MAX_COS
-#define PQOS_MAX_L2CA_COS PQOS_MAX_COS
-#define IMH_MAX_PATH      256
+#define PQOS_VERSION       70100 /**< version 7.1.0 */
+#define PQOS_MAX_CLOS      16    /**< 16 x CLOS */
+#define PQOS_MAX_L3CA_CLOS PQOS_MAX_CLOS
+#define PQOS_MAX_L2CA_CLOS PQOS_MAX_CLOS
+#define IMH_MAX_PATH       256
 
 #define CPU_AGENTS_PER_SOCKET    4
 #define DEVICE_AGENTS_PER_SOCKET 2
@@ -1374,9 +1374,9 @@ int pqos_alloc_assoc_set_pid(const pid_t task, const unsigned class_id);
 int pqos_alloc_assoc_get_pid(const pid_t task, unsigned *class_id);
 
 /**
- * @brief Assign first available COS to cores in \a core_array
+ * @brief Assign first available CLOS to cores in \a core_array
  *
- * While searching for available COS take technologies it is intended to use
+ * While searching for available CLOS take technologies it is intended to use
  * with into account.
  * Note on \a technology and \a core_array selection:
  * - if L2 CAT technology is requested then cores need to belong to
@@ -1388,7 +1388,7 @@ int pqos_alloc_assoc_get_pid(const pid_t task, unsigned *class_id);
  *             (1 << enum pqos_cap_type)
  * @param [in] core_array list of core ids
  * @param [in] core_num number of core ids in the \a core_array
- * @param [out] class_id place to store reserved COS id
+ * @param [out] class_id place to store reserved CLOS id
  *
  * @return Operations status
  */
@@ -1398,7 +1398,7 @@ int pqos_alloc_assign(const unsigned technology,
                       unsigned *class_id);
 
 /**
- * @brief Reassign cores in \a core_array to default COS#0
+ * @brief Reassign cores in \a core_array to default CLOS#0
  *
  * @param [in] core_array list of core ids
  * @param [in] core_num number of core ids in the \a core_array
@@ -1408,10 +1408,10 @@ int pqos_alloc_assign(const unsigned technology,
 int pqos_alloc_release(const unsigned *core_array, const unsigned core_num);
 
 /**
- * @brief Assign first available COS to tasks in \a task_array
- *        Searches all COS directories from highest to lowest
+ * @brief Assign first available CLOS to tasks in \a task_array
+ *        Searches all CLOS directories from highest to lowest
  *
- * While searching for available COS take technologies it is intended to use
+ * While searching for available CLOS take technologies it is intended to use
  * with into account.
  * Note on \a technology parameter:
  * - this parameter is currently reserved for future use
@@ -1422,7 +1422,7 @@ int pqos_alloc_release(const unsigned *core_array, const unsigned core_num);
  *             (1 << enum pqos_cap_type)
  * @param [in] task_array list of task ids
  * @param [in] task_num number of task ids in the \a task_array
- * @param [out] class_id place to store reserved COS id
+ * @param [out] class_id place to store reserved CLOS id
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
@@ -1433,7 +1433,7 @@ int pqos_alloc_assign_pid(const unsigned technology,
                           unsigned *class_id);
 
 /**
- * @brief Reassign tasks in \a task_array to default COS#0
+ * @brief Reassign tasks in \a task_array to default CLOS#0
  *
  * @param [in] task_array list of task ids
  * @param [in] task_num number of task ids in the \a task_array
@@ -1447,9 +1447,9 @@ int pqos_alloc_release_pid(const pid_t *task_array, const unsigned task_num);
  * @brief Resets configuration of allocation technologies
  *
  * Reverts CAT/MBA state to the one after reset:
- * - all cores associated with COS0
- * - all COS are set to give access to entire resource
- * - all device channels associated with COS0
+ * - all cores associated with CLOS0
+ * - all CLOS are set to give access to entire resource
+ * - all device channels associated with CLOS0
  *
  * As part of allocation reset CDP reconfiguration can be performed.
  * This can be requested via \a l3_cdp_cfg, \a l2_cdp_cfg and \a mba_cfg.
@@ -1488,8 +1488,8 @@ struct pqos_alloc_config {
  * @brief Resets configuration of allocation technologies
  *
  * Reverts CAT/MBA state to the one after reset:
- * - all cores associated with COS0
- * - all COS are set to give access to entire resource
+ * - all cores associated with CLOS0
+ * - all CLOS are set to give access to entire resource
  *
  * As part of allocation reset CDP, MBA can be performed.
  * This can be requested via \a cfg.
@@ -1527,14 +1527,14 @@ struct pqos_l3ca {
  * @brief Sets classes of service defined by \a ca on \a l3cat_id
  *
  * @param [in] l3cat_id L3 CAT resource id
- * @param [in] num_cos number of classes of service at \a ca
+ * @param [in] num_clos number of classes of service at \a ca
  * @param [in] ca table with class of service definitions
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 int pqos_l3ca_set(const unsigned l3cat_id,
-                  const unsigned num_cos,
+                  const unsigned num_clos,
                   const struct pqos_l3ca *ca);
 
 /**
@@ -1591,14 +1591,14 @@ struct pqos_l2ca {
  * @brief Sets classes of service defined by \a ca on \a l2id
  *
  * @param [in] l2id unique L2 cache identifier
- * @param [in] num_cos number of classes of service at \a ca
+ * @param [in] num_clos number of classes of service at \a ca
  * @param [in] ca table with class of service definitions
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 int pqos_l2ca_set(const unsigned l2id,
-                  const unsigned num_cos,
+                  const unsigned num_clos,
                   const struct pqos_l2ca *ca);
 
 /**
@@ -1668,7 +1668,7 @@ struct pqos_mba {
  * @brief Sets classes of service defined by \a mba on \a mba id
  *
  * @param [in]  mba_id MBA resource id
- * @param [in]  num_cos number of classes of service at \a ca
+ * @param [in]  num_clos number of classes of service at \a ca
  * @param [in]  requested table with class of service definitions
  * @param [out] actual table with class of service definitions
  *
@@ -1676,7 +1676,7 @@ struct pqos_mba {
  * @retval PQOS_RETVAL_OK on success
  */
 int pqos_mba_set(const unsigned mba_id,
-                 const unsigned num_cos,
+                 const unsigned num_clos,
                  const struct pqos_mba *requested,
                  struct pqos_mba *actual);
 
@@ -1684,17 +1684,17 @@ int pqos_mba_set(const unsigned mba_id,
  * @brief Reads MBA from \a mba_id
  *
  * @param [in]  mba_id MBA resource id
- * @param [in]  max_num_cos maximum number of classes of service
+ * @param [in]  max_num_clos maximum number of classes of service
  *              that can be accommodated at \a mba_tab
- * @param [out] num_cos number of classes of service read into \a mba_tab
+ * @param [out] num_clos number of classes of service read into \a mba_tab
  * @param [out] mba_tab table with read classes of service
  *
  * @return Operations status
  * @retval PQOS_RETVAL_OK on success
  */
 int pqos_mba_get(const unsigned mba_id,
-                 const unsigned max_num_cos,
-                 unsigned *num_cos,
+                 const unsigned max_num_clos,
+                 unsigned *num_clos,
                  struct pqos_mba *mba_tab);
 
 /*
@@ -1919,7 +1919,7 @@ unsigned *pqos_cpu_get_cores(const struct pqos_cpuinfo *cpu,
                              unsigned *count);
 
 /**
- * @brief Retrieves task id's from resctrl task file for a given COS
+ * @brief Retrieves task id's from resctrl task file for a given CLOS
  *
  * @param [in] class_id Class of Service ID
  * @param [out] count place to store actual number of task id's returned
@@ -2126,12 +2126,12 @@ int pqos_cap_get_event(const struct pqos_cap *cap,
  *
  * @param [in] cap platform QoS capabilities structure
  *                 returned by \a pqos_cap_get
- * @param [out] cos_num place to store number of classes of service
+ * @param [out] clos_num place to store number of classes of service
  *
  * @return Operation status
  * @retval PQOS_RETVAL_OK on success
  */
-int pqos_l3ca_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
+int pqos_l3ca_get_clos_num(const struct pqos_cap *cap, unsigned *clos_num);
 
 /**
  * @brief Retrieves number of L2 allocation classes of service from
@@ -2139,12 +2139,12 @@ int pqos_l3ca_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
  *
  * @param [in] cap platform QoS capabilities structure
  *                 returned by \a pqos_cap_get
- * @param [out] cos_num place to store number of classes of service
+ * @param [out] clos_num place to store number of classes of service
  *
  * @return Operation status
  * @retval PQOS_RETVAL_OK on success
  */
-int pqos_l2ca_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
+int pqos_l2ca_get_clos_num(const struct pqos_cap *cap, unsigned *clos_num);
 
 /**
  * @brief Retrieves number of memory B/W allocation classes of service from
@@ -2152,12 +2152,12 @@ int pqos_l2ca_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
  *
  * @param [in] cap platform QoS capabilities structure
  *                 returned by \a pqos_cap_get
- * @param [out] cos_num place to store number of classes of service
+ * @param [out] clos_num place to store number of classes of service
  *
  * @return Operation status
  * @retval PQOS_RETVAL_OK on success
  */
-int pqos_mba_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
+int pqos_mba_get_clos_num(const struct pqos_cap *cap, unsigned *clos_num);
 
 /**
  * @brief Retrieves number of "slow" memory B/W allocation classes of service
@@ -2165,12 +2165,12 @@ int pqos_mba_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
  *
  * @param [in] cap platform QoS capabilities structure
  *                 returned by \a pqos_cap_get
- * @param [out] cos_num place to store number of classes of service
+ * @param [out] clos_num place to store number of classes of service
  *
  * @return Operation status
  * @retval PQOS_RETVAL_OK on success
  */
-int pqos_smba_get_cos_num(const struct pqos_cap *cap, unsigned *cos_num);
+int pqos_smba_get_clos_num(const struct pqos_cap *cap, unsigned *clos_num);
 
 /**
  * @brief Retrieves L3 CDP status

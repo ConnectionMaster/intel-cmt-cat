@@ -90,9 +90,9 @@ PQOS_LOCAL int resctrl_alloc_get_grps_num(const struct pqos_cap *cap,
                                           unsigned *grps_num);
 
 /**
- * @brief Opens COS file in resctl filesystem
+ * @brief Opens CLOS file in resctl filesystem
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] name File name
  * @param [in] mode fopen mode
  *
@@ -105,7 +105,7 @@ PQOS_LOCAL FILE *resctrl_alloc_fopen(const unsigned class_id,
                                      const char *mode);
 
 /**
- * @brief Closes COS file in resctl filesystem
+ * @brief Closes CLOS file in resctl filesystem
  *
  * @param[in] fd File descriptor
  *
@@ -117,7 +117,7 @@ PQOS_LOCAL int resctrl_alloc_fclose(FILE *fd);
 /**
  * @brief Write CPU mask to file
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] mask CPU mask to write
  *
  * @return Operational status
@@ -129,7 +129,7 @@ PQOS_LOCAL int resctrl_alloc_cpumask_write(const unsigned class_id,
 /**
  * @brief Read CPU mask from file
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [out] mask CPU mask to write
  *
  * @return Operational status
@@ -141,7 +141,7 @@ PQOS_LOCAL int resctrl_alloc_cpumask_read(const unsigned class_id,
 /**
  * @brief Read resctrl schemata from file
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [out] schemata Parsed schemata
  *
  * @return Operational status
@@ -153,7 +153,7 @@ PQOS_LOCAL int resctrl_alloc_schemata_read(const unsigned class_id,
 /**
  * @brief Write resctrl schemata to file
  *
- * @param [in] class_id COS id
+ * @param [in] class_id CLOS id
  * @param [in] technology bit mask selecting technologies
  *             (1 << enum pqos_cap_type)
  * @param [in] schemata Schemata to write
@@ -177,10 +177,10 @@ resctrl_alloc_schemata_write(const unsigned class_id,
 PQOS_LOCAL int resctrl_alloc_task_validate(const pid_t task);
 
 /**
- * @brief Function to write task ID to resctrl COS tasks file
- *        Used to associate a task with COS
+ * @brief Function to write task ID to resctrl CLOS tasks file
+ *        Used to associate a task with CLOS
  *
- * @param class_id COS tasks file to write to
+ * @param class_id CLOS tasks file to write to
  * @param task task ID to write to tasks file
  *
  * @return Operational status
@@ -190,7 +190,7 @@ PQOS_LOCAL int resctrl_alloc_task_write(const unsigned class_id,
                                         const pid_t task);
 
 /**
- * @brief Reads task id's from resctrl task file for a given COS
+ * @brief Reads task id's from resctrl task file for a given CLOS
  *
  * @param [in] class_id Class of Service ID
  * @param [out] count place to store actual number of task id's returned
@@ -202,9 +202,9 @@ PQOS_LOCAL unsigned *resctrl_alloc_task_read(unsigned class_id,
                                              unsigned *count);
 
 /**
- * @brief Function to search a COS tasks file for a task ID
+ * @brief Function to search a CLOS tasks file for a task ID
  *
- * @param [out] class_id COS containing task ID
+ * @param [out] class_id CLOS containing task ID
  * @param [in] cap platform QoS capabilities structure
  *                 returned by \a pqos_cap_get
  * @param [in] task task ID to search for
@@ -217,9 +217,9 @@ PQOS_LOCAL int resctrl_alloc_task_search(unsigned *class_id,
                                          const pid_t task);
 
 /**
- * @brief Function to search a COS tasks file and check if this file is blank
+ * @brief Function to search a CLOS tasks file and check if this file is blank
  *
- * @param [in] class_id COS containing task ID
+ * @param [in] class_id CLOS containing task ID
  * @param [out] found flag
  *                    0 if no Task ID is found
  *                    1 if a Task ID is found

@@ -102,8 +102,8 @@ alloc_reset(const struct pqos_alloc_config *cfg)
         const struct pqos_cap_mba *smba_cap = NULL;
         const struct cpuinfo_config *vconfig;
         int ret = PQOS_RETVAL_OK;
-        unsigned max_l3_cos = 0;
-        unsigned max_l2_cos = 0;
+        unsigned max_l3_clos = 0;
+        unsigned max_l2_clos = 0;
         unsigned j;
         enum pqos_cdp_config l3_cdp_cfg = PQOS_REQUIRE_CDP_ANY;
         enum pqos_iordt_config l3_iordt_cfg = PQOS_REQUIRE_IORDT_ANY;
@@ -227,9 +227,9 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                 }
 
                 /* Get maximum number of L3 CAT classes */
-                max_l3_cos = l3_cap->num_classes;
+                max_l3_clos = l3_cap->num_classes;
                 if (l3_cap->cdp && l3_cap->cdp_on)
-                        max_l3_cos = max_l3_cos * 2;
+                        max_l3_clos = max_l3_clos * 2;
         }
 
         if (l2_cap != NULL) {
@@ -242,9 +242,9 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                 }
 
                 /* Get maximum number of L2 CAT classes */
-                max_l2_cos = l2_cap->num_classes;
+                max_l2_clos = l2_cap->num_classes;
                 if (l2_cap->cdp && l2_cap->cdp_on)
-                        max_l2_cos = max_l2_cos * 2;
+                        max_l2_clos = max_l2_clos * 2;
         }
 
         if (mba_cap != NULL) {
@@ -272,8 +272,8 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                         goto pqos_alloc_reset_exit;
 
                 /**
-                 * Change L3 COS definition on all l3cat ids
-                 * so that each COS allows for access to all cache ways
+                 * Change L3 CLOS definition on all l3cat ids
+                 * so that each CLOS allows for access to all cache ways
                  */
                 for (j = 0; j < l3cat_id_num; j++) {
                         unsigned core = 0;
@@ -286,8 +286,8 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                         const uint64_t ways_mask =
                             (1ULL << l3_cap->num_ways) - 1ULL;
 
-                        ret = hw_alloc_reset_cos(PQOS_MSR_L3CA_MASK_START,
-                                                 max_l3_cos, core, ways_mask);
+                        ret = hw_alloc_reset_clos(PQOS_MSR_L3CA_MASK_START,
+                                                  max_l3_clos, core, ways_mask);
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
                 }
@@ -311,8 +311,8 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
 
-                        ret = hw_alloc_reset_cos(PQOS_MSR_L2CA_MASK_START,
-                                                 max_l2_cos, core, ways_mask);
+                        ret = hw_alloc_reset_clos(PQOS_MSR_L2CA_MASK_START,
+                                                  max_l2_clos, core, ways_mask);
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
                 }
@@ -328,7 +328,7 @@ alloc_reset(const struct pqos_alloc_config *cfg)
 
                 /**
                  * Go through all L3 CAT ids and reset MBA class definitions
-                 * 0 is the default MBA COS value in linear mode.
+                 * 0 is the default MBA CLOS value in linear mode.
                  */
                 for (j = 0; j < mba_id_num; j++) {
                         unsigned core = 0;
@@ -338,9 +338,9 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
 
-                        ret = hw_alloc_reset_cos(vconfig->mba_msr_reg,
-                                                 mba_cap->num_classes, core,
-                                                 vconfig->mba_default_val);
+                        ret = hw_alloc_reset_clos(vconfig->mba_msr_reg,
+                                                  mba_cap->num_classes, core,
+                                                  vconfig->mba_default_val);
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
                 }
@@ -356,7 +356,7 @@ alloc_reset(const struct pqos_alloc_config *cfg)
 
                 /**
                  * Go through all L3 CAT ids and reset SMBA class definitions
-                 * 0 is the default SMBA COS value in linear mode.
+                 * 0 is the default SMBA CLOS value in linear mode.
                  */
                 for (j = 0; j < smba_id_num; j++) {
                         unsigned core = 0;
@@ -366,16 +366,16 @@ alloc_reset(const struct pqos_alloc_config *cfg)
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
 
-                        ret = hw_alloc_reset_cos(vconfig->smba_msr_reg,
-                                                 smba_cap->num_classes, core,
-                                                 vconfig->mba_default_val);
+                        ret = hw_alloc_reset_clos(vconfig->smba_msr_reg,
+                                                  smba_cap->num_classes, core,
+                                                  vconfig->mba_default_val);
                         if (ret != PQOS_RETVAL_OK)
                                 goto pqos_alloc_reset_exit;
                 }
         }
 
         /**
-         * Associate all cores with COS0
+         * Associate all cores with CLOS0
          */
         ret = hw_alloc_reset_assoc();
         if (ret != PQOS_RETVAL_OK)

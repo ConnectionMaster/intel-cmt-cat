@@ -47,7 +47,7 @@
 #include <string.h>
 
 /*
- * COS file names on resctrl file system
+ * CLOS file names on resctrl file system
  */
 static const char *rctl_cpus = "cpus";
 static const char *rctl_schemata = "schemata";
@@ -80,55 +80,55 @@ resctrl_alloc_get_grps_num(const struct pqos_cap *cap, unsigned *grps_num)
 
         /*
          * Loop through all caps that have OS support
-         * Find max COS supported by all
+         * Find max CLOS supported by all
          */
         for (i = 0; i < cap->num_cap; i++) {
-                unsigned num_cos = 0;
+                unsigned num_clos = 0;
                 const struct pqos_capability *p_cap = &cap->capabilities[i];
 
-                /* get L3 CAT COS num */
+                /* get L3 CAT CLOS num */
                 if (p_cap->type == PQOS_CAP_TYPE_L3CA) {
-                        ret = pqos_l3ca_get_cos_num(cap, &num_cos);
+                        ret = pqos_l3ca_get_clos_num(cap, &num_clos);
                         if (ret != PQOS_RETVAL_OK)
                                 return ret;
 
                         if (max_rctl_grps == 0)
-                                max_rctl_grps = num_cos;
-                        else if (num_cos < max_rctl_grps)
-                                max_rctl_grps = num_cos;
+                                max_rctl_grps = num_clos;
+                        else if (num_clos < max_rctl_grps)
+                                max_rctl_grps = num_clos;
                 }
-                /* get L2 CAT COS num */
+                /* get L2 CAT CLOS num */
                 if (p_cap->type == PQOS_CAP_TYPE_L2CA) {
-                        ret = pqos_l2ca_get_cos_num(cap, &num_cos);
+                        ret = pqos_l2ca_get_clos_num(cap, &num_clos);
                         if (ret != PQOS_RETVAL_OK)
                                 return ret;
 
                         if (max_rctl_grps == 0)
-                                max_rctl_grps = num_cos;
-                        else if (num_cos < max_rctl_grps)
-                                max_rctl_grps = num_cos;
+                                max_rctl_grps = num_clos;
+                        else if (num_clos < max_rctl_grps)
+                                max_rctl_grps = num_clos;
                 }
-                /* get MBA COS num */
+                /* get MBA CLOS num */
                 if (p_cap->type == PQOS_CAP_TYPE_MBA) {
-                        ret = pqos_mba_get_cos_num(cap, &num_cos);
+                        ret = pqos_mba_get_clos_num(cap, &num_clos);
                         if (ret != PQOS_RETVAL_OK)
                                 return ret;
 
                         if (max_rctl_grps == 0)
-                                max_rctl_grps = num_cos;
-                        else if (num_cos < max_rctl_grps)
-                                max_rctl_grps = num_cos;
+                                max_rctl_grps = num_clos;
+                        else if (num_clos < max_rctl_grps)
+                                max_rctl_grps = num_clos;
                 }
-                /* get SMBA COS num */
+                /* get SMBA CLOS num */
                 if (p_cap->type == PQOS_CAP_TYPE_SMBA) {
-                        ret = pqos_smba_get_cos_num(cap, &num_cos);
+                        ret = pqos_smba_get_clos_num(cap, &num_clos);
                         if (ret != PQOS_RETVAL_OK)
                                 return ret;
 
                         if (max_rctl_grps == 0)
-                                max_rctl_grps = num_cos;
-                        else if (num_cos < max_rctl_grps)
-                                max_rctl_grps = num_cos;
+                                max_rctl_grps = num_clos;
+                        else if (num_clos < max_rctl_grps)
+                                max_rctl_grps = num_clos;
                 }
         }
         *grps_num = max_rctl_grps;
@@ -219,7 +219,7 @@ resctrl_alloc_fopen(const unsigned class_id, const char *name, const char *mode)
 
         fd = pqos_fopen(buf, mode);
         if (fd == NULL)
-                LOG_ERROR("Could not open %s file %s for COS %u\n", name, buf,
+                LOG_ERROR("Could not open %s file %s for CLOS %u\n", name, buf,
                           class_id);
 
         return fd;
@@ -514,13 +514,13 @@ resctrl_alloc_task_search(unsigned *class_id,
                           const pid_t task)
 {
         FILE *fd;
-        unsigned i, max_cos = 0;
+        unsigned i, max_clos = 0;
         int ret;
 
         /* Check if task exists */
         ret = resctrl_alloc_task_validate(task);
         if (ret != PQOS_RETVAL_OK) {
-                LOG_DEBUG("Task %d not found while searching resctrl COS "
+                LOG_DEBUG("Task %d not found while searching resctrl CLOS "
                           "tasks files (task may have exited concurrently). "
                           "Returning PQOS_RETVAL_PARAM; callers treat this "
                           "as a benign racing exit.\n",
@@ -528,15 +528,15 @@ resctrl_alloc_task_search(unsigned *class_id,
                 return PQOS_RETVAL_PARAM;
         }
 
-        /* Get number of COS */
-        ret = resctrl_alloc_get_grps_num(cap, &max_cos);
+        /* Get number of CLOS */
+        ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
 
         /**
-         * Starting at highest COS - search all COS tasks files for task ID
+         * Starting at highest CLOS - search all CLOS tasks files for task ID
          */
-        for (i = (max_cos - 1); (int)i >= 0; i--) {
+        for (i = (max_clos - 1); (int)i >= 0; i--) {
                 uint64_t tid = 0;
                 char buf[128];
 
@@ -563,7 +563,7 @@ resctrl_alloc_task_search(unsigned *class_id,
                 if (resctrl_alloc_fclose(fd) != PQOS_RETVAL_OK)
                         return PQOS_RETVAL_ERROR;
         }
-        /* If not found in any COS group - return error */
+        /* If not found in any CLOS group - return error */
         LOG_ERROR("Failed to get association for task %d!\n", (int)task);
         return PQOS_RETVAL_ERROR;
 }
@@ -692,7 +692,7 @@ resctrl_alloc_get_unused_group(const unsigned grps_num, unsigned *group_id)
                         return ret;
         }
 
-        /* Find unused COS */
+        /* Find unused CLOS */
         for (i = grps_num - 1; i > 0; i--) {
                 if (used_groups[i] == 0) {
                         *group_id = i;

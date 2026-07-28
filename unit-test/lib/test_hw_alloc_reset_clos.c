@@ -34,10 +34,10 @@
 #include "mock_machine.h"
 #include "test.h"
 
-/* ======== hw_alloc_reset_cos ======== */
+/* ======== hw_alloc_reset_clos ======== */
 
 static void
-test_hw_alloc_reset_cos(void **state __attribute__((unused)))
+test_hw_alloc_reset_clos(void **state __attribute__((unused)))
 {
         int ret;
         unsigned msr_start = 0xf0;
@@ -53,7 +53,7 @@ test_hw_alloc_reset_cos(void **state __attribute__((unused)))
                 will_return(__wrap_msr_write, PQOS_RETVAL_OK);
         }
 
-        ret = hw_alloc_reset_cos(msr_start, msr_num, coreid, msr_val);
+        ret = hw_alloc_reset_clos(msr_start, msr_num, coreid, msr_val);
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
@@ -63,7 +63,7 @@ main(void)
         int result = 0;
 
         const struct CMUnitTest tests[] = {
-            cmocka_unit_test(test_hw_alloc_reset_cos)};
+            cmocka_unit_test(test_hw_alloc_reset_clos)};
 
         result += cmocka_run_group_tests(tests, test_init_l3ca, test_fini);
 

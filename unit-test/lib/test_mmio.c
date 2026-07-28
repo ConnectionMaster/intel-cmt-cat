@@ -277,13 +277,13 @@ test_mba_set_resolves_domain_id(void **state __attribute__((unused)))
 }
 
 static void
-test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
+test_mba_get_ignores_num_clos_input(void **state __attribute__((unused)))
 {
         struct pqos_cpu_agent_info cpu_agent = {0};
         struct pqos_erdt_info erdt = {0};
         struct pqos_mrrm_info mrrm = {0};
         struct pqos_mba mba_tab[2] = {0};
-        unsigned num_cos = UINT32_MAX;
+        unsigned num_clos = UINT32_MAX;
         const int num_reads = 2 * PQOS_MAX_MEM_REGIONS;
         int ret;
 
@@ -316,10 +316,10 @@ test_mba_get_ignores_num_cos_input(void **state __attribute__((unused)))
         expect_any_count(__wrap_get_mba_max_bw_region_clos_v1, clos_number,
                          num_reads);
 
-        ret = mmio_mba_get(0, 2, &num_cos, mba_tab);
+        ret = mmio_mba_get(0, 2, &num_clos, mba_tab);
 
         assert_int_equal(ret, PQOS_RETVAL_OK);
-        assert_int_equal(num_cos, 2);
+        assert_int_equal(num_clos, 2);
         assert_int_equal(mba_tab[1].domain_id, cpu_agent.rmdd.domain_id);
         assert_int_equal(mba_tab[0].class_id, 0);
         assert_int_equal(mba_tab[1].class_id, 1);
@@ -403,7 +403,7 @@ main(void)
             cmocka_unit_test(test_io_cmt_range_crosses_page),
             cmocka_unit_test(test_cmt_range_rejects_invalid_range),
             cmocka_unit_test(test_mba_set_resolves_domain_id),
-            cmocka_unit_test(test_mba_get_ignores_num_cos_input),
+            cmocka_unit_test(test_mba_get_ignores_num_clos_input),
             cmocka_unit_test(test_io_overflow_invalidates_baseline)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);

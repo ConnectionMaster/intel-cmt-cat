@@ -110,12 +110,12 @@ __wrap_pqos_fopen(const char *name, const char *mode)
                         fprintf(fd, "1\n");
 
         } else if (strcmp(name, "/sys/fs/resctrl/tasks") == 0) {
-                /* PID 1 and 2 assigned to COS 0 */
+                /* PID 1 and 2 assigned to CLOS 0 */
                 fprintf(fd, "1\n");
                 fprintf(fd, "2\n");
 
         } else if (strcmp(name, "/sys/fs/resctrl/COS1/tasks") == 0) {
-                /* PID 3 assigned to COS 1 */
+                /* PID 3 assigned to CLOS 1 */
                 fprintf(fd, "3\n");
 
         } else {
@@ -231,7 +231,8 @@ test_resctrl_mon_assoc_get_alloc_nondefault(void **state
         will_return(__wrap_resctrl_alloc_assoc_get, PQOS_RETVAL_OK);
         will_return(__wrap_resctrl_alloc_assoc_get, class_id);
 
-        expect_string(__wrap_scandir, dirp, "/sys/fs/resctrl/COS1/mon_groups/");
+        expect_string(__wrap_scandir, dirp,
+                      "/sys/fs/resctrl/COS1/mon_groups/");
         will_return(__wrap_scandir, 1);
 
         expect_value(__wrap_resctrl_mon_cpumask_read, class_id, class_id);
@@ -320,7 +321,7 @@ test_resctrl_mon_assoc_get_error(void **state __attribute__((unused)))
         ret = resctrl_mon_assoc_get(lcore, name, sizeof(name));
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 
-        /* error getting COS number */
+        /* error getting CLOS number */
         will_return(resctrl_mon_is_supported, 1);
         will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
         will_return(__wrap_resctrl_alloc_get_grps_num, 1);
@@ -403,7 +404,7 @@ test_resctrl_mon_assoc_set_error(void **state __attribute__((unused)))
 
         will_return_maybe(__wrap__pqos_get_cap, &cap);
 
-        /* error getting COS number */
+        /* error getting CLOS number */
         will_return(resctrl_mon_is_supported, 1);
         will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_ERROR);
 
@@ -602,7 +603,7 @@ test_resctrl_mon_assoc_set_pid_error(void **state __attribute__((unused)))
 
         will_return_maybe(__wrap__pqos_get_cap, &cap);
 
-        /* error getting COS number */
+        /* error getting CLOS number */
         will_return(resctrl_mon_is_supported, 1);
         will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_ERROR);
 

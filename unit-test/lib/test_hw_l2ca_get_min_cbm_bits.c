@@ -109,7 +109,7 @@ test_hw_l2ca_get_min_cbm_bits(void **state)
         will_return(hw_alloc_assoc_unused, PQOS_RETVAL_OK);
         will_return(hw_alloc_assoc_unused, 1);
 
-        /* get cos configuration */
+        /* get clos configuration */
         will_return(hw_l2ca_get, PQOS_RETVAL_OK);
 
         /* probe for min value */
@@ -117,7 +117,7 @@ test_hw_l2ca_get_min_cbm_bits(void **state)
                           expected_min_cbm_bits - 1);
         will_return(hw_l2ca_get, PQOS_RETVAL_OK);
 
-        /* restore cos configuration */
+        /* restore clos configuration */
         will_return(hw_l2ca_set, PQOS_RETVAL_OK);
 
         ret = hw_l2ca_get_min_cbm_bits(&min_cbm_bits);
@@ -126,7 +126,7 @@ test_hw_l2ca_get_min_cbm_bits(void **state)
 }
 
 static void
-test_hw_l2ca_get_min_cbm_bits_no_free_cos(void **state)
+test_hw_l2ca_get_min_cbm_bits_no_free_clos(void **state)
 {
         struct test_data *data = (struct test_data *)*state;
         int ret;
@@ -157,7 +157,7 @@ main(void)
 
         const struct CMUnitTest tests[] = {
             cmocka_unit_test(test_hw_l2ca_get_min_cbm_bits),
-            cmocka_unit_test(test_hw_l2ca_get_min_cbm_bits_no_free_cos)};
+            cmocka_unit_test(test_hw_l2ca_get_min_cbm_bits_no_free_clos)};
 
         result += cmocka_run_group_tests(tests, test_init_l2ca, test_fini);
 
