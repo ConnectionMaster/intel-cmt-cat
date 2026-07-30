@@ -231,8 +231,7 @@ test_resctrl_mon_assoc_get_alloc_nondefault(void **state
         will_return(__wrap_resctrl_alloc_assoc_get, PQOS_RETVAL_OK);
         will_return(__wrap_resctrl_alloc_assoc_get, class_id);
 
-        expect_string(__wrap_scandir, dirp,
-                      "/sys/fs/resctrl/COS1/mon_groups/");
+        expect_string(__wrap_scandir, dirp, "/sys/fs/resctrl/COS1/mon_groups/");
         will_return(__wrap_scandir, 1);
 
         expect_value(__wrap_resctrl_mon_cpumask_read, class_id, class_id);

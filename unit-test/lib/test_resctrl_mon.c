@@ -69,16 +69,14 @@ test_resctrl_mon_mkdir(void **state __attribute__((unused)))
         ret = resctrl_mon_mkdir(0, "test");
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
-        expect_string(__wrap_mkdir, path,
-                      RESCTRL_PATH "/COS1/mon_groups/test");
+        expect_string(__wrap_mkdir, path, RESCTRL_PATH "/COS1/mon_groups/test");
         expect_value(__wrap_mkdir, mode, 0755);
         will_return(__wrap_mkdir, 1);
 
         ret = resctrl_mon_mkdir(1, "test");
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
-        expect_string(__wrap_mkdir, path,
-                      RESCTRL_PATH "/COS2/mon_groups/test");
+        expect_string(__wrap_mkdir, path, RESCTRL_PATH "/COS2/mon_groups/test");
         expect_value(__wrap_mkdir, mode, 0755);
         will_return(__wrap_mkdir, -1);
         errno = ENOSPC;
@@ -100,8 +98,7 @@ test_resctrl_mon_rmdir(void **state __attribute__((unused)))
         ret = resctrl_mon_rmdir(0, "test");
         assert_int_equal(ret, PQOS_RETVAL_OK);
 
-        expect_string(__wrap_rmdir, path,
-                      RESCTRL_PATH "/COS1/mon_groups/test");
+        expect_string(__wrap_rmdir, path, RESCTRL_PATH "/COS1/mon_groups/test");
         will_return(__wrap_rmdir, 1);
 
         ret = resctrl_mon_rmdir(1, "test");
@@ -117,10 +114,9 @@ test_resctrl_mon_read_counter(void **state __attribute__((unused)))
         uint64_t value;
 
         /* llc */
-        expect_string(
-            __wrap_pqos_fopen, name,
-            "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
-            "llc_occupancy");
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "llc_occupancy");
         expect_string(__wrap_pqos_fopen, mode, "r");
         will_return(__wrap_pqos_fopen, "1");
 
@@ -130,10 +126,9 @@ test_resctrl_mon_read_counter(void **state __attribute__((unused)))
         assert_int_equal(value, 1);
 
         /* lmem */
-        expect_string(
-            __wrap_pqos_fopen, name,
-            "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
-            "mbm_local_bytes");
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "mbm_local_bytes");
         expect_string(__wrap_pqos_fopen, mode, "r");
         will_return(__wrap_pqos_fopen, "2");
 
@@ -143,10 +138,9 @@ test_resctrl_mon_read_counter(void **state __attribute__((unused)))
         assert_int_equal(value, 2);
 
         /* tmem */
-        expect_string(
-            __wrap_pqos_fopen, name,
-            "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
-            "mbm_total_bytes");
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "mbm_total_bytes");
         expect_string(__wrap_pqos_fopen, mode, "r");
         will_return(__wrap_pqos_fopen, "3");
 
@@ -163,10 +157,9 @@ test_resctrl_mon_read_counter_error(void **state __attribute__((unused)))
         uint64_t value = 0;
 
         /* file doesn't exists*/
-        expect_string(
-            __wrap_pqos_fopen, name,
-            "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
-            "llc_occupancy");
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "llc_occupancy");
         expect_string(__wrap_pqos_fopen, mode, "r");
         will_return(__wrap_pqos_fopen, NULL);
 
@@ -175,10 +168,9 @@ test_resctrl_mon_read_counter_error(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 
         /* invalid value */
-        expect_string(
-            __wrap_pqos_fopen, name,
-            "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
-            "llc_occupancy");
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/fs/resctrl/COS1/mon_groups/test/mon_data/mon_L3_00/"
+                      "llc_occupancy");
         expect_string(__wrap_pqos_fopen, mode, "r");
         will_return(__wrap_pqos_fopen, ";invalid");
 

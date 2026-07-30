@@ -96,7 +96,7 @@ init_memory(const size_t sz)
  *
  * This is required as rand() is not thread safe. This dummy implementation
  * computes large number of random numbers, stores them in a table and
- * re-uses them all over again. This is good enough for the purpose of this
+ * reuses them all over again. This is good enough for the purpose of this
  * application.
  *
  * @return Random number value

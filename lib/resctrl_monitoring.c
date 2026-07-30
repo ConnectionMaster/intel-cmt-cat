@@ -305,8 +305,8 @@ resctrl_mon_group_path(const unsigned class_id,
         if (resctrl_group == NULL && class_id == 0)
                 len = snprintf(buf, buf_size, RESCTRL_PATH "%s", suffix);
         else if (resctrl_group == NULL)
-                len = snprintf(buf, buf_size, RESCTRL_PATH "/COS%u%s",
-                               class_id, suffix);
+                len = snprintf(buf, buf_size, RESCTRL_PATH "/COS%u%s", class_id,
+                               suffix);
 
         /* mon group for CLOS 0 */
         else if (class_id == 0)
