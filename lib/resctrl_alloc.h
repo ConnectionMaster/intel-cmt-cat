@@ -90,7 +90,7 @@ PQOS_LOCAL int resctrl_alloc_get_grps_num(const struct pqos_cap *cap,
                                           unsigned *grps_num);
 
 /**
- * @brief Opens CLOS file in resctl filesystem
+ * @brief Opens CLOS file in resctrl filesystem
  *
  * @param [in] class_id CLOS id
  * @param [in] name File name
@@ -105,7 +105,7 @@ PQOS_LOCAL FILE *resctrl_alloc_fopen(const unsigned class_id,
                                      const char *mode);
 
 /**
- * @brief Closes CLOS file in resctl filesystem
+ * @brief Closes CLOS file in resctrl filesystem
  *
  * @param[in] fd File descriptor
  *

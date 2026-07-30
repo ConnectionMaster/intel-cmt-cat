@@ -838,7 +838,7 @@ pqos_init(const struct pqos_config *config)
                         goto machine_init_error;
                 }
         } else if (access(RESCTRL_PATH "/cpus", F_OK) == 0)
-                LOG_WARN("resctl filesystem mounted! Using MSR "
+                LOG_WARN("resctrl filesystem mounted! Using MSR "
                          "interface may corrupt resctrl filesystem "
                          "and cause unexpected behaviour\n");
 #endif
