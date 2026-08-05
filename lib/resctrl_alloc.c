@@ -597,7 +597,7 @@ resctrl_alloc_assoc_set(const unsigned lcore, const unsigned class_id)
 {
         int ret, ret_mon;
         struct resctrl_cpumask mask;
-        char name[32];
+        char name[RESCTRL_MON_GROUP_NAME_SIZE];
 
         /* check if core is assigned to monitoring group */
         ret_mon = resctrl_mon_assoc_get(lcore, name, DIM(name));

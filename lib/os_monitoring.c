@@ -458,7 +458,7 @@ os_mon_start_cores(const unsigned num_cores,
          */
         for (i = 0; i < num_cores; i++) {
                 const unsigned lcore = cores[i];
-                char name[16];
+                char name[RESCTRL_MON_GROUP_NAME_SIZE];
 
                 ret = pqos_cpu_check_core(cpu, lcore);
                 if (ret != PQOS_RETVAL_OK)

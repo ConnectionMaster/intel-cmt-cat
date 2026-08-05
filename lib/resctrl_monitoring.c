@@ -941,7 +941,7 @@ static int
 resctrl_mon_assoc_restore(const unsigned lcore, const char *name)
 {
         int ret;
-        char buf[128];
+        char buf[RESCTRL_MON_GROUP_NAME_SIZE];
         unsigned class_id;
 
         ASSERT(name != NULL);

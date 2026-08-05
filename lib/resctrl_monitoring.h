@@ -46,6 +46,8 @@ extern "C" {
 #include "resctrl.h"
 #include "types.h"
 
+#define RESCTRL_MON_GROUP_NAME_SIZE 256
+
 /**
  * @brief Initializes resctrl structures used for OS monitoring interface
  *
