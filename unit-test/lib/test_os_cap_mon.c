@@ -310,6 +310,31 @@ test_os_cap_mon_perf_support_tmem_unsupported(void **state
         assert_int_equal(supported, 0);
 }
 
+static void
+test_os_cap_mon_perf_support_invalid_unit(void **state __attribute__((unused)))
+{
+        int ret;
+        int supported;
+        uint32_t scale;
+
+        expect_string(__wrap_pqos_file_exists, path,
+                      "/sys/devices/intel_cqm/events/llc_occupancy");
+        will_return(__wrap_pqos_file_exists, 1);
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/devices/intel_cqm/events/llc_occupancy.scale");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "1\n");
+        expect_string(__wrap_pqos_fopen, name,
+                      "/sys/devices/intel_cqm/events/llc_occupancy.unit");
+        expect_string(__wrap_pqos_fopen, mode, "r");
+        will_return(__wrap_pqos_fopen, "invalid\n");
+
+        ret = os_cap_mon_perf_support(PQOS_MON_EVENT_L3_OCCUP, &supported,
+                                      &scale);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+        assert_int_equal(supported, 1);
+}
+
 int
 main(void)
 {
@@ -327,7 +352,8 @@ main(void)
             cmocka_unit_test(test_os_cap_mon_perf_support_ipc),
             cmocka_unit_test(test_os_cap_mon_perf_support_llc_unsupported),
             cmocka_unit_test(test_os_cap_mon_perf_support_lmem_unsupported),
-            cmocka_unit_test(test_os_cap_mon_perf_support_tmem_unsupported)};
+            cmocka_unit_test(test_os_cap_mon_perf_support_tmem_unsupported),
+            cmocka_unit_test(test_os_cap_mon_perf_support_invalid_unit)};
 
         result += cmocka_run_group_tests(tests, NULL, NULL);
 

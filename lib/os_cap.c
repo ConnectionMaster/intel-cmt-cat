@@ -281,7 +281,7 @@ get_mon_perf_scale_factor(const char *event_name, uint32_t *scale)
         if (result == PQOS_RETVAL_OK)
                 *scale = (uint32_t)(scale_factor * unit);
 
-        return PQOS_RETVAL_OK;
+        return result;
 }
 
 int

@@ -691,6 +691,7 @@ $(BIN_DIR)/test_os_cap_mon: test_os_cap_mon.c $(LIB_OBJS)
 		-Wl,--wrap=pqos_dir_exists \
 		-Wl,--wrap=pqos_file_exists \
 		-Wl,--wrap=pqos_file_contains \
+		-Wl,--wrap=pqos_fopen \
 		-Wl,--wrap=pqos_fread_uint64 \
 		-Wl,--wrap=resctrl_mount \
 		-Wl,--start-group \
