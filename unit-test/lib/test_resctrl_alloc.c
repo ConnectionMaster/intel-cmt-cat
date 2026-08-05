@@ -414,6 +414,35 @@ test_resctrl_alloc_task_validate_error(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
 }
 
+static void
+test_resctrl_alloc_task_search_no_groups(void **state)
+{
+        struct test_data *data = (struct test_data *)*state;
+        unsigned class_id = 0;
+        pid_t task = 1;
+        int ret;
+
+        data->cap_l3ca.num_classes = 0;
+
+        expect_value(__wrap_kill, pid, task);
+        expect_value(__wrap_kill, sig, 0);
+        will_return(__wrap_kill, 0);
+
+        ret = resctrl_alloc_task_search(&class_id, data->cap, task);
+        assert_int_equal(ret, PQOS_RETVAL_ERROR);
+}
+
+static void
+test_resctrl_alloc_get_unused_group_no_groups(void **state
+                                              __attribute__((unused)))
+{
+        unsigned group_id = 0;
+        int ret;
+
+        ret = resctrl_alloc_get_unused_group(0, &group_id);
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
 /* ======== resctrl_alloc_get_num_closids ======== */
 
 static void
@@ -464,6 +493,7 @@ main(void)
 
         const struct CMUnitTest tests_l3ca[] = {
             cmocka_unit_test(test_resctrl_alloc_get_grps_num_l3),
+            cmocka_unit_test(test_resctrl_alloc_task_search_no_groups),
             cmocka_unit_test(test_resctrl_alloc_schemata_write_l3ca)};
 
         const struct CMUnitTest tests_l2ca[] = {
@@ -486,7 +516,8 @@ main(void)
             cmocka_unit_test(test_resctrl_alloc_schemata_read_fopen),
             cmocka_unit_test(test_resctrl_alloc_schemata_write_fopen),
             cmocka_unit_test(test_resctrl_alloc_task_validate_ok),
-            cmocka_unit_test(test_resctrl_alloc_task_validate_error)};
+            cmocka_unit_test(test_resctrl_alloc_task_validate_error),
+            cmocka_unit_test(test_resctrl_alloc_get_unused_group_no_groups)};
 
         const struct CMUnitTest tests_num_closids[] = {
             cmocka_unit_test(test_resctrl_alloc_get_num_closids),
