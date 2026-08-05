@@ -1596,6 +1596,9 @@ parse_allocation_assoc(char *str)
                 narrow_iface(IFACE_MSR | IFACE_MMIO,
                              "-a/--alloc-assoc (channel)");
                 fill_channel_tab(str);
+        } else if (strncasecmp(str, "cos:", 4) == 0) {
+                parse_error(str, "Allocation type \"cos\" is deprecated. "
+                                 "Use \"clos\" instead");
         } else
                 parse_error(str, "Unrecognized allocation type");
 }
