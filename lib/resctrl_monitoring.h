@@ -136,6 +136,7 @@ PQOS_LOCAL int resctrl_mon_is_event_supported(const enum pqos_mon_event event);
  * @return Operations status
  * @retval PQOS_RETVAL_RESOURCE when \a lcore is not assigned to monitoring
  *         group
+ * @retval PQOS_RETVAL_PARAM when \a name is too small
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int resctrl_mon_assoc_get(const unsigned lcore,
@@ -163,6 +164,7 @@ PQOS_LOCAL int resctrl_mon_assoc_set(const unsigned lcore, const char *name);
  * @return Operations status
  * @retval PQOS_RETVAL_RESOURCE when \a task is not assigned to monitoring
  *         group or monitoring is not supported
+ * @retval PQOS_RETVAL_PARAM when \a name is too small
  * @retval PQOS_RETVAL_OK on success
  */
 PQOS_LOCAL int resctrl_mon_assoc_get_pid(const pid_t task,

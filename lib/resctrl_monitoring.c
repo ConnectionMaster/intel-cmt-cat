@@ -77,6 +77,30 @@ filter(const struct dirent *dir)
 }
 
 /**
+ * @brief Copy a monitoring group name to a caller-provided buffer
+ *
+ * @param [out] dst destination buffer
+ * @param [in] dst_size destination buffer size
+ * @param [in] src monitoring group name
+ *
+ * @return Operational status
+ * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_PARAM when the destination buffer is too small
+ */
+static int
+resctrl_mon_name_copy(char *dst, const unsigned dst_size, const char *src)
+{
+        const size_t src_size = strlen(src) + 1;
+
+        if (src_size > dst_size)
+                return PQOS_RETVAL_PARAM;
+
+        memcpy(dst, src, src_size);
+
+        return PQOS_RETVAL_OK;
+}
+
+/**
  * @brief Free memory allocated by scandir
  *
  * @param namelist structure allocated by scandir
@@ -856,8 +880,7 @@ resctrl_mon_assoc_get(const unsigned lcore,
                         goto resctrl_mon_assoc_get_exit;
 
                 if (resctrl_cpumask_get(lcore, &mask)) {
-                        strncpy(name, d_name, name_size);
-                        ret = PQOS_RETVAL_OK;
+                        ret = resctrl_mon_name_copy(name, name_size, d_name);
                         goto resctrl_mon_assoc_get_exit;
                 }
         }
@@ -1008,8 +1031,8 @@ resctrl_mon_assoc_get_pid(const pid_t task,
                         }
 
                         if (value == task) {
-                                strncpy(name, d_name, name_size);
-                                ret = PQOS_RETVAL_OK;
+                                ret = resctrl_mon_name_copy(name, name_size,
+                                                            d_name);
                                 fclose(fd);
                                 goto resctrl_mon_assoc_get_pid_exit;
                         }

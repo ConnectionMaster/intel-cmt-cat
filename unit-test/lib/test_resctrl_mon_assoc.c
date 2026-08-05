@@ -247,6 +247,38 @@ test_resctrl_mon_assoc_get_alloc_nondefault(void **state
 }
 
 static void
+test_resctrl_mon_assoc_get_small_buffer(void **state __attribute__((unused)))
+{
+        int ret;
+        unsigned lcore = 1;
+        char name[4];
+        struct pqos_cap cap;
+        unsigned class_id = 0;
+
+        will_return_maybe(__wrap__pqos_get_cap, &cap);
+
+        will_return(resctrl_mon_is_supported, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 2);
+        expect_value(__wrap_resctrl_alloc_assoc_get, lcore, lcore);
+        will_return(__wrap_resctrl_alloc_assoc_get, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_assoc_get, class_id);
+
+        expect_string(__wrap_scandir, dirp, "/sys/fs/resctrl/mon_groups/");
+        will_return(__wrap_scandir, 1);
+
+        expect_value(__wrap_resctrl_mon_cpumask_read, class_id, class_id);
+        expect_string(__wrap_resctrl_mon_cpumask_read, resctrl_group, "test");
+        will_return(__wrap_resctrl_mon_cpumask_read, PQOS_RETVAL_OK);
+
+        expect_value(__wrap_resctrl_cpumask_get, lcore, lcore);
+        will_return(__wrap_resctrl_cpumask_get, 1);
+
+        ret = resctrl_mon_assoc_get(lcore, name, sizeof(name));
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
+static void
 test_resctrl_mon_assoc_get_unassigned(void **state __attribute__((unused)))
 {
         int ret;
@@ -555,6 +587,27 @@ test_resctrl_mon_assoc_get_pid_alloc_default(void **state
         assert_string_equal(name, "test");
 }
 
+static void
+test_resctrl_mon_assoc_get_pid_small_buffer(void **state
+                                            __attribute__((unused)))
+{
+        int ret;
+        char name[4];
+        struct pqos_cap cap;
+
+        will_return_maybe(__wrap__pqos_get_cap, &cap);
+
+        will_return(resctrl_mon_is_supported, 1);
+        will_return(__wrap_resctrl_alloc_get_grps_num, PQOS_RETVAL_OK);
+        will_return(__wrap_resctrl_alloc_get_grps_num, 0);
+
+        expect_string(__wrap_scandir, dirp, "/sys/fs/resctrl/mon_groups/");
+        will_return(__wrap_scandir, 1);
+
+        ret = resctrl_mon_assoc_get_pid(1, name, sizeof(name));
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
 /* ======== resctrl_mon_assoc_set_pid ======== */
 
 static void
@@ -618,6 +671,7 @@ main(void)
             cmocka_unit_test(test_resctrl_mon_assoc_get_alloc_unsupported),
             cmocka_unit_test(test_resctrl_mon_assoc_get_alloc_default),
             cmocka_unit_test(test_resctrl_mon_assoc_get_alloc_nondefault),
+            cmocka_unit_test(test_resctrl_mon_assoc_get_small_buffer),
             cmocka_unit_test(test_resctrl_mon_assoc_get_unassigned),
             cmocka_unit_test(test_resctrl_mon_assoc_get_error),
             cmocka_unit_test(test_resctrl_mon_assoc_set_unsupported),
@@ -627,6 +681,7 @@ main(void)
             cmocka_unit_test(test_resctrl_mon_assoc_get_pid_no_alloc),
             cmocka_unit_test(test_resctrl_mon_assoc_get_pid_unassigned),
             cmocka_unit_test(test_resctrl_mon_assoc_get_pid_alloc_default),
+            cmocka_unit_test(test_resctrl_mon_assoc_get_pid_small_buffer),
             cmocka_unit_test(test_resctrl_mon_assoc_set_pid_unsupported),
             cmocka_unit_test(test_resctrl_mon_assoc_set_pid),
             cmocka_unit_test(test_resctrl_mon_assoc_set_pid_error),
