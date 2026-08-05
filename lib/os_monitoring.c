@@ -553,7 +553,7 @@ tid_add(const pid_t tid, unsigned *tid_nr, pid_t **tid_map)
 /**
  * @brief Find process TID's and add them to the list
  *
- * @param[in] pid peocess id
+ * @param[in] pid process id
  * @param[in,out] tid_nr number of tids
  * @param[in,out] tid_map tid mapping
  *
@@ -685,9 +685,14 @@ os_mon_start_pids(const unsigned num_pids,
         ret = os_mon_start_events(group);
 
 os_mon_start_pids_exit:
-        if (ret != PQOS_RETVAL_OK && tid_map != NULL) {
-                free(tid_map);
+        if (ret != PQOS_RETVAL_OK) {
+                if (tid_map != NULL)
+                        free(tid_map);
                 group->tid_map = NULL;
+                if (group->pids != NULL) {
+                        free(group->pids);
+                        group->pids = NULL;
+                }
         }
 
         return ret;

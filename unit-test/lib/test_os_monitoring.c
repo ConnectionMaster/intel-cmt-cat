@@ -461,6 +461,7 @@ test_os_mon_start_pids(void **state)
         ret = os_mon_start_pids(num_pids, pids, event, NULL, &group);
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
         assert_null(group.tid_map);
+        assert_null(group.pids);
 }
 
 /* ======== os_mon_add_pids ======== */
