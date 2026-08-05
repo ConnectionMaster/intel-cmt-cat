@@ -532,6 +532,8 @@ resctrl_alloc_task_search(unsigned *class_id,
         ret = resctrl_alloc_get_grps_num(cap, &max_clos);
         if (ret != PQOS_RETVAL_OK)
                 return ret;
+        if (max_clos == 0)
+                return PQOS_RETVAL_ERROR;
 
         /**
          * Starting at highest CLOS - search all CLOS tasks files for task ID
@@ -661,12 +663,12 @@ resctrl_alloc_assoc_get_pid(const pid_t task, unsigned *class_id)
 int
 resctrl_alloc_get_unused_group(const unsigned grps_num, unsigned *group_id)
 {
+        if (group_id == NULL || grps_num == 0)
+                return PQOS_RETVAL_PARAM;
+
         unsigned used_groups[grps_num];
         unsigned i;
         int ret;
-
-        if (group_id == NULL || grps_num == 0)
-                return PQOS_RETVAL_PARAM;
 
         memset(used_groups, 0, sizeof(used_groups));
 
