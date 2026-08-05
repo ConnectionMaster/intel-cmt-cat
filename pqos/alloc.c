@@ -1597,8 +1597,10 @@ parse_allocation_assoc(char *str)
                              "-a/--alloc-assoc (channel)");
                 fill_channel_tab(str);
         } else if (strncasecmp(str, "cos:", 4) == 0) {
-                parse_error(str, "Allocation type \"cos\" is deprecated. "
-                                 "Use \"clos\" instead");
+                printf("Error parsing \"%s\" command line argument.\n", str);
+                printf("Allocation type \"cos\" is deprecated. "
+                       "Use \"clos\" instead.\n");
+                exit(EXIT_FAILURE);
         } else
                 parse_error(str, "Unrecognized allocation type");
 }

@@ -77,6 +77,15 @@ test_selfn_allocation_assoc_negative(void **state)
             "Error parsing \"badalloctype:1=0,3-5\" command line argument. "
             "Unrecognized allocation type\n");
 
+        run_void_function(selfn_allocation_assoc, "cos:1=0,3-5;");
+        assert_int_equal(output_exit_was_called(), 1);
+        assert_int_equal(output_get_exit_status(), EXIT_FAILURE);
+        assert_string_equal(
+            output_get(),
+            "Error parsing \"cos:1=0,3-5\" command line argument.\n"
+            "Allocation type \"cos\" is deprecated. Use \"clos\" "
+            "instead.\n");
+
         run_void_function(selfn_allocation_assoc, "core:0,3-5;");
         assert_int_equal(output_exit_was_called(), 1);
         assert_int_equal(output_get_exit_status(), EXIT_FAILURE);
