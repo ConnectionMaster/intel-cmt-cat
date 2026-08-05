@@ -431,6 +431,7 @@ test_os_mon_start_pids(void **state)
         int ret;
         unsigned num_pids = 1;
         pid_t pids[] = {1};
+        void *context = (void *)0xDEAD;
         enum pqos_mon_event event = PQOS_MON_EVENT_L3_OCCUP;
 
         will_return_maybe(__wrap__pqos_get_cap, data->cap);
@@ -458,10 +459,17 @@ test_os_mon_start_pids(void **state)
         expect_value(os_mon_start_events, group, &group);
         will_return(os_mon_start_events, PQOS_RETVAL_ERROR);
 
-        ret = os_mon_start_pids(num_pids, pids, event, NULL, &group);
+        ret = os_mon_start_pids(num_pids, pids, event, context, &group);
         assert_int_equal(ret, PQOS_RETVAL_ERROR);
         assert_null(group.tid_map);
         assert_null(group.pids);
+        assert_int_equal(group.tid_nr, 0);
+        assert_int_equal(group.num_pids, 0);
+        assert_int_equal(group.event, 0);
+        assert_null(group.context);
+
+        ret = os_mon_stop(&group);
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
 /* ======== os_mon_add_pids ======== */

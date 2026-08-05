@@ -693,6 +693,10 @@ os_mon_start_pids_exit:
                         free(group->pids);
                         group->pids = NULL;
                 }
+                group->tid_nr = 0;
+                group->num_pids = 0;
+                group->event = (enum pqos_mon_event)0;
+                group->context = NULL;
         }
 
         return ret;
