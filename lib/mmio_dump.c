@@ -33,6 +33,7 @@
 
 #include "mmio_dump.h"
 
+#include "cap.h"
 #include "common.h"
 #include "log.h"
 #include "pqos.h"
@@ -88,7 +89,7 @@ static const struct pqos_mmio_dump_space_map_entry mmio_dump_space_map[] = {
      OFFSET_IN_STRUCT(struct pqos_erdt_card, reg_block_size), PAGE_SIZE}};
 
 /**
- * brief Hex dump output helpers
+ * @brief Hex dump output helpers
  **/
 
 /**
@@ -180,7 +181,7 @@ print_hex_dump(const uint8_t *buf,
 }
 
 /**
- * brief Dump for a single address range
+ * @brief Dump a single address range
  *
  * @param [in] base address
  * @param [in] size size in bytes
@@ -192,35 +193,63 @@ print_hex_dump(const uint8_t *buf,
  *
  * @return Operation status
  **/
-static int
+int
 dump_mmio_range(uint64_t base,
-                uint32_t size,
+                uint64_t size,
                 unsigned long offset,
                 unsigned long length,
                 unsigned width_bytes,
                 int le,
                 int binary)
 {
-        unsigned int offset_bytes = offset * width_bytes;
-        unsigned int length_bytes = length * width_bytes;
+        uint64_t offset_bytes;
+        uint64_t length_bytes;
+        uint64_t available;
+        void *map;
+        const uint8_t *buf;
 
-        LOG_INFO("%s: base=0x%lx size=0x%x offset=%lu len=%lu "
+        LOG_INFO("%s: base=%#" PRIx64 " size=%#" PRIx64 " offset=%lu len=%lu "
                  "width(bytes)=%u le=%d bin=%d\n",
-                 __func__, (unsigned long)base, size, offset, length,
-                 width_bytes, le, binary);
+                 __func__, base, size, offset, length, width_bytes, le, binary);
 
-        if ((offset_bytes + length_bytes) > size) {
-                LOG_ERROR("View port out of range\n");
+        if (width_bytes != 1 && width_bytes != 8) {
+                LOG_ERROR("Unsupported MMIO dump width %u\n", width_bytes);
                 return PQOS_RETVAL_PARAM;
         }
-        void *map = pqos_mmap_write(base + offset_bytes, length_bytes);
+
+        available = size / width_bytes;
+        if (offset >= available) {
+                LOG_ERROR("MMIO dump offset %lu is outside %" PRIu64
+                          " available elements\n",
+                          offset, available);
+                return PQOS_RETVAL_PARAM;
+        }
+
+        available -= offset;
+        if (length == 0)
+                length = available;
+        if (length == 0 || length > available) {
+                LOG_ERROR("MMIO dump length %lu exceeds %" PRIu64
+                          " available elements\n",
+                          length, available);
+                return PQOS_RETVAL_PARAM;
+        }
+
+        offset_bytes = (uint64_t)offset * width_bytes;
+        length_bytes = (uint64_t)length * width_bytes;
+        if (base > UINT64_MAX - offset_bytes) {
+                LOG_ERROR("MMIO dump address overflows\n");
+                return PQOS_RETVAL_PARAM;
+        }
+
+        map = pqos_mmap_write(base + offset_bytes, length_bytes);
 
         LOG_DEBUG("%s: map=0x%p\n", __func__, map);
 
         if (map == NULL)
                 return PQOS_RETVAL_ERROR;
 
-        const uint8_t *buf = (const uint8_t *)map;
+        buf = (const uint8_t *)map;
 
         LOG_DEBUG("%s: map = 0x%p, buf=0x%p\n", __func__, map, buf);
 
@@ -232,7 +261,7 @@ dump_mmio_range(uint64_t base,
 }
 
 /**
- * brief MMIO dump for a single MMIO space structure
+ * @brief Dump a single MMIO space structure
  *
  * @param [in] space_struct pointer to the MMIO space structure
  * @param [in] space_type type of the MMIO space
@@ -246,63 +275,63 @@ mmio_dump_space(const void *space_struct,
                 const struct pqos_mmio_dump *dump)
 {
         uint64_t base = 0;
-        uint32_t size = 0;
+        uint64_t size = 0;
 
         switch (space_type) {
         case MMIO_DUMP_SPACE_CMRC: {
                 const struct pqos_erdt_cmrc *s =
                     (const struct pqos_erdt_cmrc *)space_struct;
                 base = s->block_base_addr;
-                size = s->block_size * PAGE_SIZE;
+                size = (uint64_t)s->block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_MMRC: {
                 const struct pqos_erdt_mmrc *s =
                     (const struct pqos_erdt_mmrc *)space_struct;
                 base = s->reg_block_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_MARC_OPT: {
                 const struct pqos_erdt_marc *s =
                     (const struct pqos_erdt_marc *)space_struct;
                 base = s->opt_bw_reg_block_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_MARC_MIN: {
                 const struct pqos_erdt_marc *s =
                     (const struct pqos_erdt_marc *)space_struct;
                 base = s->min_bw_reg_block_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_MARC_MAX: {
                 const struct pqos_erdt_marc *s =
                     (const struct pqos_erdt_marc *)space_struct;
                 base = s->max_bw_reg_block_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_CMRD: {
                 const struct pqos_erdt_cmrd *s =
                     (const struct pqos_erdt_cmrd *)space_struct;
                 base = s->reg_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_IBRD: {
                 const struct pqos_erdt_ibrd *s =
                     (const struct pqos_erdt_ibrd *)space_struct;
                 base = s->reg_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         case MMIO_DUMP_SPACE_CARD: {
                 const struct pqos_erdt_card *s =
                     (const struct pqos_erdt_card *)space_struct;
                 base = s->reg_base_addr;
-                size = s->reg_block_size * PAGE_SIZE;
+                size = (uint64_t)s->reg_block_size * PAGE_SIZE;
                 break;
         }
         default:
@@ -316,10 +345,9 @@ mmio_dump_space(const void *space_struct,
         unsigned long offset = dump->view.offset;
         unsigned long length = dump->view.length;
 
-        printf("MMIO space dump: base=0x%lx size=0x%x offset=%lu len=%lu "
-               "width(bytes)=%u le=%d bin=%d\n",
-               (unsigned long)base, size, offset, length, width_bytes, le,
-               binary);
+        printf("MMIO space dump: base=%#" PRIx64 " size=%#" PRIx64
+               " offset=%lu len=%lu width(bytes)=%u le=%d bin=%d\n",
+               base, size, offset, length, width_bytes, le, binary);
 
         return dump_mmio_range(base, size, offset, length, width_bytes, le,
                                binary);
@@ -329,13 +357,22 @@ int
 mmio_dump(const struct pqos_mmio_dump *dump_cfg)
 {
         int ret = PQOS_RETVAL_OK;
-        uint16_t *curr_domain = NULL;
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
+        const uint16_t *curr_domain;
+        const struct pqos_erdt_info *erdt;
 
-        if (!dump_cfg || !erdt)
+        if (dump_cfg == NULL)
                 return PQOS_RETVAL_PARAM;
 
-        if (dump_cfg->topology.domain_ids == NULL)
+        erdt = _pqos_get_erdt();
+        if (erdt == NULL)
+                return PQOS_RETVAL_PARAM;
+
+        if (dump_cfg->topology.num_domain_ids == 0 ||
+            dump_cfg->topology.domain_ids == NULL ||
+            dump_cfg->topology.space < MMIO_DUMP_SPACE_CMRC ||
+            dump_cfg->topology.space >= MMIO_DUMP_SPACE_ERROR ||
+            (dump_cfg->fmt.width != MMIO_DUMP_WIDTH_64BIT &&
+             dump_cfg->fmt.width != MMIO_DUMP_WIDTH_8BIT))
                 return PQOS_RETVAL_PARAM;
 
         curr_domain = dump_cfg->topology.domain_ids;

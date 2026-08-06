@@ -31,27 +31,49 @@
  *
  */
 
-#ifndef MMIO_DUMP_H
-#define MMIO_DUMP_H
+#ifndef __PQOS_MMIO_DUMP_H__
+#define __PQOS_MMIO_DUMP_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "cap.h"
 #include "pqos.h"
+#include "types.h"
+/**
+ * @brief Print MMIO spaces according to the requested configuration
+ *
+ * @param [in] dump_cfg dump configuration
+ *
+ * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_PARAM if the configuration is invalid
+ * @retval PQOS_RETVAL_ERROR if the MMIO space cannot be dumped
+ */
+PQOS_LOCAL int mmio_dump(const struct pqos_mmio_dump *dump_cfg);
 
 /**
- *  @brief Shows the hex dumps of MMIO spaces according to given parameters
+ * @brief Dump a single MMIO address range
  *
- *  @param [in] dump defines dump output
+ * @param [in] base base address
+ * @param [in] size MMIO space size in bytes
+ * @param [in] offset offset in elements from the base
+ * @param [in] length number of elements, or zero for all remaining elements
+ * @param [in] width_bytes element width in bytes
+ * @param [in] le little-endian output flag
+ * @param [in] binary binary output flag
  *
- *  @retval PQOS_RETVAL_OK success
- **/
-PQOS_LOCAL int mmio_dump(const struct pqos_mmio_dump *dump_cfg);
+ * @return Operation status
+ */
+PQOS_LOCAL int dump_mmio_range(uint64_t base,
+                               uint64_t size,
+                               unsigned long offset,
+                               unsigned long length,
+                               unsigned width_bytes,
+                               int le,
+                               int binary);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MMIO_DUMP_H */
+#endif /* __PQOS_MMIO_DUMP_H__ */

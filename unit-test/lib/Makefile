@@ -764,6 +764,15 @@ $(BIN_DIR)/test_mmio: test_mmio.c $(LIB_OBJS)
 		-Wl,--start-group \
 		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
 
+$(BIN_DIR)/test_mmio_dump: test_mmio_dump.c $(LIB_OBJS)
+	mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) \
+		-Wl,--wrap=pqos_mmap_write \
+		-Wl,--wrap=pqos_munmap \
+		-Wl,--wrap=_pqos_get_erdt \
+		-Wl,--start-group \
+		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
+
 $(BIN_DIR)/test_acpi: test_acpi.c $(LIB_OBJS)
 	mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) \
