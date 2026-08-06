@@ -107,22 +107,26 @@ PQOS_LOCAL uint64_t scale_io_mbm_value(const struct pqos_erdt_ibrd *ibrd,
 /**
  * @brief Get CPU index by Domain ID
  *
+ * @param [in] erdt ERDT information
  * @param [in] domain_id Domain ID
  *
  * @return CPU index or -1 if not found
  */
 PQOS_LOCAL
-int get_cpu_agent_idx_by_domain_id(uint16_t domain_id);
+int get_cpu_agent_idx_by_domain_id(const struct pqos_erdt_info *erdt,
+                                   uint16_t domain_id);
 
 /**
  * @brief Get Device index by Domain ID
  *
+ * @param [in] erdt ERDT information
  * @param [in] domain_id Domain ID
  *
  * @return Device index or -1 if not found
  */
 PQOS_LOCAL
-int get_dev_agent_idx_by_domain_id(uint16_t domain_id);
+int get_dev_agent_idx_by_domain_id(const struct pqos_erdt_info *erdt,
+                                   uint16_t domain_id);
 
 #ifdef __cplusplus
 }

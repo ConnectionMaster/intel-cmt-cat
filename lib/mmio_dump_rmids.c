@@ -33,6 +33,7 @@
 
 #include "mmio_dump_rmids.h"
 
+#include "cap.h"
 #include "common.h"
 #include "log.h"
 #include "mmio.h"
@@ -50,49 +51,38 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#define BYTES_PER_UINT64    8
-#define BITS_PER_BYTE       8
-#define UINT64_CHAR_BUF_LEN (BYTES_PER_UINT64 * BITS_PER_BYTE)
-
-static char bin_buf[UINT64_CHAR_BUF_LEN];
+#define UINT64_BINARY_LENGTH 64
 
 /**
- * @brief Dump for a single address range
+ * @brief Convert a 64-bit value to binary text
  *
- * @param [in]  val to convert to bin
- * @param [out] bin character binary representation
- *
- * @return Operation status
+ * @param [in] value value to convert
+ * @param [out] binary null-terminated binary representation
  **/
-static int
-_uint64_to_bin(uint64_t val, char bin[])
+void
+uint64_to_binary(uint64_t value, char binary[UINT64_BINARY_LENGTH + 1])
 {
-        char *curr_byte = (char *)&val + (BYTES_PER_UINT64 - 1);
+        unsigned i;
 
-        for (int i = 0; i < BYTES_PER_UINT64; i++) {
-                for (int j = (BITS_PER_BYTE - 1); j >= 0; --j) {
-                        bin[i * BITS_PER_BYTE + (BITS_PER_BYTE - 1) - j] =
-                            (*curr_byte & (1 << j)) ? '1' : '0';
-                }
-                curr_byte--;
-        }
-
-        return 0;
+        for (i = 0; i < UINT64_BINARY_LENGTH; i++)
+                binary[i] = (value & (1ULL << (63 - i))) ? '1' : '0';
+        binary[UINT64_BINARY_LENGTH] = '\0';
 }
 
 static int
-mmio_dump_rmids_cmt(const struct pqos_mmio_dump_rmids *dump_cfg)
+mmio_dump_rmids_cmt(const struct pqos_mmio_dump_rmids *dump_cfg,
+                    const struct pqos_erdt_info *erdt)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         l3_cmt_rmid_t rmid_raw;
         uint64_t value;
         int ret;
+        char binary[UINT64_BINARY_LENGTH + 1];
 
         printf("RMID CMT DUMP:\n");
 
         for (unsigned int i = 0; i < dump_cfg->num_domain_ids; i++) {
-                int cpu_agent_idx =
-                    get_cpu_agent_idx_by_domain_id(dump_cfg->domain_ids[i]);
+                int cpu_agent_idx = get_cpu_agent_idx_by_domain_id(
+                    erdt, dump_cfg->domain_ids[i]);
                 if (cpu_agent_idx == -1)
                         return PQOS_RETVAL_ERROR;
                 const struct pqos_erdt_cmrc *cmrc =
@@ -112,8 +102,8 @@ mmio_dump_rmids_cmt(const struct pqos_mmio_dump_rmids *dump_cfg)
                                     : rmid_raw;
 
                         if (dump_cfg->bin) {
-                                _uint64_to_bin(rmid_raw, bin_buf);
-                                printf("RMID %04u. Value: %s\n", rmid, bin_buf);
+                                uint64_to_binary(value, binary);
+                                printf("RMID %04u. Value: %s\n", rmid, binary);
                         } else {
                                 printf("RMID %04u. Value: 0x%016" PRIx64 "\n",
                                        rmid, value);
@@ -125,17 +115,18 @@ mmio_dump_rmids_cmt(const struct pqos_mmio_dump_rmids *dump_cfg)
 }
 
 static int
-mmio_dump_rmids_mbm(const struct pqos_mmio_dump_rmids *dump_cfg)
+mmio_dump_rmids_mbm(const struct pqos_mmio_dump_rmids *dump_cfg,
+                    const struct pqos_erdt_info *erdt)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         l3_mbm_rmid_t rmid_raw;
         uint64_t value;
+        char binary[UINT64_BINARY_LENGTH + 1];
         int ret;
 
         printf("RMID MBM DUMP:\n");
         for (unsigned int i = 0; i < dump_cfg->num_domain_ids; i++) {
-                int cpu_agent_idx =
-                    get_cpu_agent_idx_by_domain_id(dump_cfg->domain_ids[i]);
+                int cpu_agent_idx = get_cpu_agent_idx_by_domain_id(
+                    erdt, dump_cfg->domain_ids[i]);
                 if (cpu_agent_idx == -1)
                         return PQOS_RETVAL_ERROR;
                 const struct pqos_erdt_mmrc *mmrc =
@@ -161,9 +152,9 @@ mmio_dump_rmids_mbm(const struct pqos_mmio_dump_rmids *dump_cfg)
                                         : rmid_raw;
 
                                 if (dump_cfg->bin) {
-                                        _uint64_to_bin(rmid_raw, bin_buf);
+                                        uint64_to_binary(value, binary);
                                         printf("RMID %04u. Value: %s\n", rmid,
-                                               bin_buf);
+                                               binary);
                                 } else {
                                         printf("RMID %04u. Value: 0x%016" PRIx64
                                                "\n",
@@ -177,17 +168,18 @@ mmio_dump_rmids_mbm(const struct pqos_mmio_dump_rmids *dump_cfg)
 }
 
 static int
-mmio_dump_rmids_iol3(const struct pqos_mmio_dump_rmids *dump_cfg)
+mmio_dump_rmids_iol3(const struct pqos_mmio_dump_rmids *dump_cfg,
+                     const struct pqos_erdt_info *erdt)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         iol3_cmt_rmid_t rmid_raw;
         uint64_t value;
         int ret;
+        char binary[UINT64_BINARY_LENGTH + 1];
 
         printf("RMID IO L3 CMT DUMP:\n");
         for (unsigned int i = 0; i < dump_cfg->num_domain_ids; i++) {
-                int dev_agent_idx =
-                    get_dev_agent_idx_by_domain_id(dump_cfg->domain_ids[i]);
+                int dev_agent_idx = get_dev_agent_idx_by_domain_id(
+                    erdt, dump_cfg->domain_ids[i]);
                 if (dev_agent_idx == -1)
                         return PQOS_RETVAL_ERROR;
                 const struct pqos_erdt_cmrd *cmrd =
@@ -208,8 +200,8 @@ mmio_dump_rmids_iol3(const struct pqos_mmio_dump_rmids *dump_cfg)
                                 : rmid_raw;
 
                         if (dump_cfg->bin) {
-                                _uint64_to_bin(rmid_raw, bin_buf);
-                                printf("RMID %04u. Value: %s\n", rmid, bin_buf);
+                                uint64_to_binary(value, binary);
+                                printf("RMID %04u. Value: %s\n", rmid, binary);
                         } else {
                                 printf("RMID %04u. Value: 0x%016" PRIx64 "\n",
                                        rmid, value);
@@ -221,18 +213,18 @@ mmio_dump_rmids_iol3(const struct pqos_mmio_dump_rmids *dump_cfg)
 }
 
 static int
-mmio_dump_rmids_iol3_total(const struct pqos_mmio_dump_rmids *dump_cfg)
-
+mmio_dump_rmids_iol3_total(const struct pqos_mmio_dump_rmids *dump_cfg,
+                           const struct pqos_erdt_info *erdt)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         iol3_mbm_rmid_t rmid_raw;
         uint64_t value;
         int ret;
+        char binary[UINT64_BINARY_LENGTH + 1];
 
         printf("RMID IO L3 TOTAL DUMP:\n");
         for (unsigned int i = 0; i < dump_cfg->num_domain_ids; i++) {
-                int dev_agent_idx =
-                    get_dev_agent_idx_by_domain_id(dump_cfg->domain_ids[i]);
+                int dev_agent_idx = get_dev_agent_idx_by_domain_id(
+                    erdt, dump_cfg->domain_ids[i]);
                 if (dev_agent_idx == -1)
                         return PQOS_RETVAL_ERROR;
                 const struct pqos_erdt_ibrd *ibrd =
@@ -253,8 +245,8 @@ mmio_dump_rmids_iol3_total(const struct pqos_mmio_dump_rmids *dump_cfg)
                                     : rmid_raw;
 
                         if (dump_cfg->bin) {
-                                _uint64_to_bin(rmid_raw, bin_buf);
-                                printf("RMID %04u. Value: %s\n", rmid, bin_buf);
+                                uint64_to_binary(value, binary);
+                                printf("RMID %04u. Value: %s\n", rmid, binary);
                         } else {
                                 printf("RMID %04u. Value: 0x%016" PRIx64 "\n",
                                        rmid, value);
@@ -266,18 +258,18 @@ mmio_dump_rmids_iol3_total(const struct pqos_mmio_dump_rmids *dump_cfg)
 }
 
 static int
-mmio_dump_rmids_iol3_miss(const struct pqos_mmio_dump_rmids *dump_cfg)
-
+mmio_dump_rmids_iol3_miss(const struct pqos_mmio_dump_rmids *dump_cfg,
+                          const struct pqos_erdt_info *erdt)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         iol3_mbm_rmid_t rmid_raw;
         uint64_t value;
         int ret;
+        char binary[UINT64_BINARY_LENGTH + 1];
 
         printf("RMID IO L3 MISS DUMP:\n");
         for (unsigned int i = 0; i < dump_cfg->num_domain_ids; i++) {
-                int dev_agent_idx =
-                    get_dev_agent_idx_by_domain_id(dump_cfg->domain_ids[i]);
+                int dev_agent_idx = get_dev_agent_idx_by_domain_id(
+                    erdt, dump_cfg->domain_ids[i]);
                 if (dev_agent_idx == -1)
                         return PQOS_RETVAL_ERROR;
                 const struct pqos_erdt_ibrd *ibrd =
@@ -299,8 +291,8 @@ mmio_dump_rmids_iol3_miss(const struct pqos_mmio_dump_rmids *dump_cfg)
                                     : rmid_raw;
 
                         if (dump_cfg->bin) {
-                                _uint64_to_bin(rmid_raw, bin_buf);
-                                printf("RMID %04u. Value: %s\n", rmid, bin_buf);
+                                uint64_to_binary(value, binary);
+                                printf("RMID %04u. Value: %s\n", rmid, binary);
                         } else {
                                 printf("RMID %04u. Value: 0x%016" PRIx64 "\n",
                                        rmid, value);
@@ -314,26 +306,37 @@ mmio_dump_rmids_iol3_miss(const struct pqos_mmio_dump_rmids *dump_cfg)
 int
 mmio_dump_rmids(const struct pqos_mmio_dump_rmids *dump_cfg)
 {
+        const struct pqos_erdt_info *erdt;
+
+        if (dump_cfg == NULL)
+                return PQOS_RETVAL_PARAM;
+
+        erdt = _pqos_get_erdt();
+        if (erdt == NULL || dump_cfg->num_domain_ids == 0 ||
+            dump_cfg->domain_ids == NULL || dump_cfg->num_rmids == 0 ||
+            dump_cfg->rmids == NULL ||
+            dump_cfg->rmid_type > MMIO_DUMP_RMID_IO_MISS || dump_cfg->bin > 1 ||
+            dump_cfg->upscale > 1)
+                return PQOS_RETVAL_PARAM;
+
+        if (dump_cfg->rmid_type == MMIO_DUMP_RMID_TYPE_MBM &&
+            (dump_cfg->num_mem_regions <= 0 ||
+             dump_cfg->num_mem_regions > PQOS_MAX_MEM_REGIONS))
+                return PQOS_RETVAL_PARAM;
+
         switch (dump_cfg->rmid_type) {
         case MMIO_DUMP_RMID_TYPE_CMT:
-                return mmio_dump_rmids_cmt(dump_cfg);
-                break;
+                return mmio_dump_rmids_cmt(dump_cfg, erdt);
         case MMIO_DUMP_RMID_TYPE_MBM:
-                return mmio_dump_rmids_mbm(dump_cfg);
-                break;
+                return mmio_dump_rmids_mbm(dump_cfg, erdt);
         case MMIO_DUMP_RMID_IO_L3:
-                return mmio_dump_rmids_iol3(dump_cfg);
-                break;
+                return mmio_dump_rmids_iol3(dump_cfg, erdt);
         case MMIO_DUMP_RMID_IO_TOTAL:
-                return mmio_dump_rmids_iol3_total(dump_cfg);
-                break;
+                return mmio_dump_rmids_iol3_total(dump_cfg, erdt);
         case MMIO_DUMP_RMID_IO_MISS:
-                return mmio_dump_rmids_iol3_miss(dump_cfg);
-                break;
+                return mmio_dump_rmids_iol3_miss(dump_cfg, erdt);
         default:
                 LOG_ERROR("Unsupported RMID type %d\n", dump_cfg->rmid_type);
                 return PQOS_RETVAL_PARAM;
         }
-
-        return PQOS_RETVAL_OK;
 }

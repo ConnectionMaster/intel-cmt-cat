@@ -107,10 +107,9 @@ scale_io_mbm_value(const struct pqos_erdt_ibrd *ibrd,
 }
 
 int
-get_cpu_agent_idx_by_domain_id(uint16_t domain_id)
+get_cpu_agent_idx_by_domain_id(const struct pqos_erdt_info *erdt,
+                               uint16_t domain_id)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
-
         for (unsigned int i = 0; i < erdt->num_cpu_agents; i++)
                 if (erdt->cpu_agents[i].rmdd.domain_id == domain_id)
                         return i;
@@ -119,10 +118,9 @@ get_cpu_agent_idx_by_domain_id(uint16_t domain_id)
 }
 
 int
-get_dev_agent_idx_by_domain_id(uint16_t domain_id)
+get_dev_agent_idx_by_domain_id(const struct pqos_erdt_info *erdt,
+                               uint16_t domain_id)
 {
-        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
-
         for (unsigned int i = 0; i < erdt->num_dev_agents; i++)
                 if (erdt->dev_agents[i].rmdd.domain_id == domain_id)
                         return i;

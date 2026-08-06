@@ -31,27 +31,36 @@
  *
  */
 
-#ifndef MMIO_DUMP_RMID_H
-#define MMIO_DUMP_RMID_H
+#ifndef __PQOS_MMIO_DUMP_RMIDS_H__
+#define __PQOS_MMIO_DUMP_RMIDS_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "cap.h"
 #include "pqos.h"
+#include "types.h"
+/**
+ * @brief Print RMID values according to the requested configuration
+ *
+ * @param [in] dump_cfg RMID dump configuration
+ *
+ * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_PARAM if the configuration is invalid
+ * @retval PQOS_RETVAL_ERROR if the RMID values cannot be dumped
+ */
+PQOS_LOCAL int mmio_dump_rmids(const struct pqos_mmio_dump_rmids *dump_cfg);
 
 /**
- *  @brief Shows the RMID dumps for appropriate RMID type
+ * @brief Convert a 64-bit value to binary text
  *
- *  @param [in] dump defines dump output
- *
- *  @retval PQOS_RETVAL_OK success
- **/
-PQOS_LOCAL int mmio_dump_rmids(const struct pqos_mmio_dump_rmids *dump_cfg);
+ * @param [in] value value to convert
+ * @param [out] binary null-terminated 65-byte binary representation
+ */
+PQOS_LOCAL void uint64_to_binary(uint64_t value, char binary[65]);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MMIO_DUMP_RMID_H */
+#endif /* __PQOS_MMIO_DUMP_RMIDS_H__ */
