@@ -45,7 +45,6 @@
 #include "log.h"
 #include "mmio.h"
 #include "mmio_common.h"
-#include "utils.h"
 
 #include <inttypes.h>
 #include <pthread.h>
@@ -123,19 +122,39 @@ _get_regions_mba(const struct pqos_cpu_agent_info *cpu_agent,
         return PQOS_RETVAL_OK;
 }
 
+static const struct pqos_cpu_agent_info *
+get_mmio_cpu_agent_by_domain(const struct pqos_erdt_info *erdt,
+                             uint16_t domain_id)
+{
+        int idx = get_cpu_agent_idx_by_domain_id(erdt, domain_id);
+
+        return idx >= 0 ? &erdt->cpu_agents[idx] : NULL;
+}
+
+static const struct pqos_device_agent_info *
+get_mmio_dev_agent_by_domain(const struct pqos_erdt_info *erdt,
+                             uint16_t domain_id)
+{
+        int idx = get_dev_agent_idx_by_domain_id(erdt, domain_id);
+
+        return idx >= 0 ? &erdt->dev_agents[idx] : NULL;
+}
+
 /**
  * @brief Returns value of L3 Non-Contiguous CBM(Cache Bit Mask) support
  *
+ * @param [in] erdt ERDT information
  * @param [in]  domain_id Resource allocation domain's ID
  *
  * @return Operation status
  * @retval struct pqos_erdt_card member non_contiguous_cbm on success
  */
 static int
-cap_get_mmio_l3ca_non_contiguous(uint16_t domain_id)
+cap_get_mmio_l3ca_non_contiguous(const struct pqos_erdt_info *erdt,
+                                 uint16_t domain_id)
 {
         const struct pqos_device_agent_info *dev_agent =
-            get_dev_agent_by_domain(domain_id);
+            get_mmio_dev_agent_by_domain(erdt, domain_id);
 
         if (dev_agent == NULL) {
                 LOG_ERROR("domain_id is wrong\n");
@@ -148,17 +167,19 @@ cap_get_mmio_l3ca_non_contiguous(uint16_t domain_id)
 /**
  * @brief Returns value of L3 Zero-length CBM(Cache Bit Mask) support
  *
+ * @param [in] erdt ERDT information
  * @param [in]  domain_id Resource allocation domain's ID
  *
  * @return Operation status
  * @retval struct pqos_erdt_card member zero_length_bitmask on success
  */
 static int
-cap_get_mmio_l3ca_zero_length(uint16_t domain_id)
+cap_get_mmio_l3ca_zero_length(const struct pqos_erdt_info *erdt,
+                              uint16_t domain_id)
 {
 
         const struct pqos_device_agent_info *dev_agent =
-            get_dev_agent_by_domain(domain_id);
+            get_mmio_dev_agent_by_domain(erdt, domain_id);
 
         if (dev_agent == NULL) {
                 LOG_ERROR("domain_id is wrong\n");
@@ -225,7 +246,7 @@ mmio_mba_set(const unsigned mba_id,
 
         for (unsigned i = 0; i < num_clos; i++) {
                 const struct pqos_cpu_agent_info *cpu_agent =
-                    get_cpu_agent_by_domain(requested[i].domain_id);
+                    get_mmio_cpu_agent_by_domain(erdt, requested[i].domain_id);
 
                 if (cpu_agent == NULL ||
                     requested[i].class_id >= erdt->max_clos ||
@@ -335,7 +356,7 @@ mmio_mba_get(const unsigned mba_id,
         if (erdt->max_clos > max_num_clos)
                 return PQOS_RETVAL_ERROR;
 
-        cpu_agent = get_cpu_agent_by_domain(mba_tab[0].domain_id);
+        cpu_agent = get_mmio_cpu_agent_by_domain(erdt, mba_tab[0].domain_id);
         if (cpu_agent == NULL || num_mem_regions < 0 ||
             num_mem_regions > PQOS_MAX_MEM_REGIONS)
                 return PQOS_RETVAL_PARAM;
@@ -383,14 +404,14 @@ mmio_l3ca_set(const unsigned l3cat_id,
 
         // Check if all domains are valid
         for (unsigned i = 0; i < num_ca; i++) {
-                if (!get_dev_agent_by_domain(ca[i].domain_id)) {
+                if (!get_mmio_dev_agent_by_domain(erdt, ca[i].domain_id)) {
                         LOG_ERROR("Domain id %u is unavailable\n",
                                   ca[i].domain_id);
                         return PQOS_RETVAL_PARAM;
                 }
 
                 io_l3_ways_mask =
-                    (1ULL << get_dev_agent_by_domain(ca[i].domain_id)
+                    (1ULL << get_mmio_dev_agent_by_domain(erdt, ca[i].domain_id)
                                  ->rmdd.num_io_l3_ways) -
                     1ULL;
                 if (ca[i].u.ways_mask > io_l3_ways_mask) {
@@ -405,7 +426,7 @@ mmio_l3ca_set(const unsigned l3cat_id,
 
         for (i = 0; i < num_ca; i++) {
                 /* Check L3 CBM is non-contiguous */
-                if (!cap_get_mmio_l3ca_non_contiguous(ca[i].domain_id)) {
+                if (!cap_get_mmio_l3ca_non_contiguous(erdt, ca[i].domain_id)) {
                         /* Check all CLOS CBM are contiguous */
                         if (!IS_CONTIGNOUS(ca[i])) {
                                 LOG_ERROR("L3 CAT CLOS%u bit mask is not "
@@ -417,7 +438,7 @@ mmio_l3ca_set(const unsigned l3cat_id,
 
                 /* Check L3 CBM is zero-length bitmask */
                 if (ca[i].u.ways_mask == 0 &&
-                    !cap_get_mmio_l3ca_zero_length(ca[i].domain_id)) {
+                    !cap_get_mmio_l3ca_zero_length(erdt, ca[i].domain_id)) {
                         LOG_ERROR("L3 CAT CLOS%u bit mask is 0 and Zero-length "
                                   "bitmask is not supported in Domain id %d.\n",
                                   ca[i].class_id, ca[i].domain_id);
@@ -425,7 +446,7 @@ mmio_l3ca_set(const unsigned l3cat_id,
                 }
 
                 ret = set_iol3_cbm_clos_v1(
-                    &get_dev_agent_by_domain(ca[i].domain_id)->card,
+                    &get_mmio_dev_agent_by_domain(erdt, ca[i].domain_id)->card,
                     ca[i].class_id, ca[i].u.ways_mask);
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
@@ -456,7 +477,7 @@ mmio_l3ca_get(const unsigned l3cat_id,
 
         // Check if all domains are valid
         for (unsigned i = 0; i < erdt->max_clos; i++) {
-                if (!get_dev_agent_by_domain(ca[i].domain_id)) {
+                if (!get_mmio_dev_agent_by_domain(erdt, ca[i].domain_id)) {
                         LOG_ERROR("Domain ID 0x%x is unavailable\n",
                                   ca[i].domain_id);
                         return PQOS_RETVAL_PARAM;
@@ -465,8 +486,8 @@ mmio_l3ca_get(const unsigned l3cat_id,
 
         for (i = 0; i < erdt->max_clos; i++) {
                 ret = get_iol3_cbm_clos_v1(
-                    &get_dev_agent_by_domain(ca[i].domain_id)->card, i,
-                    REG_BLOCK_SIZE_ZERO, &value);
+                    &get_mmio_dev_agent_by_domain(erdt, ca[i].domain_id)->card,
+                    i, REG_BLOCK_SIZE_ZERO, &value);
 
                 if (ret != PQOS_RETVAL_OK)
                         return ret;

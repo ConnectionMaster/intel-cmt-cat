@@ -297,7 +297,6 @@ test_mba_set_resolves_domain_id(void **state __attribute__((unused)))
         requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MAX_IDX] = -1;
 
         will_return(__wrap__pqos_get_erdt, &erdt);
-        will_return(__wrap__pqos_get_erdt, &erdt);
         expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
                      &cpu_agents[1].marc);
         expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, region_num, 0);
@@ -330,7 +329,6 @@ test_mba_get_ignores_num_clos_input(void **state __attribute__((unused)))
 
         will_return(__wrap__pqos_get_erdt, &erdt);
         will_return(__wrap__pqos_get_mrrm, &mrrm);
-        will_return(__wrap__pqos_get_erdt, &erdt);
         expect_value_count(__wrap_get_mba_optimal_bw_region_clos_v1, marc,
                            &cpu_agent.marc, num_reads);
         expect_any_count(__wrap_get_mba_optimal_bw_region_clos_v1, region_num,

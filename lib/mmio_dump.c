@@ -36,8 +36,8 @@
 #include "cap.h"
 #include "common.h"
 #include "log.h"
+#include "mmio_common.h"
 #include "pqos.h"
-#include "utils.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -378,10 +378,14 @@ mmio_dump(const struct pqos_mmio_dump *dump_cfg)
         curr_domain = dump_cfg->topology.domain_ids;
 
         for (uint32_t idx = 0; idx < dump_cfg->topology.num_domain_ids; idx++) {
+                const int cpu_idx =
+                    get_cpu_agent_idx_by_domain_id(erdt, curr_domain[idx]);
+                const int dev_idx =
+                    get_dev_agent_idx_by_domain_id(erdt, curr_domain[idx]);
                 const struct pqos_cpu_agent_info *cpu_agent =
-                    get_cpu_agent_by_domain(curr_domain[idx]);
+                    cpu_idx >= 0 ? &erdt->cpu_agents[cpu_idx] : NULL;
                 const struct pqos_device_agent_info *dev_agent =
-                    get_dev_agent_by_domain(curr_domain[idx]);
+                    dev_idx >= 0 ? &erdt->dev_agents[dev_idx] : NULL;
 
                 if (cpu_agent == NULL && dev_agent == NULL) {
                         LOG_ERROR("Domain ID %d is unavailable\n",

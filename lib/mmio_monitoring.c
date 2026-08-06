@@ -72,16 +72,20 @@ struct rmid_list_t {
 };
 
 static const struct pqos_cpu_agent_info *
-get_cpu_agent_by_core(unsigned lcore)
+get_cpu_agent_by_core(const struct pqos_erdt_info *erdt, unsigned lcore)
 {
+        int idx;
         const struct pqos_cores_domains *cores_domains =
             _pqos_get_cores_domains();
 
-        if (cores_domains == NULL || cores_domains->domains == NULL ||
-            lcore >= cores_domains->num_cores)
+        if (erdt == NULL || cores_domains == NULL ||
+            cores_domains->domains == NULL || lcore >= cores_domains->num_cores)
                 return NULL;
 
-        return get_cpu_agent_by_domain(cores_domains->domains[lcore]);
+        idx =
+            get_cpu_agent_idx_by_domain_id(erdt, cores_domains->domains[lcore]);
+
+        return idx >= 0 ? &erdt->cpu_agents[idx] : NULL;
 }
 
 /*
@@ -572,6 +576,7 @@ mmio_mon_start_counter(struct pqos_mon_data *group,
 {
         const unsigned num_cores = group->num_cores;
         const struct pqos_cpuinfo *cpu = _pqos_get_cpu();
+        const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         pqos_rmid_t core2rmid[num_cores];
         struct pqos_mon_poll_ctx *ctxs = NULL;
         unsigned num_ctxs = 0;
@@ -593,7 +598,7 @@ mmio_mon_start_counter(struct pqos_mon_data *group,
         for (i = 0; i < group->num_cores; i++) {
                 const unsigned lcore = group->cores[i];
                 const struct pqos_cpu_agent_info *cpu_agent =
-                    get_cpu_agent_by_core(lcore);
+                    get_cpu_agent_by_core(erdt, lcore);
                 unsigned j;
                 unsigned cluster = 0;
 
@@ -1116,7 +1121,7 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                         const unsigned lcore = group->intl->hw.ctx[i].lcore;
                         const pqos_rmid_t rmid = group->intl->hw.ctx[i].rmid;
                         const struct pqos_cpu_agent_info *cpu_agent =
-                            get_cpu_agent_by_core(lcore);
+                            get_cpu_agent_by_core(erdt, lcore);
                         const struct pqos_erdt_cmrc *cmrc;
 
                         if (cpu_agent == NULL)
@@ -1149,7 +1154,7 @@ mmio_mon_read_counter(struct pqos_mon_data *group,
                         const unsigned lcore = group->intl->hw.ctx[i].lcore;
                         const pqos_rmid_t rmid = group->intl->hw.ctx[i].rmid;
                         const struct pqos_cpu_agent_info *cpu_agent =
-                            get_cpu_agent_by_core(lcore);
+                            get_cpu_agent_by_core(erdt, lcore);
                         const struct pqos_erdt_mmrc *mmrc;
 
                         if (cpu_agent == NULL)
