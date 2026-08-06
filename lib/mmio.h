@@ -31,8 +31,8 @@
  *
  */
 
-#ifndef MMIO_H
-#define MMIO_H
+#ifndef __PQOS_MMIO_H__
+#define __PQOS_MMIO_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -143,7 +143,7 @@ int set_mbm_mba_mode_v1(const struct pqos_erdt_rmdd *rmdd, unsigned int value);
 
 /**
  * @brief Returns L3 cache RMID subrange n_first...n_last for a given resource
- * management domain (CBB for DMR)
+ * management domain
  *
  * @param[in] cmrc structure under given RMDD containing MMIO
  *            description for L3_CMT_RMID_n register set
@@ -165,7 +165,7 @@ int get_l3_cmt_rmid_range_v1(const struct pqos_erdt_cmrc *cmrc,
 
 /**
  * @brief Returns memory bandwidth RMID subrange n_first...n_last for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] mmrc structure under given RMDD containing MMIO
  * description for MBM_Region_m_RMID_n register set
@@ -189,7 +189,7 @@ int get_l3_mbm_region_rmid_range_v1(const struct pqos_erdt_mmrc *mmrc,
 
 /**
  * @brief Get MBA optimal bandwidth value for a particular CLOS for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] marc structure under given RMDD containing MMIO
  *            description for MBA_OPTIMAL_BW_n register set
@@ -208,7 +208,7 @@ int get_mba_optimal_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
 
 /**
  * @brief Setup MBA optimal bandwidth value for a particular CLOS for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] marc structure under given RMDD containing MMIO
  *            description for MBA_OPTIMAL_BW_n register set
@@ -227,7 +227,7 @@ int set_mba_optimal_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
 
 /**
  * @brief Get MBA minimum bandwidth value for a particular CLOS for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] marc structure under given RMDD containing MMIO
  *            description for MBA_OPTIMAL_BW_n register set
@@ -246,7 +246,7 @@ int get_mba_min_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
 
 /**
  * @brief Setup MBA optimal bandwidth value for a particular CLOS for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] marc structure under given RMDD containing MMIO
  *            description for MBA_OPTIMAL_BW_n register set
@@ -265,7 +265,7 @@ int set_mba_min_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
 
 /**
  * @brief Get MBA maximum bandwidth value for a particular CLOS for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] marc structure under given RMDD containing MMIO
  *            description for MBA_OPTIMAL_BW_n register set
@@ -283,7 +283,7 @@ int get_mba_max_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
 
 /**
  * @brief Setup MBA maximum bandwidth value for a particular CLOS for a region
- * under a given resource management domain (CBB for DMR)
+ * under a given resource management domain
  *
  * @param[in] marc structure under given RMDD containing MMIO
  *            description for MBA_OPTIMAL_BW_n register set
@@ -302,7 +302,7 @@ int set_mba_max_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
 
 /**
  * @brief Returns IO L3 cache RMID subrange n_first...n_last for a given
- * resource management domain (CBB for DMR)
+ * resource management domain
  *
  * @param[in] cmrd structure under given RMDD containing MMIO
  *            description for IOL3_CMT_RMID_n register set
@@ -323,7 +323,7 @@ int get_iol3_cmt_rmid_range_v1(const struct pqos_erdt_cmrd *cmrd,
 
 /**
  * @brief Returns total IO bandwidth RMID subrange n_first...n_last for a given
- * resource management domain (CBB for DMR)
+ * resource management domain
  *
  * @param[in] ibrd structure under given RMDD containing MMIO
  *            description for Total_IO_BW_RMID_nregister set
@@ -344,7 +344,7 @@ int get_total_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
 
 /**
  * @brief Returns miss IO bandwidth RMID subrange n_first...n_last for a given
- * resource management domain (CBB for DMR)
+ * resource management domain
  *
  * @param[in] ibrd structure under given RMDD containing MMIO
  *            description for IO_MISS_BW_RMID_n register set
@@ -365,7 +365,7 @@ int get_miss_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
 
 /**
  * @brief Get cache bit mask value for a particular CLOS under a given resource
- * management domain (CBB for DMR)
+ * management domain
  *
  * @param[in] card structure under given RMDD containing MMIO
  *            description for IOL3_MASK_n register set
@@ -386,7 +386,7 @@ int get_iol3_cbm_clos_v1(const struct pqos_erdt_card *card,
 
 /**
  * @brief Set cache bit mask value for a particular CLOS under a given
- * resource management domain (CBB for DMR).
+ * resource management domain.
  *
  * Note: Unlike get_iol3_cbm_clos_v1 function does not provide a
  *       'block_number' parameter as all the similar CLOSes in all the
@@ -527,4 +527,4 @@ int is_overflow_iol3_mbm_rmid(iol3_mbm_rmid_t value);
 }
 #endif
 
-#endif /* MMIO_H */
+#endif /* __PQOS_MMIO_H__ */

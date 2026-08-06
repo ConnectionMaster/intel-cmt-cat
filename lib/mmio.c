@@ -139,9 +139,11 @@ _copy_generic_rmid_range(unsigned int rmid_first,
                          uint16_t register_clump_size,
                          uint16_t register_clump_stride,
                          uint16_t register_offset,
+                         uint64_t mapped_size,
                          void *rmids_val)
 {
-        unsigned int rmid_count;
+        uint64_t rmid_count;
+        uint64_t current_rmid;
         uint8_t *output = (uint8_t *)rmids_val;
 
         LOG_INFO("%s(): rmid_first: %u, rmid_last: %u,"
@@ -155,25 +157,38 @@ _copy_generic_rmid_range(unsigned int rmid_first,
                  rmids_val);
 
         if (register_base_address == NULL || rmids_val == NULL ||
-            register_clump_size == 0 || rmid_first > rmid_last)
+            register_clump_size == 0 || register_clump_stride == 0 ||
+            mapped_size == 0 || rmid_first > rmid_last)
                 return PQOS_RETVAL_PARAM;
 
-        rmid_count = rmid_last - rmid_first + 1;
+        current_rmid = rmid_first;
+        rmid_count = (uint64_t)rmid_last - rmid_first + 1;
         while (rmid_count > 0) {
-                const unsigned int rmid_idx = rmid_first % register_clump_size;
+                const unsigned int rmid_idx =
+                    current_rmid % register_clump_size;
                 const unsigned int available = register_clump_size - rmid_idx;
-                const unsigned int copy_count =
+                const uint64_t copy_count =
                     rmid_count < available ? rmid_count : available;
-                const uint8_t *clump =
-                    (const uint8_t *)register_base_address +
-                    (rmid_first / register_clump_size) * register_clump_stride +
+                const uint64_t clump_offset =
+                    (current_rmid / register_clump_size) *
+                        register_clump_stride +
                     register_offset;
+                const uint64_t data_offset =
+                    clump_offset + rmid_idx * BYTES_PER_RMID_ENTRY;
+                const uint64_t copy_size = copy_count * BYTES_PER_RMID_ENTRY;
+                const uint8_t *clump;
+
+                if (data_offset > mapped_size ||
+                    copy_size > mapped_size - data_offset)
+                        return PQOS_RETVAL_PARAM;
+
+                clump = (const uint8_t *)register_base_address + clump_offset;
 
                 memcpy(output, clump + rmid_idx * BYTES_PER_RMID_ENTRY,
-                       copy_count * BYTES_PER_RMID_ENTRY);
+                       copy_size);
 
-                output += copy_count * BYTES_PER_RMID_ENTRY;
-                rmid_first += copy_count;
+                output += copy_size;
+                current_rmid += copy_count;
                 rmid_count -= copy_count;
         }
 
@@ -186,6 +201,9 @@ int
 get_mba_mode_v1(const struct pqos_erdt_rmdd *rmdd, uint64_t *value)
 {
         uint64_t *mem;
+
+        if (rmdd == NULL || value == NULL)
+                return PQOS_RETVAL_PARAM;
 
         mem = (uint64_t *)pqos_mmap_read(rmdd->control_reg_base_addr,
                                          RDT_REG_SIZE);
@@ -205,7 +223,8 @@ set_mbm_mba_mode_v1(const struct pqos_erdt_rmdd *rmdd, unsigned int value)
 
         uint64_t *mem;
 
-        ASSERT(value <= 1);
+        if (rmdd == NULL || value > 1)
+                return PQOS_RETVAL_PARAM;
 
         mem = (uint64_t *)pqos_mmap_write(rmdd->control_reg_base_addr,
                                           RDT_REG_SIZE);
@@ -227,7 +246,11 @@ get_l3_cmt_rmid_range_v1(const struct pqos_erdt_cmrc *cmrc,
 {
         unsigned ret;
         uint64_t *mem;
-        uint64_t size = (uint64_t)cmrc->block_size * PAGE_SIZE;
+        uint64_t size;
+
+        if (cmrc == NULL || rmids_val == NULL || cmrc->block_size == 0)
+                return PQOS_RETVAL_PARAM;
+        size = (uint64_t)cmrc->block_size * PAGE_SIZE;
 
         mem = (uint64_t *)pqos_mmap_read(cmrc->block_base_addr, size);
         if (mem == NULL)
@@ -246,7 +269,7 @@ get_l3_cmt_rmid_range_v1(const struct pqos_erdt_cmrc *cmrc,
 
         ret = _copy_generic_rmid_range(rmid_first, rmid_last, mem,
                                        cmrc->clump_size, cmrc->clump_stride, 0,
-                                       (void *)rmids_val);
+                                       size, (void *)rmids_val);
 
         pqos_munmap(mem, size);
 
@@ -260,11 +283,18 @@ get_l3_mbm_region_rmid_range_v1(const struct pqos_erdt_mmrc *mmrc,
                                 unsigned int rmid_last,
                                 l3_mbm_rmid_t *rmids_val)
 {
-        unsigned int rmid_count = rmid_last - rmid_first + 1;
+        uint64_t rmid_count;
         uint64_t rmid_block_addr;
         uint64_t rmid_offset;
+        uint64_t copy_size;
         uint64_t *mem;
-        uint64_t size = (uint64_t)mmrc->reg_block_size * PAGE_SIZE;
+        uint64_t size;
+
+        if (mmrc == NULL || rmids_val == NULL || mmrc->reg_block_size == 0 ||
+            rmid_first > rmid_last)
+                return PQOS_RETVAL_PARAM;
+        size = (uint64_t)mmrc->reg_block_size * PAGE_SIZE;
+        rmid_count = (uint64_t)rmid_last - rmid_first + 1;
 
         if (region_num < 0 || region_num >= PQOS_MAX_MEM_REGIONS) {
                 LOG_ERROR("%s: wrong region number provided: %d. "
@@ -290,10 +320,17 @@ get_l3_mbm_region_rmid_range_v1(const struct pqos_erdt_mmrc *mmrc,
                  mmrc->reg_block_size);
 
         rmid_block_addr = ((rmid_first % 32) / 8) * 4 * PAGE_SIZE;
-        rmid_offset =
-            ((((rmid_first / 32) * BYTES_PER_RMID_ENTRY) + rmid_first % 8) *
-             BYTES_PER_RMID_ENTRY) +
-            region_num * MBM_REGION_SIZE;
+        rmid_offset = (((uint64_t)rmid_first / 32 * BYTES_PER_RMID_ENTRY +
+                        rmid_first % 8) *
+                       BYTES_PER_RMID_ENTRY) +
+                      region_num * MBM_REGION_SIZE;
+        copy_size = rmid_count * BYTES_PER_RMID_ENTRY;
+
+        if (rmid_block_addr > size || rmid_offset > size - rmid_block_addr ||
+            copy_size > size - rmid_block_addr - rmid_offset) {
+                pqos_munmap(mem, size);
+                return PQOS_RETVAL_PARAM;
+        }
 
         LOG_INFO("%s(): rmid_block_addr: %#" PRIx64 ", "
                  "rmid_offset: %#" PRIx64 "\n"
@@ -303,7 +340,7 @@ get_l3_mbm_region_rmid_range_v1(const struct pqos_erdt_mmrc *mmrc,
 
         memcpy(rmids_val,
                (const void *)((uint8_t *)mem + rmid_block_addr + rmid_offset),
-               rmid_count * BYTES_PER_RMID_ENTRY);
+               copy_size);
 
         LOG_INFO("%s(): rmid_first value: %#" PRIx64 "\n", __func__,
                  *(uint64_t *)rmids_val);
@@ -557,7 +594,11 @@ get_iol3_cmt_rmid_range_v1(const struct pqos_erdt_cmrd *cmrd,
 {
         unsigned ret;
         uint64_t *mem;
-        uint64_t size = (uint64_t)cmrd->reg_block_size * PAGE_SIZE;
+        uint64_t size;
+
+        if (cmrd == NULL || rmids_val == NULL || cmrd->reg_block_size == 0)
+                return PQOS_RETVAL_PARAM;
+        size = (uint64_t)cmrd->reg_block_size * PAGE_SIZE;
 
         mem = (uint64_t *)pqos_mmap_read(cmrd->reg_base_addr, size);
         if (mem == NULL)
@@ -576,7 +617,7 @@ get_iol3_cmt_rmid_range_v1(const struct pqos_erdt_cmrd *cmrd,
 
         ret = _copy_generic_rmid_range(rmid_first, rmid_last, mem,
                                        cmrd->clump_size, PAGE_SIZE,
-                                       cmrd->offset, (void *)rmids_val);
+                                       cmrd->offset, size, (void *)rmids_val);
         pqos_munmap(mem, size);
 
         return ret;
@@ -590,7 +631,11 @@ get_total_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
 {
         unsigned ret;
         uint64_t *mem;
-        uint64_t size = (uint64_t)ibrd->reg_block_size * PAGE_SIZE;
+        uint64_t size;
+
+        if (ibrd == NULL || rmids_val == NULL || ibrd->reg_block_size == 0)
+                return PQOS_RETVAL_PARAM;
+        size = (uint64_t)ibrd->reg_block_size * PAGE_SIZE;
 
         mem = (uint64_t *)pqos_mmap_read(ibrd->reg_base_addr, size);
         if (mem == NULL)
@@ -606,9 +651,9 @@ get_total_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
                  ibrd->reg_base_addr, ibrd->reg_block_size, ibrd->bw_reg_offset,
                  ibrd->bw_reg_clump_size);
 
-        ret = _copy_generic_rmid_range(rmid_first, rmid_last, mem,
-                                       ibrd->bw_reg_clump_size, PAGE_SIZE,
-                                       ibrd->bw_reg_offset, (void *)rmids_val);
+        ret = _copy_generic_rmid_range(
+            rmid_first, rmid_last, mem, ibrd->bw_reg_clump_size, PAGE_SIZE,
+            ibrd->bw_reg_offset, size, (void *)rmids_val);
         pqos_munmap(mem, size);
 
         return ret;
@@ -622,7 +667,11 @@ get_miss_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
 {
         unsigned ret;
         uint64_t *mem;
-        uint64_t size = (uint64_t)ibrd->reg_block_size * PAGE_SIZE;
+        uint64_t size;
+
+        if (ibrd == NULL || rmids_val == NULL || ibrd->reg_block_size == 0)
+                return PQOS_RETVAL_PARAM;
+        size = (uint64_t)ibrd->reg_block_size * PAGE_SIZE;
 
         mem = (uint64_t *)pqos_mmap_read(ibrd->reg_base_addr, size);
         if (mem == NULL)
@@ -641,7 +690,7 @@ get_miss_iol3_mbm_rmid_range_v1(const struct pqos_erdt_ibrd *ibrd,
 
         ret = _copy_generic_rmid_range(
             rmid_first, rmid_last, mem, ibrd->miss_reg_clump_size, PAGE_SIZE,
-            ibrd->miss_bw_reg_offset, (void *)rmids_val);
+            ibrd->miss_bw_reg_offset, size, (void *)rmids_val);
 
         pqos_munmap(mem, size);
 

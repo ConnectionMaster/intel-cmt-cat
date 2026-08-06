@@ -36,6 +36,7 @@
 #include "monitoring.h"
 #include "test.h"
 
+#include <limits.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -238,6 +239,39 @@ test_cmt_range_rejects_invalid_range(void **state __attribute__((unused)))
         ret = get_l3_cmt_rmid_range_v1(&cmrc, 2, 1, &value);
 
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
+
+        cmrc.clump_stride = PAGE_SIZE;
+        expect_value(__wrap_pqos_mmap_read, address, cmrc.block_base_addr);
+        expect_value(__wrap_pqos_mmap_read, size, PAGE_SIZE);
+        will_return(__wrap_pqos_mmap_read, registers);
+        expect_value(__wrap_pqos_munmap, mem, registers);
+        expect_value(__wrap_pqos_munmap, size, PAGE_SIZE);
+
+        ret = get_l3_cmt_rmid_range_v1(&cmrc, 4, 4, &value);
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
+static void
+test_mbm_range_rejects_invalid_range(void **state __attribute__((unused)))
+{
+        struct pqos_erdt_mmrc mmrc = {0};
+        uint64_t registers[PAGE_SIZE / sizeof(uint64_t)] = {0};
+        l3_mbm_rmid_t value;
+        int ret;
+
+        mmrc.reg_block_size = 1;
+
+        ret = get_l3_mbm_region_rmid_range_v1(&mmrc, 0, 2, 1, &value);
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+
+        expect_value(__wrap_pqos_mmap_read, address, mmrc.reg_block_base_addr);
+        expect_value(__wrap_pqos_mmap_read, size, PAGE_SIZE);
+        will_return(__wrap_pqos_mmap_read, registers);
+        expect_value(__wrap_pqos_munmap, mem, registers);
+        expect_value(__wrap_pqos_munmap, size, PAGE_SIZE);
+
+        ret = get_l3_mbm_region_rmid_range_v1(&mmrc, 0, 0, UINT_MAX, &value);
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
 static void
@@ -402,6 +436,7 @@ main(void)
             cmocka_unit_test(test_cpu_cmt_range_crosses_clump),
             cmocka_unit_test(test_io_cmt_range_crosses_page),
             cmocka_unit_test(test_cmt_range_rejects_invalid_range),
+            cmocka_unit_test(test_mbm_range_rejects_invalid_range),
             cmocka_unit_test(test_mba_set_resolves_domain_id),
             cmocka_unit_test(test_mba_get_ignores_num_clos_input),
             cmocka_unit_test(test_io_overflow_invalidates_baseline)};
