@@ -383,14 +383,15 @@ get_dev_rmid_list(struct pqos_mon_poll_ctx *ctx,
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
 
-                if (rmid <= max_rmid) {
-                        if (domain_id_idx >= erdt->num_dev_agents) {
-                                LOG_ERROR("Wrong domain_id_idx %d "
-                                          "Dev Agents %d\n",
-                                          domain_id_idx, erdt->num_dev_agents);
-                                return PQOS_RETVAL_UNAVAILABLE;
-                        }
+                if (domain_id_idx >= erdt->num_dev_agents) {
+                        LOG_ERROR("Wrong domain_id_idx %d "
+                                  "Dev Agents %d\n",
+                                  domain_id_idx, erdt->num_dev_agents);
+                        return PQOS_RETVAL_UNAVAILABLE;
+                }
 
+                if (rmid <= max_rmid &&
+                    rmid <= erdt->dev_agents[domain_id_idx].rmdd.max_rmids) {
                         if (dev_rmid_list[domain_id_idx].domain_id == domain_id)
                                 dev_rmid_list[domain_id_idx].rmids[rmid] = 1;
                         else
@@ -450,7 +451,8 @@ mmio_mon_channels_assoc_unused(struct pqos_mon_poll_ctx *ctx,
                     erdt->dev_agents[idx].rmdd.domain_id;
 
                 dev_rmid_list[idx].rmids = (pqos_rmid_t *)calloc(
-                    erdt->dev_agents[idx].rmdd.max_rmids, sizeof(pqos_rmid_t));
+                    (size_t)erdt->dev_agents[idx].rmdd.max_rmids + 1,
+                    sizeof(pqos_rmid_t));
                 if (dev_rmid_list[idx].rmids == NULL) {
                         LOG_ERROR("Unable to allocate memory for rmids in "
                                   "dev_rmid_list idx %d\n",
