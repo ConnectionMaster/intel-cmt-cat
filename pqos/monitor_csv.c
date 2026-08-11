@@ -354,11 +354,19 @@ monitor_csv_region_row(FILE *fp,
                         for (j = 0; j < mon_data->regions.num_mem_regions;
                              j++) {
                                 if (is_monitored && !is_valid &&
-                                    (events & output[i].event) &&
-                                    offset + CSV_NA_LEN + 1 <= sz_data) {
-                                        snprintf(data + offset,
-                                                 sz_data - offset, ",N/A");
-                                        offset += CSV_NA_LEN;
+                                    (events & output[i].event)) {
+                                        if (offset + CSV_NA_LEN + 1 <=
+                                            sz_data) {
+                                                snprintf(data + offset,
+                                                         sz_data - offset,
+                                                         ",N/A");
+                                                offset += CSV_NA_LEN;
+                                        } else {
+                                                data[offset < sz_data
+                                                         ? offset
+                                                         : sz_data - 1] = '\0';
+                                                goto region_loop_done;
+                                        }
                                 } else {
                                         double value =
                                             monitor_utils_get_region_value(
@@ -376,10 +384,16 @@ monitor_csv_region_row(FILE *fp,
                         continue;
                 }
 
-                if (is_monitored && !is_valid && (events & output[i].event) &&
-                    offset + CSV_NA_LEN + 1 <= sz_data) {
-                        snprintf(data + offset, sz_data - offset, ",N/A");
-                        offset += CSV_NA_LEN;
+                if (is_monitored && !is_valid && (events & output[i].event)) {
+                        if (offset + CSV_NA_LEN + 1 <= sz_data) {
+                                snprintf(data + offset, sz_data - offset,
+                                         ",N/A");
+                                offset += CSV_NA_LEN;
+                        } else {
+                                data[offset < sz_data ? offset : sz_data - 1] =
+                                    '\0';
+                                break;
+                        }
                 } else {
                         double value = monitor_utils_get_region_value(
                             mon_data, output[i].event, INVALID_REGION_NUM);
@@ -389,6 +403,7 @@ monitor_csv_region_row(FILE *fp,
                             sz_data - offset, is_monitored,
                             events & output[i].event);
                 }
+region_loop_done:;
         }
 
         if (monitor_core_mode() || monitor_uncore_mode() ||
@@ -456,13 +471,22 @@ monitor_csv_mixed_row(FILE *fp,
                                      j < mon_data->regions.num_mem_regions;
                                      j++) {
                                         if (is_monitored && !is_valid &&
-                                            (events & output[i].event) &&
-                                            offset + CSV_NA_LEN + 1 <=
-                                                sz_data) {
-                                                snprintf(data + offset,
-                                                         sz_data - offset,
-                                                         ",N/A");
-                                                offset += CSV_NA_LEN;
+                                            (events & output[i].event)) {
+                                                if (offset + CSV_NA_LEN + 1 <=
+                                                    sz_data) {
+                                                        snprintf(data + offset,
+                                                                 sz_data -
+                                                                     offset,
+                                                                 ",N/A");
+                                                        offset += CSV_NA_LEN;
+                                                } else {
+                                                        data[offset < sz_data
+                                                                 ? offset
+                                                                 : sz_data -
+                                                                       1] =
+                                                            '\0';
+                                                        goto mixed_loop_done;
+                                                }
                                         } else {
                                                 double value =
                                                     monitor_utils_get_region_value(
@@ -513,11 +537,17 @@ monitor_csv_mixed_row(FILE *fp,
                                 offset += 4;
                         }
                 } else if (is_monitored && !is_valid &&
-                           (events & output[i].event) &&
-                           offset + CSV_NA_LEN + 1 <= sz_data) {
+                           (events & output[i].event)) {
                         /* Monitored but unavailable */
-                        snprintf(data + offset, sz_data - offset, ",N/A");
-                        offset += CSV_NA_LEN;
+                        if (offset + CSV_NA_LEN + 1 <= sz_data) {
+                                snprintf(data + offset, sz_data - offset,
+                                         ",N/A");
+                                offset += CSV_NA_LEN;
+                        } else {
+                                data[offset < sz_data ? offset : sz_data - 1] =
+                                    '\0';
+                                break;
+                        }
                 } else {
                         double value = monitor_utils_get_region_value(
                             mon_data, output[i].event, INVALID_REGION_NUM);
@@ -528,6 +558,7 @@ monitor_csv_mixed_row(FILE *fp,
                             events & output[i].event);
                 }
         }
+mixed_loop_done:;
 
         fprintf(fp, "%s,\"%s\"%s\n", timestamp, (char *)mon_data->context,
                 data);
