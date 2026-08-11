@@ -516,10 +516,27 @@ resctrl_mon_read_counter(const unsigned class_id,
         }
 
         /* Parse complete line as an unsigned integer */
+        /* Reject leading sign characters that strtoull() would silently accept */
+        {
+                const char *p = line;
+
+                while (*p == ' ' || *p == '\t')
+                        p++;
+                if (*p == '+' || *p == '-') {
+                        LOG_ERROR("Failed to parse resctrl counter: %s\n",
+                                  path);
+                        return PQOS_RETVAL_ERROR;
+                }
+        }
         errno = 0;
         parsed = strtoull(line, &endptr, 10);
         if (errno != 0 || endptr == line ||
             (*endptr != '\n' && *endptr != '\0')) {
+                LOG_ERROR("Failed to parse resctrl counter: %s\n", path);
+                return PQOS_RETVAL_ERROR;
+        }
+        /* Guard against unsigned long long being wider than uint64_t */
+        if (parsed > UINT64_MAX) {
                 LOG_ERROR("Failed to parse resctrl counter: %s\n", path);
                 return PQOS_RETVAL_ERROR;
         }
