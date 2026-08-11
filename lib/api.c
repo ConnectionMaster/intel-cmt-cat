@@ -1738,6 +1738,8 @@ pqos_mon_event_valid(const struct pqos_mon_data *group,
                      enum pqos_mon_event event)
 {
         const struct pqos_mon_data_internal *intl;
+        int ret;
+        int valid;
 
         if (group == NULL || group->intl == NULL ||
             group->valid != GROUP_VALID_MARKER)
@@ -1745,6 +1747,14 @@ pqos_mon_event_valid(const struct pqos_mon_data *group,
 
         if ((group->event & event) == 0)
                 return 0;
+
+        lock_get();
+
+        ret = _pqos_check_init(1);
+        if (ret != PQOS_RETVAL_OK) {
+                lock_release();
+                return 0;
+        }
 
         intl = group->intl;
 
@@ -1754,28 +1764,31 @@ pqos_mon_event_valid(const struct pqos_mon_data *group,
          * RMEM_BW is a virtual event derived from LMEM_BW and TMEM_BW:
          * it is valid only when both components are valid.
          */
+        valid = 1;
         switch (event) {
         case PQOS_MON_EVENT_L3_OCCUP:
                 if (intl->resctrl.event & event)
-                        return intl->resctrl.valid_llc;
+                        valid = intl->resctrl.valid_llc;
                 break;
         case PQOS_MON_EVENT_LMEM_BW:
                 if (intl->resctrl.event & event)
-                        return intl->resctrl.valid_mbm_local;
+                        valid = intl->resctrl.valid_mbm_local;
                 break;
         case PQOS_MON_EVENT_TMEM_BW:
                 if (intl->resctrl.event & event)
-                        return intl->resctrl.valid_mbm_total;
+                        valid = intl->resctrl.valid_mbm_total;
                 break;
         case PQOS_MON_EVENT_RMEM_BW:
                 if ((intl->resctrl.event & PQOS_MON_EVENT_LMEM_BW) &&
                     (intl->resctrl.event & PQOS_MON_EVENT_TMEM_BW))
-                        return intl->resctrl.valid_mbm_local &&
-                               intl->resctrl.valid_mbm_total;
+                        valid = intl->resctrl.valid_mbm_local &&
+                                intl->resctrl.valid_mbm_total;
                 break;
         default:
                 break;
         }
 
-        return 1;
+        lock_release();
+
+        return valid;
 }
