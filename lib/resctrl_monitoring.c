@@ -516,7 +516,8 @@ resctrl_mon_read_counter(const unsigned class_id,
         }
 
         /* Parse complete line as an unsigned integer */
-        /* Reject leading sign characters that strtoull() would silently accept */
+        /* Reject leading sign characters that strtoull() would silently accept
+         */
         {
                 const char *p = line;
 

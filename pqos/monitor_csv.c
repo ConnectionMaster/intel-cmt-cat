@@ -403,7 +403,7 @@ monitor_csv_region_row(FILE *fp,
                             sz_data - offset, is_monitored,
                             events & output[i].event);
                 }
-region_loop_done:;
+        region_loop_done:;
         }
 
         if (monitor_core_mode() || monitor_uncore_mode() ||
