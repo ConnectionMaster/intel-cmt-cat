@@ -207,6 +207,27 @@ static size_t fillin_text_na_regions_column(int num_regions,
                                             size_t sz_data);
 
 /**
+ * @brief Returns non-zero if an N/A placeholder should be printed for an event
+ *
+ * @param mon_data monitoring group data
+ * @param event    the monitoring event to check
+ * @param events   bitmask of events selected for display
+ * @return non-zero if the event is monitored but its value is invalid and
+ *         the column is selected for display; zero otherwise
+ */
+static int
+should_print_na(const struct pqos_mon_data *mon_data,
+                const enum pqos_mon_event event,
+                const enum pqos_mon_event events)
+{
+        const int is_monitored = (mon_data->event & event) != 0;
+        const int is_valid =
+            !is_monitored || pqos_mon_event_valid(mon_data, event);
+
+        return is_monitored && !is_valid && (events & event);
+}
+
+/**
  * @brief Fills in single text column in the monitoring table
  *
  * @param val numerical value to be put into the column
@@ -288,11 +309,8 @@ monitor_text_row(FILE *fp,
         for (i = 0; i < DIM(output); i++) {
                 const int is_monitored =
                     (mon_data->event & output[i].event) != 0;
-                const int is_valid =
-                    !is_monitored ||
-                    pqos_mon_event_valid(mon_data, output[i].event);
 
-                if (is_monitored && !is_valid && (events & output[i].event)) {
+                if (should_print_na(mon_data, output[i].event, events)) {
                         /* Monitored but unavailable: display N/A */
                         offset += fillin_text_na_column(data + offset,
                                                         sz_data - offset);
@@ -364,15 +382,12 @@ monitor_text_region_row(FILE *fp,
         for (i = 0; i < DIM(output); i++) {
                 const int is_monitored =
                     (mon_data->event & output[i].event) != 0;
-                const int is_valid =
-                    !is_monitored ||
-                    pqos_mon_event_valid(mon_data, output[i].event);
 
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
                         for (j = 0; j < mon_data->regions.num_mem_regions;
                              j++) {
-                                if (is_monitored && !is_valid &&
-                                    (events & output[i].event)) {
+                                if (should_print_na(mon_data, output[i].event,
+                                                    events)) {
                                         /* Unavailable: N/A for this region */
                                         offset += fillin_text_na_16char_column(
                                             data + offset, sz_data - offset);
@@ -393,7 +408,7 @@ monitor_text_region_row(FILE *fp,
                         continue;
                 }
 
-                if (is_monitored && !is_valid && (events & output[i].event)) {
+                if (should_print_na(mon_data, output[i].event, events)) {
                         offset += fillin_text_na_column(data + offset,
                                                         sz_data - offset);
                 } else {
@@ -523,9 +538,6 @@ monitor_text_mixed_row(FILE *fp,
                                         PQOS_MON_EVENT_IO_MISS_MEM_BW)) != 0;
                 const int is_monitored =
                     (mon_data->event & output[i].event) != 0;
-                const int is_valid =
-                    !is_monitored ||
-                    pqos_mon_event_valid(mon_data, output[i].event);
 
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
                         if (is_core_group) {
@@ -533,8 +545,9 @@ monitor_text_mixed_row(FILE *fp,
                                 for (j = 0;
                                      j < mon_data->regions.num_mem_regions;
                                      j++) {
-                                        if (is_monitored && !is_valid &&
-                                            (events & output[i].event)) {
+                                        if (should_print_na(mon_data,
+                                                            output[i].event,
+                                                            events)) {
                                                 /* Unavailable: N/A */
                                                 offset +=
                                                     fillin_text_na_16char_column(
@@ -576,8 +589,7 @@ monitor_text_mixed_row(FILE *fp,
                         if (events & output[i].event)
                                 offset += fillin_text_na_column(
                                     data + offset, sz_data - offset);
-                } else if (is_monitored && !is_valid &&
-                           (events & output[i].event)) {
+                } else if (should_print_na(mon_data, output[i].event, events)) {
                         /* Monitored but unavailable */
                         if (is_io_event)
                                 offset += fillin_text_na_16char_column(
