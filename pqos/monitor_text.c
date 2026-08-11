@@ -490,6 +490,39 @@ fillin_text_na_regions_column(int num_regions,
         return offset;
 }
 
+static size_t
+fillin_text_region_columns(const struct pqos_mon_data *mon_data,
+                           const enum pqos_mon_event event,
+                           const enum pqos_mon_event events,
+                           const unsigned unit,
+                           char *data,
+                           size_t offset,
+                           const size_t sz_data)
+{
+        const int is_monitored = (mon_data->event & event) != 0;
+        int j;
+
+        for (j = 0; j < mon_data->regions.num_mem_regions; j++) {
+                double value;
+
+                if (should_print_na(mon_data, event, events)) {
+                        offset += fillin_text_na_16char_column(
+                            data + offset, sz_data - offset);
+                        continue;
+                }
+
+                value = monitor_utils_get_region_value(
+                            mon_data, event, mon_data->regions.region_num[j]) /
+                        unit;
+
+                offset += fillin_text_column(REGION_FORMAT, value,
+                                             data + offset, sz_data - offset,
+                                             is_monitored, events & event);
+        }
+
+        return offset;
+}
+
 void
 monitor_text_mixed_row(FILE *fp,
                        const char *timestamp,
@@ -501,7 +534,6 @@ monitor_text_mixed_row(FILE *fp,
         enum pqos_mon_event events = monitor_get_events();
         const int is_core_group = (mon_data->num_cores > 0);
         unsigned i = 0;
-        int j = 0;
         int num_regions;
 
         ASSERT(fp != NULL);
@@ -542,34 +574,9 @@ monitor_text_mixed_row(FILE *fp,
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
                         if (is_core_group) {
                                 /* Print per-region bandwidth values */
-                                for (j = 0;
-                                     j < mon_data->regions.num_mem_regions;
-                                     j++) {
-                                        if (should_print_na(mon_data,
-                                                            output[i].event,
-                                                            events)) {
-                                                /* Unavailable: N/A */
-                                                offset +=
-                                                    fillin_text_na_16char_column(
-                                                        data + offset,
-                                                        sz_data - offset);
-                                        } else {
-                                                double value =
-                                                    monitor_utils_get_region_value(
-                                                        mon_data,
-                                                        output[i].event,
-                                                        mon_data->regions
-                                                            .region_num[j]) /
-                                                    output[i].unit;
-
-                                                offset += fillin_text_column(
-                                                    REGION_FORMAT, value,
-                                                    data + offset,
-                                                    sz_data - offset,
-                                                    is_monitored,
-                                                    events & output[i].event);
-                                        }
-                                }
+                                offset = fillin_text_region_columns(
+                                    mon_data, output[i].event, events,
+                                    output[i].unit, data, offset, sz_data);
                         } else {
                                 /* Channel group: N/A for each region column */
                                 if (events & output[i].event)
@@ -598,7 +605,9 @@ monitor_text_mixed_row(FILE *fp,
                                 offset += fillin_text_na_column(
                                     data + offset, sz_data - offset);
                 } else {
-                        double value =
+                        double value;
+
+                        value =
                             monitor_utils_get_region_value(
                                 mon_data, output[i].event, INVALID_REGION_NUM) /
                             output[i].unit;

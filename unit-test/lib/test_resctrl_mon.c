@@ -256,7 +256,8 @@ test_resctrl_mon_read_counter_error_state(void **state __attribute__((unused)))
 }
 
 static void
-test_resctrl_mon_read_counter_trailing_junk(void **state __attribute__((unused)))
+test_resctrl_mon_read_counter_trailing_junk(void **state
+                                            __attribute__((unused)))
 {
         int ret;
         uint64_t value = 99;

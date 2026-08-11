@@ -221,6 +221,48 @@ fillin_csv_column(const char *format,
         return offset;
 }
 
+static size_t
+fillin_csv_region_columns(const struct pqos_mon_data *mon_data,
+                          const enum pqos_mon_event event,
+                          const enum pqos_mon_event events,
+                          const char *format,
+                          const int is_monitored,
+                          const int is_valid,
+                          char *data,
+                          size_t offset,
+                          const size_t sz_data,
+                          int *buffer_full)
+{
+        int j;
+
+        *buffer_full = 0;
+
+        for (j = 0; j < mon_data->regions.num_mem_regions; j++) {
+                if (is_monitored && !is_valid && (events & event)) {
+                        if (offset + CSV_NA_LEN + 1 > sz_data) {
+                                data[offset < sz_data ? offset : sz_data - 1] =
+                                    '\0';
+                                *buffer_full = 1;
+                                break;
+                        }
+
+                        snprintf(data + offset, sz_data - offset, ",N/A");
+                        offset += CSV_NA_LEN;
+                } else {
+                        const int region_num = mon_data->regions.region_num[j];
+                        double value;
+
+                        value = monitor_utils_get_region_value(mon_data, event,
+                                                               region_num);
+                        offset += fillin_csv_column(
+                            format, value, data + offset, sz_data - offset,
+                            is_monitored, events & event);
+                }
+        }
+
+        return offset;
+}
+
 void
 monitor_csv_row(FILE *fp,
                 const char *timestamp,
@@ -316,7 +358,7 @@ monitor_csv_region_row(FILE *fp,
         size_t offset = 0;
         enum pqos_mon_event events = monitor_get_events();
         unsigned i = 0;
-        int j = 0;
+        int buffer_full = 0;
 
         ASSERT(fp != NULL);
         ASSERT(timestamp != NULL);
@@ -351,36 +393,13 @@ monitor_csv_region_row(FILE *fp,
                     pqos_mon_event_valid(mon_data, output[i].event);
 
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
-                        for (j = 0; j < mon_data->regions.num_mem_regions;
-                             j++) {
-                                if (is_monitored && !is_valid &&
-                                    (events & output[i].event)) {
-                                        if (offset + CSV_NA_LEN + 1 <=
-                                            sz_data) {
-                                                snprintf(data + offset,
-                                                         sz_data - offset,
-                                                         ",N/A");
-                                                offset += CSV_NA_LEN;
-                                        } else {
-                                                data[offset < sz_data
-                                                         ? offset
-                                                         : sz_data - 1] = '\0';
-                                                goto region_loop_done;
-                                        }
-                                } else {
-                                        double value =
-                                            monitor_utils_get_region_value(
-                                                mon_data, output[i].event,
-                                                mon_data->regions
-                                                    .region_num[j]);
+                        offset = fillin_csv_region_columns(
+                            mon_data, output[i].event, events, output[i].format,
+                            is_monitored, is_valid, data, offset, sz_data,
+                            &buffer_full);
 
-                                        offset += fillin_csv_column(
-                                            output[i].format, value,
-                                            data + offset, sz_data - offset,
-                                            is_monitored,
-                                            events & output[i].event);
-                                }
-                        }
+                        if (buffer_full)
+                                break;
                         continue;
                 }
 
@@ -403,7 +422,6 @@ monitor_csv_region_row(FILE *fp,
                             sz_data - offset, is_monitored,
                             events & output[i].event);
                 }
-        region_loop_done:;
         }
 
         if (monitor_core_mode() || monitor_uncore_mode() ||
@@ -425,6 +443,7 @@ monitor_csv_mixed_row(FILE *fp,
         unsigned i = 0;
         int j = 0;
         int num_regions;
+        int buffer_full = 0;
 
         ASSERT(fp != NULL);
         ASSERT(timestamp != NULL);
@@ -467,42 +486,10 @@ monitor_csv_mixed_row(FILE *fp,
                 if (output[i].event == PQOS_MON_EVENT_TMEM_BW) {
                         if (is_core_group) {
                                 /* Print per-region bandwidth values */
-                                for (j = 0;
-                                     j < mon_data->regions.num_mem_regions;
-                                     j++) {
-                                        if (is_monitored && !is_valid &&
-                                            (events & output[i].event)) {
-                                                if (offset + CSV_NA_LEN + 1 <=
-                                                    sz_data) {
-                                                        snprintf(data + offset,
-                                                                 sz_data -
-                                                                     offset,
-                                                                 ",N/A");
-                                                        offset += CSV_NA_LEN;
-                                                } else {
-                                                        data[offset < sz_data
-                                                                 ? offset
-                                                                 : sz_data -
-                                                                       1] =
-                                                            '\0';
-                                                        goto mixed_loop_done;
-                                                }
-                                        } else {
-                                                double value =
-                                                    monitor_utils_get_region_value(
-                                                        mon_data,
-                                                        output[i].event,
-                                                        mon_data->regions
-                                                            .region_num[j]);
-
-                                                offset += fillin_csv_column(
-                                                    output[i].format, value,
-                                                    data + offset,
-                                                    sz_data - offset,
-                                                    is_monitored,
-                                                    events & output[i].event);
-                                        }
-                                }
+                                offset = fillin_csv_region_columns(
+                                    mon_data, output[i].event, events,
+                                    output[i].format, is_monitored, is_valid,
+                                    data, offset, sz_data, &buffer_full);
                         } else {
                                 /* Channel group: N/A for each region column */
                                 if (events & output[i].event) {
@@ -512,11 +499,14 @@ monitor_csv_mixed_row(FILE *fp,
                                                                 ",N/A",
                                                                 sz_data -
                                                                     offset - 1);
-                                                        offset += 4;
+                                                        offset += CSV_NA_LEN;
                                                 }
                                         }
                                 }
                         }
+
+                        if (buffer_full)
+                                break;
                         continue;
                 }
 
@@ -558,7 +548,6 @@ monitor_csv_mixed_row(FILE *fp,
                             events & output[i].event);
                 }
         }
-mixed_loop_done:;
 
         fprintf(fp, "%s,\"%s\"%s\n", timestamp, (char *)mon_data->context,
                 data);
