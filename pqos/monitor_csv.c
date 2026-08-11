@@ -272,6 +272,11 @@ monitor_csv_row(FILE *fp,
                                 snprintf(data + offset, sz_data - offset,
                                          ",N/A");
                                 offset += CSV_NA_LEN;
+                        } else {
+                                /* Buffer too small: null-terminate and stop */
+                                data[offset < sz_data ? offset : sz_data - 1] =
+                                    '\0';
+                                break;
                         }
                 } else {
                         double value =
