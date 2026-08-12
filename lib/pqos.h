@@ -2329,7 +2329,7 @@ int pqos_mon_get_tel_value(const struct pqos_mon_data *group,
  * Use this to determine whether to display an event value or substitute
  * an unavailable marker (e.g. "N/A") in pqos output.
  *
- * @note Update event values using \a pqos_mon_poll before calling this.
+ * @note Update event values using pqos_mon_poll before calling this.
  *
  * @param [in] group monitoring group
  * @param [in] event event to check
