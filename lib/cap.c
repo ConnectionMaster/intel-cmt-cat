@@ -603,6 +603,52 @@ error_exit:
 }
 
 /**
+ * @brief Caps the reported number of allocation classes at the ERDT maximum
+ *
+ * L3 CAT and MBA capabilities are discovered through CPUID, which reports the
+ * class count usable via the MSR interface. The MMIO allocation paths accept
+ * class IDs below the ERDT maximum instead, so a larger CPUID value would be
+ * advertised by -d while being rejected by -e.
+ *
+ * Only a CPUID value above the ERDT maximum is reduced. A smaller value is left
+ * alone, so that no class is advertised that CPUID does not report.
+ *
+ * @param [in,out] cap detected capabilities
+ * @param [in] erdt ERDT information
+ */
+static void
+cap_limit_num_classes_to_erdt(struct pqos_cap *cap,
+                              const struct pqos_erdt_info *erdt)
+{
+        unsigned i;
+
+        if (cap == NULL || erdt == NULL || erdt->max_clos == 0)
+                return;
+
+        for (i = 0; i < cap->num_cap; i++) {
+                unsigned *num_classes;
+
+                switch (cap->capabilities[i].type) {
+                case PQOS_CAP_TYPE_L3CA:
+                        num_classes = &cap->capabilities[i].u.l3ca->num_classes;
+                        break;
+                case PQOS_CAP_TYPE_MBA:
+                        num_classes = &cap->capabilities[i].u.mba->num_classes;
+                        break;
+                default:
+                        continue;
+                }
+
+                if (*num_classes > erdt->max_clos) {
+                        LOG_INFO("Number of classes reduced from %u to the "
+                                 "ERDT value %u\n",
+                                 *num_classes, erdt->max_clos);
+                        *num_classes = erdt->max_clos;
+                }
+        }
+}
+
+/**
  * @brief Converts enumeration value into string
  *
  * @param interface interface
@@ -890,6 +936,8 @@ pqos_init(const struct pqos_config *config)
                 ret = cores_domains_init(cpu->num_cores, erdt, &cores_domains);
                 if (ret != PQOS_RETVAL_OK)
                         goto machine_init_error;
+
+                cap_limit_num_classes_to_erdt(cap, erdt);
 
                 /* Set Region Aware MBM and MBA mode, if MMIO interface is
                  * selected and ERDT table is present

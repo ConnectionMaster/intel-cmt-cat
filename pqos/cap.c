@@ -959,7 +959,7 @@ cap_print_erdt_info_topology(const struct pqos_erdt_info *erdt)
 {
         uint32_t idx = 0;
 
-        printf("CLOS:           %d\n", erdt->max_clos);
+        printf("Num CLOS:       %d\n", erdt->max_clos);
         printf("CPU Agents:     %d\n", erdt->num_cpu_agents);
         printf("Device Agents:  %d\n", erdt->num_dev_agents);
 
@@ -1102,9 +1102,9 @@ print_io_dev(const struct pqos_sysconfig *sys,
         if (interface == PQOS_INTER_MSR && cap_l3ca != NULL)
                 printf("\n\tAvailable CLOS     : 0 to %d\n",
                        cap_l3ca->u.l3ca->num_classes - 1);
-        else if (interface == PQOS_INTER_MMIO)
+        else if (interface == PQOS_INTER_MMIO && sys->erdt->max_clos > 0)
                 printf("\n\tAvailable CLOS     : 0 to %d\n",
-                       sys->erdt->max_clos);
+                       sys->erdt->max_clos - 1);
 
         printf("\tAllocation Commands:\n");
         for (j = 0; j < pci_info.num_channels; j++) {
