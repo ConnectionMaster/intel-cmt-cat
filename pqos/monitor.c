@@ -1620,6 +1620,17 @@ monitor_setup_events(enum mon_group_type type,
                         *events = (enum pqos_mon_event)(all_evts & *events);
                 }
 
+                /* The MMIO branches above select a fixed event set instead of
+                 * deriving it from all_evts, so honour the PMU event opt-outs
+                 * here to keep --disable-mon-ipc / --disable-mon-llc_miss
+                 * working on every interface.
+                 */
+                if (sel_disable_ipc)
+                        *events &= (enum pqos_mon_event)(~PQOS_PERF_EVENT_IPC);
+                if (sel_disable_llc_miss)
+                        *events &=
+                            (enum pqos_mon_event)(~PQOS_PERF_EVENT_LLC_MISS);
+
                 /* Check after all interface branches: if "all" resolved to
                  * PMU-only events, RDT monitoring is unavailable under the
                  * selected interface on this platform.
