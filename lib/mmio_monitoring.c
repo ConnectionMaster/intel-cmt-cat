@@ -849,19 +849,19 @@ mmio_mon_start_channels(const unsigned num_channels,
         req_events = event;
         switch (req_events) {
         case PQOS_MON_EVENT_RMEM_BW:
-                LOG_ERROR("I/O RDT MBR is not supported in MMIO interface!."
+                LOG_ERROR("I/O RDT MBR is not supported in MMIO interface! "
                           "Use io-llc/iot/iom events\n");
                 return PQOS_RETVAL_RESOURCE;
         case PQOS_MON_EVENT_LMEM_BW:
-                LOG_ERROR("I/O RDT MBL is not supported in MMIO interface!."
+                LOG_ERROR("I/O RDT MBL is not supported in MMIO interface! "
                           "Use io-llc/iot/iom events\n");
                 return PQOS_RETVAL_RESOURCE;
         case PQOS_MON_EVENT_TMEM_BW:
-                LOG_ERROR("I/O RDT MBT is not supported in MMIO interface!."
+                LOG_ERROR("I/O RDT MBT is not supported in MMIO interface! "
                           "Use io-llc/iot/iom events\n");
                 return PQOS_RETVAL_RESOURCE;
         case PQOS_MON_EVENT_L3_OCCUP:
-                LOG_ERROR("I/O RDT LLC is not supported in MMIO interface!."
+                LOG_ERROR("I/O RDT LLC is not supported in MMIO interface! "
                           "Use io-llc/iot/iom events\n");
                 return PQOS_RETVAL_RESOURCE;
         default:
