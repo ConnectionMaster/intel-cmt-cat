@@ -90,8 +90,11 @@ void selfn_dump_rmid_upscaling(const char *arg);
  *
  * @param [in] sys PQoS system configuration struct
  *                 returned by a pqos_sysconfig_get
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK on success
  */
-void dump_rmid_regs(const struct pqos_sysconfig *sys);
+int dump_rmid_regs(const struct pqos_sysconfig *sys);
 
 #ifdef __cplusplus
 }

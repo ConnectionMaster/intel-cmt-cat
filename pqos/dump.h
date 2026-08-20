@@ -122,8 +122,11 @@ selfn_dump_length(const char *arg);
  *
  * @param [in] sys PQoS system configuration struct
  *                 returned by a pqos_sysconfig_get
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK on success
  */
-void
+int
 dump_mmio_regs(const struct pqos_sysconfig *sys);
 
 #ifdef __cplusplus

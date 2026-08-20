@@ -1838,10 +1838,14 @@ static const char help_printf_long[] =
     "    SPACE format is a name of the MMIO space to dump.\n"
     "        SPACE := cmrc | mmrc | marc-opt | marc-min | marc-max | cmrd | "
     "ibrd | card\n"
-    "    --offset=OFFSET (optional) offset in bytes to start dumping from\n"
-    "    --length=LENGTH (optional) length in bytes to dump\n"
     "    --width=WIDTH (optional) width in bits of a single dump entry\n"
-    "        WIDTH := 8 | 64\n"
+    "        WIDTH := 8 | 64 (default 64)\n"
+    "    --offset=OFFSET (optional) number of entries to skip from the start\n"
+    "                    of the space\n"
+    "    --length=LENGTH (optional) number of entries to dump, 0 or omitted\n"
+    "                    dumps up to the end of the space\n"
+    "    Note: --offset and --length are counted in --width sized entries,\n"
+    "          not in bytes.\n"
     "    --binary (optional) dump in binary format\n"
     "    --le (optional) dump in little-endian format\n"
     "  Example:\n"
@@ -2511,17 +2515,20 @@ main(int argc, char **argv)
         }
 
         if (sel_print_dump_info) {
-                pqos_print_dump_info(p_sys);
+                if (pqos_print_dump_info(p_sys) != PQOS_RETVAL_OK)
+                        exit_val = EXIT_FAILURE;
                 goto allocation_exit;
         }
 
         if (sel_dump) {
-                dump_mmio_regs(p_sys);
+                if (dump_mmio_regs(p_sys) != PQOS_RETVAL_OK)
+                        exit_val = EXIT_FAILURE;
                 goto allocation_exit;
         }
 
         if (sel_dump_rmid_regs) {
-                dump_rmid_regs(p_sys);
+                if (dump_rmid_regs(p_sys) != PQOS_RETVAL_OK)
+                        exit_val = EXIT_FAILURE;
                 goto allocation_exit;
         }
 

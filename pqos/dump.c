@@ -491,7 +491,7 @@ get_socket_domain_ids(uint32_t socket,
         return PQOS_RETVAL_OK;
 }
 
-void
+int
 dump_mmio_regs(const struct pqos_sysconfig *sys)
 {
         struct pqos_mmio_dump dump;
@@ -592,4 +592,6 @@ dump_mmio_regs(const struct pqos_sysconfig *sys)
                 printf("MMIO Registers Dump is failed!\n");
 
         free(dump.topology.domain_ids);
+
+        return ret;
 }

@@ -231,7 +231,7 @@ selfn_dump_rmid_upscaling(const char *arg)
         sel_dump_rmids.upscale = 1;
 }
 
-void
+int
 dump_rmid_regs(const struct pqos_sysconfig *sys)
 {
         struct pqos_mmio_dump_rmids dump_rmids;
@@ -307,4 +307,6 @@ dump_rmid_regs(const struct pqos_sysconfig *sys)
 
         free(dump_rmids.domain_ids);
         free(dump_rmids.rmids);
+
+        return ret;
 }
