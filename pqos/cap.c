@@ -868,7 +868,7 @@ cap_print_device_agents_info(const struct pqos_device_agent_info *dev_agent)
                dev_agent->cmrd.reg_base_addr);
         printf("        Register Block Size:                           0x%x\n",
                dev_agent->cmrd.reg_block_size);
-        printf("        CMT Register Clump Size:                       0x%x\n",
+        printf("        CMT Register Offset:                           0x%x\n",
                dev_agent->cmrd.offset);
         printf("        CMT Register Clump Size:                       0x%x\n",
                dev_agent->cmrd.clump_size);
