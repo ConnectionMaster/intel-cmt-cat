@@ -230,6 +230,70 @@ mmio_alloc_reset_mba(void)
         return PQOS_RETVAL_OK;
 }
 
+/**
+ * @brief Validates one MBA request
+ *
+ * The MARC bandwidth control fields are 9 bits wide. A wider value would be
+ * silently cut down by the register write, so reject it instead.
+ *
+ * @param [in] mba requested MBA configuration
+ * @param [in] erdt ERDT information
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_PARAM on an invalid or out of range value
+ */
+static int
+mmio_mba_check_request(const struct pqos_mba *mba,
+                       const struct pqos_erdt_info *erdt)
+{
+        if (get_mmio_cpu_agent_by_domain(erdt, mba->domain_id) == NULL ||
+            mba->class_id >= erdt->max_clos || mba->num_mem_regions < 0 ||
+            mba->num_mem_regions > PQOS_MAX_MEM_REGIONS)
+                return PQOS_RETVAL_PARAM;
+
+        for (int j = 0; j < mba->num_mem_regions; j++) {
+                const int region_num = mba->mem_regions[j].region_num;
+
+                /* -1 marks a memory region that is not requested */
+                if (region_num == -1)
+                        continue;
+
+                if (region_num < 0 || region_num >= PQOS_MAX_MEM_REGIONS) {
+                        LOG_ERROR("MBA CLOS%u region number %d is out of range "
+                                  "(0-%d)!\n",
+                                  mba->class_id, region_num,
+                                  PQOS_MAX_MEM_REGIONS - 1);
+                        return PQOS_RETVAL_PARAM;
+                }
+
+                for (int type = 0; type < PQOS_BW_CTRL_TYPE_COUNT; type++) {
+                        const int bw = mba->mem_regions[j].bw_ctrl_val[type];
+
+                        /* -1 marks a bandwidth limit that is not requested */
+                        if (bw == -1)
+                                continue;
+
+                        if (bw < 0) {
+                                LOG_ERROR("MBA CLOS%u bandwidth value %d is "
+                                          "not a valid bandwidth limit!\n",
+                                          mba->class_id, bw);
+                                return PQOS_RETVAL_PARAM;
+                        }
+
+                        if (bw > MBA_MAX_BW) {
+                                LOG_ERROR("MBA CLOS%u bandwidth value %#x is "
+                                          "out of range (0x0-%#x)!\n",
+                                          mba->class_id, (unsigned)bw,
+                                          MBA_MAX_BW);
+                                return PQOS_RETVAL_PARAM;
+                        }
+                }
+        }
+
+        return PQOS_RETVAL_OK;
+}
+
 int
 mmio_mba_set(const unsigned mba_id,
              const unsigned num_clos,
@@ -244,15 +308,20 @@ mmio_mba_set(const unsigned mba_id,
         ASSERT(erdt != NULL);
         UNUSED_PARAM(mba_id);
 
+        /**
+         * Validate every request before touching the registers so that an
+         * invalid value does not leave a partially applied configuration
+         * behind.
+         */
+        for (unsigned i = 0; i < num_clos; i++) {
+                ret = mmio_mba_check_request(&requested[i], erdt);
+                if (ret != PQOS_RETVAL_OK)
+                        return ret;
+        }
+
         for (unsigned i = 0; i < num_clos; i++) {
                 const struct pqos_cpu_agent_info *cpu_agent =
                     get_mmio_cpu_agent_by_domain(erdt, requested[i].domain_id);
-
-                if (cpu_agent == NULL ||
-                    requested[i].class_id >= erdt->max_clos ||
-                    requested[i].num_mem_regions < 0 ||
-                    requested[i].num_mem_regions > PQOS_MAX_MEM_REGIONS)
-                        return PQOS_RETVAL_PARAM;
 
                 for (int j = 0; j < requested[i].num_mem_regions; j++) {
                         if (requested[i].mem_regions[j].region_num == -1)

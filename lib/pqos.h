@@ -108,6 +108,13 @@ const char *pqos_retval_to_string(int retval);
 #define PQOS_BW_CTRL_TYPE_MIN_IDX 1
 #define PQOS_BW_CTRL_TYPE_MAX_IDX 2
 
+/**
+ * Maximum MBA bandwidth control value on the MMIO interface. The Intel(R) RDT
+ * architecture specification defines the bandwidth control fields as 9 bits
+ * wide.
+ */
+#define PQOS_MMIO_MBA_MAX_BW 0x1FF
+
 /*
  * =======================================
  * MMIO Dump defines

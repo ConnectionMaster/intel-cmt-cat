@@ -556,8 +556,15 @@ set_mba_clos(const unsigned class_id,
         int ret = PQOS_RETVAL_OK;
         enum pqos_interface interface;
 
-        if (sock_ids == NULL || available_bw == 0) {
+        if (sock_ids == NULL) {
                 printf("Failed to set MBA configuration!\n");
+                return -1;
+        }
+
+        if (available_bw == 0) {
+                printf("MBA CLOS%u bandwidth value of 0 is not allowed. "
+                       "Failed to set MBA configuration!\n",
+                       class_id);
                 return -1;
         }
 
@@ -568,6 +575,19 @@ set_mba_clos(const unsigned class_id,
         }
 
         if (interface == PQOS_INTER_MMIO) {
+                /**
+                 * The bandwidth value is copied into the int bw_ctrl_val
+                 * fields below, so reject anything the MMIO registers cannot
+                 * hold before the value is narrowed.
+                 */
+                if (available_bw > PQOS_MMIO_MBA_MAX_BW) {
+                        printf("MBA CLOS%u bandwidth value %#" PRIx64
+                               " is out of range (0x1-%#x). "
+                               "Failed to set MBA configuration!\n",
+                               class_id, available_bw, PQOS_MMIO_MBA_MAX_BW);
+                        return -1;
+                }
+
                 if (sel_alloc_domain_id.num_domain_ids == 0 &&
                     mem_regions->num_mem_regions == 0) {
                         printf("--alloc-domain-id & --alloc-mem-region options "

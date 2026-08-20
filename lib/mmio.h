@@ -48,7 +48,7 @@ extern "C" {
 #define BYTES_PER_CLOS_ENTRY 8
 #define BYTES_PER_RMID_ENTRY 8
 #define MBM_REGION_SIZE      2048
-#define MBA_MAX_BW           0x1FF
+#define MBA_MAX_BW           PQOS_MMIO_MBA_MAX_BW
 
 /* MMIO registers bit fields */
 

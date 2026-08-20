@@ -309,6 +309,132 @@ test_mba_set_resolves_domain_id(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
+/**
+ * @brief Fills an MBA request that only sets the optimal bandwidth limit
+ *
+ * @param [out] requested MBA request to fill
+ * @param [in] domain_id domain to target
+ * @param [in] region_num memory region number
+ * @param [in] bw optimal bandwidth limit value
+ */
+static void
+mba_request_init(struct pqos_mba *requested,
+                 const uint16_t domain_id,
+                 const int region_num,
+                 const int bw)
+{
+        memset(requested, 0, sizeof(*requested));
+
+        requested->class_id = 1;
+        requested->domain_id = domain_id;
+        requested->num_mem_regions = 1;
+        requested->mem_regions[0].region_num = region_num;
+        requested->mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_OPT_IDX] = bw;
+        requested->mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MIN_IDX] = -1;
+        requested->mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MAX_IDX] = -1;
+}
+
+static void
+test_mba_set_accepts_max_bw(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mba requested;
+        int ret;
+
+        erdt.max_clos = 4;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+
+        mba_request_init(&requested, cpu_agent.rmdd.domain_id, 0, MBA_MAX_BW);
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
+                     &cpu_agent.marc);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, region_num, 0);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, clos_number, 1);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, value,
+                     MBA_MAX_BW);
+        will_return(__wrap_set_mba_optimal_bw_region_clos_v1, PQOS_RETVAL_OK);
+
+        ret = mmio_mba_set(0, 1, &requested, NULL);
+
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+}
+
+/**
+ * @brief Asserts that an MBA request is rejected without any register write
+ *
+ * No expect_*() call is registered for the setter wrapper, so cmocka fails the
+ * test if the request reaches it.
+ *
+ * @param [in] region_num memory region number
+ * @param [in] bw optimal bandwidth limit value
+ */
+static void
+assert_mba_set_rejects(const int region_num, const int bw)
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mba requested;
+        int ret;
+
+        erdt.max_clos = 4;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+
+        mba_request_init(&requested, cpu_agent.rmdd.domain_id, region_num, bw);
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+
+        ret = mmio_mba_set(0, 1, &requested, NULL);
+
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
+static void
+test_mba_set_rejects_invalid_request(void **state __attribute__((unused)))
+{
+        /* bandwidth above the register field width */
+        assert_mba_set_rejects(0, MBA_MAX_BW + 1);
+        /* bandwidth that is neither a limit nor the -1 sentinel */
+        assert_mba_set_rejects(0, -2);
+        /* memory region outside the supported range */
+        assert_mba_set_rejects(PQOS_MAX_MEM_REGIONS, MBA_MAX_BW);
+}
+
+static void
+test_mba_set_validates_before_write(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mba requested[2];
+        int ret;
+
+        erdt.max_clos = 4;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+
+        /* the first request is valid, the second one is not */
+        mba_request_init(&requested[0], cpu_agent.rmdd.domain_id, 0,
+                         MBA_MAX_BW);
+        mba_request_init(&requested[1], cpu_agent.rmdd.domain_id, 0,
+                         MBA_MAX_BW + 1);
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+
+        /*
+         * No setter expectation is registered, so the valid request must not
+         * be written either.
+         */
+        ret = mmio_mba_set(0, 2, requested, NULL);
+
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
 static void
 test_mba_get_ignores_num_clos_input(void **state __attribute__((unused)))
 {
@@ -436,6 +562,9 @@ main(void)
             cmocka_unit_test(test_cmt_range_rejects_invalid_range),
             cmocka_unit_test(test_mbm_range_rejects_invalid_range),
             cmocka_unit_test(test_mba_set_resolves_domain_id),
+            cmocka_unit_test(test_mba_set_accepts_max_bw),
+            cmocka_unit_test(test_mba_set_rejects_invalid_request),
+            cmocka_unit_test(test_mba_set_validates_before_write),
             cmocka_unit_test(test_mba_get_ignores_num_clos_input),
             cmocka_unit_test(test_io_overflow_invalidates_baseline)};
 
