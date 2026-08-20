@@ -214,6 +214,21 @@ int monitor_uncore_mode(void);
 int monitor_mixed_mode(void);
 
 /**
+ * @brief Check if monitoring was requested on the command line
+ *
+ * True when a monitoring target was selected with one of -m, -p, --mon-core,
+ * --mon-pid, --mon-dev, --mon-channel or --mon-uncore, and also when only a
+ * monitoring option that relies on the default all core monitoring was given,
+ * for example -t, -i, -T, -o, -u, --percent-llc, --mon-mem-regions or the
+ * --disable-mon-* opt-outs.
+ *
+ * @return Monitoring request status
+ * @retval 0 no monitoring option selected
+ * @retval 1 monitoring option selected
+ */
+int monitor_requested(void);
+
+/**
  * @brief Retrieve the number of memory regions selected for monitoring
  *
  * @return number of memory regions

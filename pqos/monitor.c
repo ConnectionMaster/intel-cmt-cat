@@ -184,6 +184,17 @@ static unsigned sel_monitor_num = 0;
 static int sel_monitor_type = 0;
 
 /**
+ * Set when a monitoring option that does not select a monitoring target is
+ * used, for example -t or -o. Such an option relies on the default all core
+ * monitoring, so it still counts as a request to monitor. The target selecting
+ * options are covered by sel_monitor_num and sel_monitor_type instead.
+ *
+ * Keep this in sync when adding a new monitoring option, see
+ * monitor_requested().
+ */
+static int sel_monitor_opts = 0;
+
+/**
  * Maintains monitoring interval that is selected in config string for
  * monitoring L3 occupancy
  */
@@ -282,6 +293,13 @@ monitor_mixed_mode(void)
 {
         return ((sel_monitor_type & MON_GROUP_TYPE_CORE) != 0 &&
                 (sel_monitor_type & MON_GROUP_TYPE_CHANNEL) != 0);
+}
+
+int
+monitor_requested(void)
+{
+        return (sel_monitor_num != 0 || sel_monitor_type != 0 ||
+                sel_monitor_opts != 0);
 }
 
 /**
@@ -1375,18 +1393,21 @@ parse_monitor_cores(char *str)
 void
 selfn_monitor_file_type(const char *arg)
 {
+        sel_monitor_opts = 1;
         selfn_strdup(&sel_output_type, arg);
 }
 
 void
 selfn_monitor_file(const char *arg)
 {
+        sel_monitor_opts = 1;
         selfn_strdup(&sel_output_file, arg);
 }
 
 void
 selfn_monitor_set_llc_percent(void)
 {
+        sel_monitor_opts = 1;
         sel_llc_format = LLC_FORMAT_PERCENT;
 }
 
@@ -1394,6 +1415,7 @@ void
 selfn_monitor_disable_ipc(const char *arg)
 {
         UNUSED_ARG(arg);
+        sel_monitor_opts = 1;
         sel_disable_ipc = 1;
 }
 
@@ -1401,6 +1423,7 @@ void
 selfn_monitor_disable_llc_miss(const char *arg)
 {
         UNUSED_ARG(arg);
+        sel_monitor_opts = 1;
         sel_disable_llc_miss = 1;
 }
 
@@ -2020,6 +2043,8 @@ selfn_monitor_time(const char *arg)
         if (arg == NULL)
                 parse_error(arg, "NULL monitor time argument!");
 
+        sel_monitor_opts = 1;
+
         if (!strcasecmp(arg, "inf") || !strcasecmp(arg, "infinite"))
                 sel_timeout = TIMEOUT_INFINITE;
         else
@@ -2029,6 +2054,7 @@ selfn_monitor_time(const char *arg)
 void
 selfn_monitor_interval(const char *arg)
 {
+        sel_monitor_opts = 1;
         sel_mon_interval = (int)strtouint64(arg);
         if (sel_mon_interval < 1)
                 parse_error(arg, "Invalid interval value!\n");
@@ -2038,6 +2064,7 @@ void
 selfn_monitor_top_like(const char *arg)
 {
         UNUSED_ARG(arg);
+        sel_monitor_opts = 1;
         sel_mon_top_like = 1;
 }
 
@@ -2455,6 +2482,7 @@ selfn_mon_mem_regions(const char *arg)
         if (count < 0)
                 parse_error(arg, "Invalid monitoring memory region selection");
 
+        sel_monitor_opts = 1;
         sel_mon_mem_region.num_mem_regions = count;
 }
 
@@ -2997,6 +3025,7 @@ selfn_monitor_top_pids(void)
 
         narrow_iface(IFACE_OS, "-p/--mon-pid");
         printf("Monitoring top-pids enabled\n");
+        sel_monitor_opts = 1;
         sel_mon_top_like = 1;
 
         /* getting initial values for CPU usage for processes */

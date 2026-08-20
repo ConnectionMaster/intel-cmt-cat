@@ -2571,6 +2571,19 @@ main(int argc, char **argv)
                 goto allocation_exit;
 
         /**
+         * -r performs a monitoring reset and is complete on its own. Do not
+         * fall into the monitoring loop unless monitoring was also requested,
+         * otherwise the tool blocks on the sampling timer while holding the
+         * library lock.
+         *
+         * cap_mon is part of the condition because the reset above is skipped
+         * when monitoring is not detected. In that case fall through to the
+         * capability check below so that the command still fails.
+         */
+        if (sel_mon_reset && cap_mon != NULL && !monitor_requested())
+                goto allocation_exit;
+
+        /**
          * Just monitoring option left on the table now
          */
         if (cap_mon == NULL) {
