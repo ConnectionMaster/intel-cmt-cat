@@ -44,6 +44,33 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+int
+pqos_platform_mem_regions(unsigned *num_mem_regions)
+{
+        const struct pqos_sysconfig *sys = NULL;
+
+        if (num_mem_regions == NULL)
+                return -1;
+
+        if (pqos_sysconfig_get(&sys) != PQOS_RETVAL_OK || sys == NULL ||
+            sys->mrrm == NULL || sys->mrrm->max_memory_regions_supported == 0) {
+                fprintf(stderr, "Memory region information is not "
+                                "available!\n");
+                return -1;
+        }
+
+        /**
+         * MRRM reports what the platform implements, which can be more than the
+         * PQOS_MAX_MEM_REGIONS sized arrays of the interface can carry.
+         */
+        *num_mem_regions =
+            (sys->mrrm->max_memory_regions_supported < PQOS_MAX_MEM_REGIONS)
+                ? sys->mrrm->max_memory_regions_supported
+                : PQOS_MAX_MEM_REGIONS;
+
+        return 0;
+}
+
 /**
  * @brief Filter directory filenames
  *

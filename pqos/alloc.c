@@ -553,6 +553,7 @@ set_mba_clos(const unsigned class_id,
         int idx = 0;
         struct pqos_mba mba, actual;
         unsigned int count = 0;
+        unsigned num_mem_regions;
         int ret = PQOS_RETVAL_OK;
         enum pqos_interface interface;
 
@@ -607,6 +608,26 @@ set_mba_clos(const unsigned class_id,
                                "command line. "
                                "Failed to set MBA configuration!\n");
                         return -1;
+                }
+
+                /**
+                 * The parser only knows the array bound, so reject a region
+                 * the platform does not implement now that MRRM is available.
+                 */
+                if (pqos_platform_mem_regions(&num_mem_regions) != 0)
+                        return -1;
+
+                for (idx = 0; idx < mem_regions->num_mem_regions; idx++) {
+                        const uint64_t region = mem_regions->region_num[idx];
+
+                        if (region >= num_mem_regions) {
+                                printf("Memory region %" PRIu64 " is not "
+                                       "supported on this platform, available "
+                                       "regions are 0 to %u. "
+                                       "Failed to set MBA configuration!\n",
+                                       region, num_mem_regions - 1);
+                                return -1;
+                        }
                 }
 
                 count = sel_alloc_domain_id.num_domain_ids;
@@ -2487,16 +2508,15 @@ print_domain_alloc_config(const struct pqos_capability *cap_mon,
         }
 
         for (idx = 0; idx < sys->erdt->num_cpu_agents; idx++) {
-                const int num_mem_regions =
-                    sys->mrrm->max_memory_regions_supported <
-                            PQOS_MAX_MEM_REGIONS
-                        ? sys->mrrm->max_memory_regions_supported
-                        : PQOS_MAX_MEM_REGIONS;
+                unsigned supported;
                 unsigned num_mba = 0;
+
+                if (pqos_platform_mem_regions(&supported) != 0)
+                        goto free_and_return;
 
                 mba_tab[0].domain_id =
                     sys->erdt->cpu_agents[idx].rmdd.domain_id;
-                mba_tab[0].num_mem_regions = num_mem_regions;
+                mba_tab[0].num_mem_regions = (int)supported;
 
                 ret = pqos_mba_get(sys->erdt->cpu_agents[idx].rmdd.domain_id,
                                    sys->erdt->max_clos, &num_mba, mba_tab);

@@ -1840,14 +1840,36 @@ monitor_setup(const struct pqos_cpuinfo *cpu_info,
 
         if (interface == PQOS_INTER_MMIO) {
                 int j;
-                /* All memory regions are selected, if none is specified
-                 * in command line
+                unsigned num_mem_regions;
+
+                if (pqos_platform_mem_regions(&num_mem_regions) != 0)
+                        return -1;
+
+                /* All memory regions supported by the platform are selected,
+                 * if none is specified in command line
                  */
                 if (sel_mon_mem_region.num_mem_regions == 0) {
                         sel_mon_mem_region.num_mem_regions =
-                            PQOS_MAX_MEM_REGIONS;
-                        for (i = 0; i < PQOS_MAX_MEM_REGIONS; i++)
-                                sel_mon_mem_region.region_num[i] = i;
+                            (int)num_mem_regions;
+                        for (i = 0; i < num_mem_regions; i++)
+                                sel_mon_mem_region.region_num[i] = (int)i;
+                } else {
+                        /* Reject a region the platform does not implement */
+                        for (j = 0; j < sel_mon_mem_region.num_mem_regions;
+                             j++) {
+                                const int region =
+                                    sel_mon_mem_region.region_num[j];
+
+                                if (region < 0 ||
+                                    (unsigned)region >= num_mem_regions) {
+                                        printf("Memory region %d is not "
+                                               "supported on this platform, "
+                                               "available regions are 0 to "
+                                               "%u!\n",
+                                               region, num_mem_regions - 1);
+                                        return -1;
+                                }
+                        }
                 }
                 for (i = 0; i < sel_monitor_num; i++) {
                         for (j = 0; j < sel_mon_mem_region.num_mem_regions;

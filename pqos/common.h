@@ -140,6 +140,22 @@ int pqos_parse_uint64(const char *text, uint64_t *value);
 int pqos_parse_mem_regions(const char *arg, int *regions, unsigned max_regions);
 
 /**
+ * @brief Retrieves the number of memory regions supported by the platform
+ *
+ * The value comes from the MRRM table through the library, limited to the
+ * PQOS_MAX_MEM_REGIONS regions the interface can address, so it is only
+ * available after the library has been initialized. Valid memory region
+ * numbers are 0 to *num_mem_regions - 1.
+ *
+ * @param [out] num_mem_regions number of supported memory regions
+ *
+ * @return Operation status
+ * @retval 0 on success
+ * @retval -1 if the information is not available
+ */
+int pqos_platform_mem_regions(unsigned *num_mem_regions);
+
+/**
  * @brief Parse and validate a PCI identifier
  *
  * @param [in] arg PCI ID in [segment:]bus:device.function format

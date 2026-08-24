@@ -237,6 +237,7 @@ dump_rmid_regs(const struct pqos_sysconfig *sys)
         struct pqos_mmio_dump_rmids dump_rmids;
         int ret = PQOS_RETVAL_OK;
         unsigned int idx = 0;
+        unsigned num_mem_regions = 0;
         int region_idx = 0;
 
         if (!sys || !sys->erdt) {
@@ -268,19 +269,45 @@ dump_rmid_regs(const struct pqos_sysconfig *sys)
         for (idx = 0; idx < sel_dump_rmids.num_domain_ids; idx++)
                 dump_rmids.domain_ids[idx] = sel_dump_rmids.domain_ids[idx];
 
-        /* All memory regions are selected, if none is specified
-         * in command line
+        /* Memory regions only apply to the MBM RMID registers, so do not
+         * require the MRRM information for the other RMID types unless a
+         * region was explicitly selected
+         */
+        if (sel_dump_rmids.rmid_type == MMIO_DUMP_RMID_TYPE_MBM ||
+            sel_dump_rmids.num_mem_regions > 0) {
+                if (pqos_platform_mem_regions(&num_mem_regions) != 0) {
+                        free(dump_rmids.domain_ids);
+                        return PQOS_RETVAL_RESOURCE;
+                }
+        }
+
+        /* All memory regions supported by the platform are selected, if none
+         * is specified in command line
          */
         if (sel_dump_rmids.num_mem_regions == 0) {
-                dump_rmids.num_mem_regions = PQOS_MAX_MEM_REGIONS;
-                for (idx = 0; idx < PQOS_MAX_MEM_REGIONS; idx++)
-                        dump_rmids.region_num[idx] = idx;
+                if (sel_dump_rmids.rmid_type == MMIO_DUMP_RMID_TYPE_MBM) {
+                        dump_rmids.num_mem_regions = (int)num_mem_regions;
+                        for (idx = 0; idx < num_mem_regions; idx++)
+                                dump_rmids.region_num[idx] = (int)idx;
+                }
         } else {
                 dump_rmids.num_mem_regions = sel_dump_rmids.num_mem_regions;
                 for (region_idx = 0; region_idx < dump_rmids.num_mem_regions;
-                     region_idx++)
-                        dump_rmids.region_num[region_idx] =
+                     region_idx++) {
+                        const int region =
                             sel_dump_rmids.region_num[region_idx];
+
+                        if (region < 0 || (unsigned)region >= num_mem_regions) {
+                                printf("Memory region %d is not supported on "
+                                       "this platform, available regions are "
+                                       "0 to %u!\n",
+                                       region, num_mem_regions - 1);
+                                free(dump_rmids.domain_ids);
+                                return PQOS_RETVAL_PARAM;
+                        }
+
+                        dump_rmids.region_num[region_idx] = region;
+                }
         }
 
         /* Copy RMIDs */
