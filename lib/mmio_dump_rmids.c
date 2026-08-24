@@ -307,6 +307,7 @@ int
 mmio_dump_rmids(const struct pqos_mmio_dump_rmids *dump_cfg)
 {
         const struct pqos_erdt_info *erdt;
+        int ret;
 
         if (dump_cfg == NULL)
                 return PQOS_RETVAL_PARAM;
@@ -319,10 +320,30 @@ mmio_dump_rmids(const struct pqos_mmio_dump_rmids *dump_cfg)
             dump_cfg->upscale > 1)
                 return PQOS_RETVAL_PARAM;
 
-        if (dump_cfg->rmid_type == MMIO_DUMP_RMID_TYPE_MBM &&
-            (dump_cfg->num_mem_regions <= 0 ||
-             dump_cfg->num_mem_regions > PQOS_MAX_MEM_REGIONS))
-                return PQOS_RETVAL_PARAM;
+        if (dump_cfg->rmid_type == MMIO_DUMP_RMID_TYPE_MBM) {
+                unsigned num_mem_regions;
+                int i;
+
+                ret = mmio_get_num_mem_regions(&num_mem_regions);
+                if (ret != PQOS_RETVAL_OK)
+                        return ret;
+
+                if (dump_cfg->num_mem_regions <= 0 ||
+                    (unsigned)dump_cfg->num_mem_regions > num_mem_regions)
+                        return PQOS_RETVAL_PARAM;
+
+                for (i = 0; i < dump_cfg->num_mem_regions; i++) {
+                        const int region_num = dump_cfg->region_num[i];
+
+                        if (region_num < 0 ||
+                            (unsigned)region_num >= num_mem_regions) {
+                                LOG_ERROR("Memory region %d is out of range "
+                                          "(0-%u)!\n",
+                                          region_num, num_mem_regions - 1);
+                                return PQOS_RETVAL_PARAM;
+                        }
+                }
+        }
 
         switch (dump_cfg->rmid_type) {
         case MMIO_DUMP_RMID_TYPE_CMT:

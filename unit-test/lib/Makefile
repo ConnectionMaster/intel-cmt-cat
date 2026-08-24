@@ -761,6 +761,8 @@ $(BIN_DIR)/test_mmio: test_mmio.c $(LIB_OBJS)
 		-Wl,--wrap=get_total_iol3_mbm_rmid_range_v1 \
 		-Wl,--wrap=get_miss_iol3_mbm_rmid_range_v1 \
 		-Wl,--wrap=set_mba_optimal_bw_region_clos_v1 \
+		-Wl,--wrap=set_mba_min_bw_region_clos_v1 \
+		-Wl,--wrap=set_mba_max_bw_region_clos_v1 \
 		-Wl,--start-group \
 		$(LDFLAGS) $(LIB_OBJS) $< -Wl,--end-group -o $@
 

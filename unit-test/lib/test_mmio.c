@@ -158,6 +158,34 @@ __wrap_set_mba_optimal_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
         return mock_type(int);
 }
 
+int
+__wrap_set_mba_min_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
+                                     int region_num,
+                                     unsigned int clos_number,
+                                     unsigned int value)
+{
+        check_expected_ptr(marc);
+        check_expected(region_num);
+        check_expected(clos_number);
+        check_expected(value);
+
+        return mock_type(int);
+}
+
+int
+__wrap_set_mba_max_bw_region_clos_v1(const struct pqos_erdt_marc *marc,
+                                     int region_num,
+                                     unsigned int clos_number,
+                                     unsigned int value)
+{
+        check_expected_ptr(marc);
+        check_expected(region_num);
+        check_expected(clos_number);
+        check_expected(value);
+
+        return mock_type(int);
+}
+
 static void
 test_cpu_cmt_range_crosses_clump(void **state __attribute__((unused)))
 {
@@ -274,41 +302,6 @@ test_mbm_range_rejects_invalid_range(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_PARAM);
 }
 
-static void
-test_mba_set_resolves_domain_id(void **state __attribute__((unused)))
-{
-        struct pqos_cpu_agent_info cpu_agents[2] = {0};
-        struct pqos_erdt_info erdt = {0};
-        struct pqos_mba requested = {0};
-        int ret;
-
-        erdt.max_clos = 4;
-        erdt.num_cpu_agents = 2;
-        erdt.cpu_agents = cpu_agents;
-        cpu_agents[0].rmdd.domain_id = 10;
-        cpu_agents[1].rmdd.domain_id = 20;
-
-        requested.class_id = 1;
-        requested.domain_id = 20;
-        requested.num_mem_regions = 1;
-        requested.mem_regions[0].region_num = 0;
-        requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_OPT_IDX] = 100;
-        requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MIN_IDX] = -1;
-        requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MAX_IDX] = -1;
-
-        will_return(__wrap__pqos_get_erdt, &erdt);
-        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
-                     &cpu_agents[1].marc);
-        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, region_num, 0);
-        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, clos_number, 1);
-        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, value, 100);
-        will_return(__wrap_set_mba_optimal_bw_region_clos_v1, PQOS_RETVAL_OK);
-
-        ret = mmio_mba_set(0, 1, &requested, NULL);
-
-        assert_int_equal(ret, PQOS_RETVAL_OK);
-}
-
 /**
  * @brief Fills an MBA request that only sets the optimal bandwidth limit
  *
@@ -334,11 +327,63 @@ mba_request_init(struct pqos_mba *requested,
         requested->mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MAX_IDX] = -1;
 }
 
+/**
+ * @brief Queues an MRRM mock advertising the given number of memory regions
+ *
+ * @param [out] mrrm MRRM information to fill and queue
+ * @param [in] num_mem_regions number of memory regions to advertise
+ */
+static void
+mrrm_will_return(struct pqos_mrrm_info *mrrm, const uint8_t num_mem_regions)
+{
+        memset(mrrm, 0, sizeof(*mrrm));
+        mrrm->max_memory_regions_supported = num_mem_regions;
+        will_return(__wrap__pqos_get_mrrm, mrrm);
+}
+
+static void
+test_mba_set_resolves_domain_id(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agents[2] = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
+        struct pqos_mba requested = {0};
+        int ret;
+
+        erdt.max_clos = 4;
+        erdt.num_cpu_agents = 2;
+        erdt.cpu_agents = cpu_agents;
+        cpu_agents[0].rmdd.domain_id = 10;
+        cpu_agents[1].rmdd.domain_id = 20;
+
+        requested.class_id = 1;
+        requested.domain_id = 20;
+        requested.num_mem_regions = 1;
+        requested.mem_regions[0].region_num = 0;
+        requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_OPT_IDX] = 100;
+        requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MIN_IDX] = -1;
+        requested.mem_regions[0].bw_ctrl_val[PQOS_BW_CTRL_TYPE_MAX_IDX] = -1;
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, PQOS_MAX_MEM_REGIONS);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
+                     &cpu_agents[1].marc);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, region_num, 0);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, clos_number, 1);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, value, 100);
+        will_return(__wrap_set_mba_optimal_bw_region_clos_v1, PQOS_RETVAL_OK);
+
+        ret = mmio_mba_set(0, 1, &requested, NULL);
+
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+}
+
 static void
 test_mba_set_accepts_max_bw(void **state __attribute__((unused)))
 {
         struct pqos_cpu_agent_info cpu_agent = {0};
         struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
         struct pqos_mba requested;
         int ret;
 
@@ -350,6 +395,7 @@ test_mba_set_accepts_max_bw(void **state __attribute__((unused)))
         mba_request_init(&requested, cpu_agent.rmdd.domain_id, 0, MBA_MAX_BW);
 
         will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, PQOS_MAX_MEM_REGIONS);
         expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
                      &cpu_agent.marc);
         expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, region_num, 0);
@@ -369,14 +415,18 @@ test_mba_set_accepts_max_bw(void **state __attribute__((unused)))
  * No expect_*() call is registered for the setter wrapper, so cmocka fails the
  * test if the request reaches it.
  *
+ * @param [in] num_mem_regions number of memory regions advertised by MRRM
  * @param [in] region_num memory region number
  * @param [in] bw optimal bandwidth limit value
  */
 static void
-assert_mba_set_rejects(const int region_num, const int bw)
+assert_mba_set_rejects(const uint8_t num_mem_regions,
+                       const int region_num,
+                       const int bw)
 {
         struct pqos_cpu_agent_info cpu_agent = {0};
         struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
         struct pqos_mba requested;
         int ret;
 
@@ -388,6 +438,7 @@ assert_mba_set_rejects(const int region_num, const int bw)
         mba_request_init(&requested, cpu_agent.rmdd.domain_id, region_num, bw);
 
         will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, num_mem_regions);
 
         ret = mmio_mba_set(0, 1, &requested, NULL);
 
@@ -398,11 +449,48 @@ static void
 test_mba_set_rejects_invalid_request(void **state __attribute__((unused)))
 {
         /* bandwidth above the register field width */
-        assert_mba_set_rejects(0, MBA_MAX_BW + 1);
+        assert_mba_set_rejects(PQOS_MAX_MEM_REGIONS, 0, MBA_MAX_BW + 1);
         /* bandwidth that is neither a limit nor the -1 sentinel */
-        assert_mba_set_rejects(0, -2);
-        /* memory region outside the supported range */
-        assert_mba_set_rejects(PQOS_MAX_MEM_REGIONS, MBA_MAX_BW);
+        assert_mba_set_rejects(PQOS_MAX_MEM_REGIONS, 0, -2);
+        /* memory region outside the array bound */
+        assert_mba_set_rejects(PQOS_MAX_MEM_REGIONS, PQOS_MAX_MEM_REGIONS,
+                               MBA_MAX_BW);
+}
+
+static void
+test_mba_set_rejects_unsupported_region(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
+        struct pqos_mba requested;
+        int ret;
+
+        /* the platform advertises fewer regions than the array can hold */
+        assert_mba_set_rejects(2, 2, MBA_MAX_BW);
+        assert_mba_set_rejects(2, PQOS_MAX_MEM_REGIONS - 1, MBA_MAX_BW);
+
+        /* the last supported region is still accepted */
+        erdt.max_clos = 4;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+
+        mba_request_init(&requested, cpu_agent.rmdd.domain_id, 1, MBA_MAX_BW);
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, 2);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
+                     &cpu_agent.marc);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, region_num, 1);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, clos_number, 1);
+        expect_value(__wrap_set_mba_optimal_bw_region_clos_v1, value,
+                     MBA_MAX_BW);
+        will_return(__wrap_set_mba_optimal_bw_region_clos_v1, PQOS_RETVAL_OK);
+
+        ret = mmio_mba_set(0, 1, &requested, NULL);
+
+        assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
 static void
@@ -410,6 +498,7 @@ test_mba_set_validates_before_write(void **state __attribute__((unused)))
 {
         struct pqos_cpu_agent_info cpu_agent = {0};
         struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
         struct pqos_mba requested[2];
         int ret;
 
@@ -425,6 +514,7 @@ test_mba_set_validates_before_write(void **state __attribute__((unused)))
                          MBA_MAX_BW + 1);
 
         will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, PQOS_MAX_MEM_REGIONS);
 
         /*
          * No setter expectation is registered, so the valid request must not
@@ -483,6 +573,136 @@ test_mba_get_ignores_num_clos_input(void **state __attribute__((unused)))
         assert_int_equal(mba_tab[1].class_id, 1);
         assert_int_equal(mba_tab[0].num_mem_regions, PQOS_MAX_MEM_REGIONS);
         assert_int_equal(mba_tab[1].num_mem_regions, PQOS_MAX_MEM_REGIONS);
+}
+
+static void
+test_mba_get_uses_mrrm_count(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
+        struct pqos_mba mba_tab[1] = {0};
+        unsigned num_clos = 0;
+        const uint8_t supported = 2;
+        const int num_reads = supported;
+        int ret;
+
+        erdt.max_clos = 1;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+        mba_tab[0].domain_id = cpu_agent.rmdd.domain_id;
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, supported);
+        expect_value_count(__wrap_get_mba_optimal_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_reads);
+        expect_any_count(__wrap_get_mba_optimal_bw_region_clos_v1, region_num,
+                         num_reads);
+        expect_any_count(__wrap_get_mba_optimal_bw_region_clos_v1, clos_number,
+                         num_reads);
+        expect_value_count(__wrap_get_mba_min_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_reads);
+        expect_any_count(__wrap_get_mba_min_bw_region_clos_v1, region_num,
+                         num_reads);
+        expect_any_count(__wrap_get_mba_min_bw_region_clos_v1, clos_number,
+                         num_reads);
+        expect_value_count(__wrap_get_mba_max_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_reads);
+        expect_any_count(__wrap_get_mba_max_bw_region_clos_v1, region_num,
+                         num_reads);
+        expect_any_count(__wrap_get_mba_max_bw_region_clos_v1, clos_number,
+                         num_reads);
+
+        ret = mmio_mba_get(0, 1, &num_clos, mba_tab);
+
+        assert_int_equal(ret, PQOS_RETVAL_OK);
+        /* only the regions the platform advertises are read back */
+        assert_int_equal(mba_tab[0].num_mem_regions, supported);
+}
+
+static void
+test_mba_get_rejects_unsupported_num_regions(void **state
+                                             __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
+        struct pqos_mba mba_tab[1] = {0};
+        unsigned num_clos = 0;
+        int ret;
+
+        erdt.max_clos = 1;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+        mba_tab[0].domain_id = cpu_agent.rmdd.domain_id;
+        /* more regions than the platform advertises */
+        mba_tab[0].num_mem_regions = PQOS_MAX_MEM_REGIONS;
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, 2);
+
+        ret = mmio_mba_get(0, 1, &num_clos, mba_tab);
+
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+}
+
+static void
+test_mba_reset_uses_mrrm_count(void **state __attribute__((unused)))
+{
+        struct pqos_cpu_agent_info cpu_agent = {0};
+        struct pqos_erdt_info erdt = {0};
+        struct pqos_mrrm_info mrrm;
+        const uint8_t supported = 2;
+        const int num_writes = 2 * supported; /* max_clos * regions */
+        int ret;
+
+        erdt.max_clos = 2;
+        erdt.num_cpu_agents = 1;
+        erdt.cpu_agents = &cpu_agent;
+        cpu_agent.rmdd.domain_id = 10;
+
+        will_return(__wrap__pqos_get_erdt, &erdt);
+        mrrm_will_return(&mrrm, supported);
+
+        expect_value_count(__wrap_set_mba_optimal_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_writes);
+        expect_any_count(__wrap_set_mba_optimal_bw_region_clos_v1, region_num,
+                         num_writes);
+        expect_any_count(__wrap_set_mba_optimal_bw_region_clos_v1, clos_number,
+                         num_writes);
+        expect_value_count(__wrap_set_mba_optimal_bw_region_clos_v1, value,
+                           MBA_MAX_BW, num_writes);
+        expect_value_count(__wrap_set_mba_min_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_writes);
+        expect_any_count(__wrap_set_mba_min_bw_region_clos_v1, region_num,
+                         num_writes);
+        expect_any_count(__wrap_set_mba_min_bw_region_clos_v1, clos_number,
+                         num_writes);
+        expect_value_count(__wrap_set_mba_min_bw_region_clos_v1, value,
+                           MBA_MAX_BW, num_writes);
+        expect_value_count(__wrap_set_mba_max_bw_region_clos_v1, marc,
+                           &cpu_agent.marc, num_writes);
+        expect_any_count(__wrap_set_mba_max_bw_region_clos_v1, region_num,
+                         num_writes);
+        expect_any_count(__wrap_set_mba_max_bw_region_clos_v1, clos_number,
+                         num_writes);
+        expect_value_count(__wrap_set_mba_max_bw_region_clos_v1, value,
+                           MBA_MAX_BW, num_writes);
+
+        for (int i = 0; i < num_writes; i++) {
+                will_return(__wrap_set_mba_optimal_bw_region_clos_v1,
+                            PQOS_RETVAL_OK);
+                will_return(__wrap_set_mba_min_bw_region_clos_v1,
+                            PQOS_RETVAL_OK);
+                will_return(__wrap_set_mba_max_bw_region_clos_v1,
+                            PQOS_RETVAL_OK);
+        }
+
+        ret = mmio_alloc_reset_mba();
+
+        assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
 static void
@@ -564,8 +784,12 @@ main(void)
             cmocka_unit_test(test_mba_set_resolves_domain_id),
             cmocka_unit_test(test_mba_set_accepts_max_bw),
             cmocka_unit_test(test_mba_set_rejects_invalid_request),
+            cmocka_unit_test(test_mba_set_rejects_unsupported_region),
             cmocka_unit_test(test_mba_set_validates_before_write),
             cmocka_unit_test(test_mba_get_ignores_num_clos_input),
+            cmocka_unit_test(test_mba_get_uses_mrrm_count),
+            cmocka_unit_test(test_mba_get_rejects_unsupported_num_regions),
+            cmocka_unit_test(test_mba_reset_uses_mrrm_count),
             cmocka_unit_test(test_io_overflow_invalidates_baseline)};
 
         return cmocka_run_group_tests(tests, NULL, NULL);

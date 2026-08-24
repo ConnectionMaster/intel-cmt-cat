@@ -193,13 +193,18 @@ int
 mmio_alloc_reset_mba(void)
 {
         int ret;
+        unsigned num_mem_regions;
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
 
         ASSERT(erdt != NULL);
 
+        ret = mmio_get_num_mem_regions(&num_mem_regions);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+
         for (unsigned domain = 0; domain < erdt->num_cpu_agents; domain++) {
                 for (unsigned i = 0; i < erdt->max_clos; i++) {
-                        for (int j = 0; j < PQOS_MAX_MEM_REGIONS; j++) {
+                        for (int j = 0; j < (int)num_mem_regions; j++) {
                                 ret = set_mba_optimal_bw_region_clos_v1(
                                     (const struct pqos_erdt_marc *)&erdt
                                         ->cpu_agents[domain]
@@ -236,8 +241,14 @@ mmio_alloc_reset_mba(void)
  * The MARC bandwidth control fields are 9 bits wide. A wider value would be
  * silently cut down by the register write, so reject it instead.
  *
+ * Memory regions are validated against the number of regions the platform
+ * advertises through MRRM, not against PQOS_MAX_MEM_REGIONS, so a region the
+ * platform does not implement is rejected before any register is written.
+ *
  * @param [in] mba requested MBA configuration
  * @param [in] erdt ERDT information
+ * @param [in] num_mem_regions number of memory regions supported by the
+ *             platform
  *
  * @return Operation status
  * @retval PQOS_RETVAL_OK on success
@@ -245,11 +256,12 @@ mmio_alloc_reset_mba(void)
  */
 static int
 mmio_mba_check_request(const struct pqos_mba *mba,
-                       const struct pqos_erdt_info *erdt)
+                       const struct pqos_erdt_info *erdt,
+                       const unsigned num_mem_regions)
 {
         if (get_mmio_cpu_agent_by_domain(erdt, mba->domain_id) == NULL ||
             mba->class_id >= erdt->max_clos || mba->num_mem_regions < 0 ||
-            mba->num_mem_regions > PQOS_MAX_MEM_REGIONS)
+            (unsigned)mba->num_mem_regions > num_mem_regions)
                 return PQOS_RETVAL_PARAM;
 
         for (int j = 0; j < mba->num_mem_regions; j++) {
@@ -259,11 +271,11 @@ mmio_mba_check_request(const struct pqos_mba *mba,
                 if (region_num == -1)
                         continue;
 
-                if (region_num < 0 || region_num >= PQOS_MAX_MEM_REGIONS) {
+                if (region_num < 0 || (unsigned)region_num >= num_mem_regions) {
                         LOG_ERROR("MBA CLOS%u region number %d is out of range "
-                                  "(0-%d)!\n",
+                                  "(0-%u)!\n",
                                   mba->class_id, region_num,
-                                  PQOS_MAX_MEM_REGIONS - 1);
+                                  num_mem_regions - 1);
                         return PQOS_RETVAL_PARAM;
                 }
 
@@ -302,11 +314,16 @@ mmio_mba_set(const unsigned mba_id,
 {
         int ret;
         int current_bw;
+        unsigned num_mem_regions;
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
 
         ASSERT(num_clos != 0);
         ASSERT(erdt != NULL);
         UNUSED_PARAM(mba_id);
+
+        ret = mmio_get_num_mem_regions(&num_mem_regions);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
 
         /**
          * Validate every request before touching the registers so that an
@@ -314,7 +331,8 @@ mmio_mba_set(const unsigned mba_id,
          * behind.
          */
         for (unsigned i = 0; i < num_clos; i++) {
-                ret = mmio_mba_check_request(&requested[i], erdt);
+                ret = mmio_mba_check_request(&requested[i], erdt,
+                                             num_mem_regions);
                 if (ret != PQOS_RETVAL_OK)
                         return ret;
         }
@@ -401,6 +419,7 @@ mmio_mba_get(const unsigned mba_id,
         const struct pqos_erdt_info *erdt = _pqos_get_erdt();
         const struct pqos_cpu_agent_info *cpu_agent;
         int num_mem_regions;
+        unsigned supported;
         int ret = PQOS_RETVAL_OK;
 
         ASSERT(num_clos != NULL);
@@ -409,25 +428,20 @@ mmio_mba_get(const unsigned mba_id,
         ASSERT(erdt != NULL);
         UNUSED_PARAM(mba_id);
 
+        ret = mmio_get_num_mem_regions(&supported);
+        if (ret != PQOS_RETVAL_OK)
+                return ret;
+
         num_mem_regions = mba_tab[0].num_mem_regions;
-        if (num_mem_regions == 0) {
-                const struct pqos_mrrm_info *mrrm = _pqos_get_mrrm();
-
-                if (mrrm == NULL)
-                        return PQOS_RETVAL_ERROR;
-
-                num_mem_regions =
-                    (mrrm->max_memory_regions_supported < PQOS_MAX_MEM_REGIONS)
-                        ? mrrm->max_memory_regions_supported
-                        : PQOS_MAX_MEM_REGIONS;
-        }
+        if (num_mem_regions == 0)
+                num_mem_regions = (int)supported;
 
         if (erdt->max_clos > max_num_clos)
                 return PQOS_RETVAL_ERROR;
 
         cpu_agent = get_mmio_cpu_agent_by_domain(erdt, mba_tab[0].domain_id);
         if (cpu_agent == NULL || num_mem_regions < 0 ||
-            num_mem_regions > PQOS_MAX_MEM_REGIONS)
+            (unsigned)num_mem_regions > supported)
                 return PQOS_RETVAL_PARAM;
 
         for (unsigned i = 0; i < erdt->max_clos; i++) {
