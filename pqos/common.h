@@ -142,10 +142,9 @@ int pqos_parse_mem_regions(const char *arg, int *regions, unsigned max_regions);
 /**
  * @brief Retrieves the number of memory regions supported by the platform
  *
- * The value comes from the MRRM table through the library, limited to the
- * PQOS_MAX_MEM_REGIONS regions the interface can address, so it is only
- * available after the library has been initialized. Valid memory region
- * numbers are 0 to *num_mem_regions - 1.
+ * Wrapper around pqos_get_num_mem_regions() that reports the failure to the
+ * user, so it is only usable after the library has been initialized. Valid
+ * memory region numbers are 0 to *num_mem_regions - 1.
  *
  * @param [out] num_mem_regions number of supported memory regions
  *

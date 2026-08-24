@@ -893,6 +893,26 @@ int pqos_cap_get(const struct pqos_cap **cap, const struct pqos_cpuinfo **cpu);
  */
 int pqos_sysconfig_get(const struct pqos_sysconfig **sysconf);
 
+/**
+ * @brief Retrieves the number of memory regions usable on the platform
+ *
+ * The number of memory regions the platform implements is reported by the MRRM
+ * ACPI table and can be larger than the PQOS_MAX_MEM_REGIONS regions the
+ * interfaces can address. This function returns the smaller of the two, so
+ * valid memory region numbers are 0 to *num_mem_regions - 1.
+ *
+ * Only supported on the MMIO interface.
+ *
+ * @param [out] num_mem_regions Location to store the number of memory regions
+ *
+ * @return Operations status
+ * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_PARAM if num_mem_regions is NULL
+ * @retval PQOS_RETVAL_INIT if the library is not initialized
+ * @retval PQOS_RETVAL_RESOURCE if memory region information is not available
+ */
+int pqos_get_num_mem_regions(unsigned *num_mem_regions);
+
 /*
  * @brief Retrieves PQoS interface
  *

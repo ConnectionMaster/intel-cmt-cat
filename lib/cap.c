@@ -1225,6 +1225,28 @@ pqos_sysconfig_get(const struct pqos_sysconfig **sysconf)
         return PQOS_RETVAL_OK;
 }
 
+int
+pqos_get_num_mem_regions(unsigned *num_mem_regions)
+{
+        int ret;
+
+        if (num_mem_regions == NULL)
+                return PQOS_RETVAL_PARAM;
+
+        lock_get();
+
+        ret = _pqos_check_init(1);
+        if (ret != PQOS_RETVAL_OK) {
+                lock_release();
+                return ret;
+        }
+
+        ret = mmio_get_num_mem_regions(num_mem_regions);
+
+        lock_release();
+        return ret;
+}
+
 void
 _pqos_cap_l3cdp_change(const enum pqos_cdp_config cdp)
 {

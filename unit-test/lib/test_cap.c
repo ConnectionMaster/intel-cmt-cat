@@ -380,6 +380,23 @@ test_pqos_fini(void **state __attribute__((unused)))
         assert_int_equal(ret, PQOS_RETVAL_OK);
 }
 
+/* ======== pqos_get_num_mem_regions ======== */
+
+static void
+test_pqos_get_num_mem_regions_before_init(void **state __attribute__((unused)))
+{
+        unsigned num_mem_regions = 0;
+        int ret;
+
+        ret = pqos_get_num_mem_regions(NULL);
+        assert_int_equal(ret, PQOS_RETVAL_PARAM);
+
+        expect_function_call(__wrap_lock_get);
+        expect_function_call(__wrap_lock_release);
+        ret = pqos_get_num_mem_regions(&num_mem_regions);
+        assert_int_equal(ret, PQOS_RETVAL_INIT);
+}
+
 /* ======== pqos_cap_get ======== */
 
 static void
@@ -578,6 +595,7 @@ main(void)
             cmocka_unit_test(test__pqos_get_cap_before_init),
             cmocka_unit_test(test__pqos_get_cpu_before_init),
             cmocka_unit_test(test_pqos_cap_get_before_init),
+            cmocka_unit_test(test_pqos_get_num_mem_regions_before_init),
             cmocka_unit_test(test_pqos_init),
             cmocka_unit_test(test_pqos_cap_get_after_init),
             cmocka_unit_test(test__pqos_get_cap_after_init),
