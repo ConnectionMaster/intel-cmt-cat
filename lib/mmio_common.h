@@ -128,6 +128,23 @@ PQOS_LOCAL
 int get_dev_agent_idx_by_domain_id(const struct pqos_erdt_info *erdt,
                                    uint16_t domain_id);
 
+/**
+ * @brief Get the number of memory regions supported by the platform
+ *
+ * The value comes from the MRRM table, limited to the PQOS_MAX_MEM_REGIONS
+ * regions the interface can address. Valid memory region numbers are 0 to
+ * *num_mem_regions - 1.
+ *
+ * @param [out] num_mem_regions number of supported memory regions
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK on success
+ * @retval PQOS_RETVAL_PARAM if num_mem_regions is NULL
+ * @retval PQOS_RETVAL_RESOURCE if MRRM information is not available
+ */
+PQOS_LOCAL
+int mmio_get_num_mem_regions(unsigned *num_mem_regions);
+
 #ifdef __cplusplus
 }
 #endif

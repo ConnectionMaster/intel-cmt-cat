@@ -127,3 +127,29 @@ get_dev_agent_idx_by_domain_id(const struct pqos_erdt_info *erdt,
 
         return -1;
 }
+
+int
+mmio_get_num_mem_regions(unsigned *num_mem_regions)
+{
+        const struct pqos_mrrm_info *mrrm = _pqos_get_mrrm();
+
+        if (num_mem_regions == NULL)
+                return PQOS_RETVAL_PARAM;
+
+        if (mrrm == NULL || mrrm->max_memory_regions_supported == 0) {
+                LOG_ERROR("MRRM memory region information is not available!\n");
+                return PQOS_RETVAL_RESOURCE;
+        }
+
+        /**
+         * MRRM reports what the platform implements, which can be more than the
+         * PQOS_MAX_MEM_REGIONS sized arrays of the interface can carry, so the
+         * limit is applied here.
+         */
+        *num_mem_regions =
+            (mrrm->max_memory_regions_supported < PQOS_MAX_MEM_REGIONS)
+                ? mrrm->max_memory_regions_supported
+                : PQOS_MAX_MEM_REGIONS;
+
+        return PQOS_RETVAL_OK;
+}

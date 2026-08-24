@@ -196,8 +196,18 @@ mrrm_populate(struct pqos_mrrm_info **mrrm_info,
                 return PQOS_RETVAL_ERROR;
         }
 
+        /**
+         * The value reported by the table is kept as it is, because it is
+         * platform information. Limiting it to the number of regions the
+         * interfaces can address is done by their accessors.
+         */
         p_mrrm_info->max_memory_regions_supported =
             p_acpi_mrrm->header.max_memory_regions_supported;
+        if (p_mrrm_info->max_memory_regions_supported > PQOS_MAX_MEM_REGIONS)
+                LOG_WARN("MRRM reports %u memory regions, only %u of them can "
+                         "be used\n",
+                         (unsigned)p_mrrm_info->max_memory_regions_supported,
+                         (unsigned)PQOS_MAX_MEM_REGIONS);
         p_mrrm_info->flags = p_acpi_mrrm->header.flags;
         p_mrrm_info->num_mres = mre_count;
 

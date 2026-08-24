@@ -130,6 +130,38 @@ test_valid(void **state __attribute__((unused)))
         mrrm_fini();
 }
 static void
+test_max_memory_regions_reported(void **state __attribute__((unused)))
+{
+        struct fixture f;
+        struct pqos_cap cap = {0};
+        struct pqos_mrrm_info *info = NULL;
+        struct acpi_table_mrrm *t;
+
+        /*
+         * The platform value is reported as it is, including a count above
+         * PQOS_MAX_MEM_REGIONS. Limiting it to the regions an interface can
+         * address is the job of mmio_get_num_mem_regions(), covered by
+         * test_mmio.
+         */
+        init(&f, 0);
+        t = (void *)f.data;
+        t->header.max_memory_regions_supported = PQOS_MAX_MEM_REGIONS + 1;
+        expect_table(&f);
+        assert_int_equal(mrrm_init(&cap, &info), PQOS_RETVAL_OK);
+        assert_int_equal(info->max_memory_regions_supported,
+                         PQOS_MAX_MEM_REGIONS + 1);
+        mrrm_fini();
+
+        init(&f, 0);
+        t = (void *)f.data;
+        t->header.max_memory_regions_supported = 2;
+        expect_table(&f);
+        assert_int_equal(mrrm_init(&cap, &info), PQOS_RETVAL_OK);
+        assert_int_equal(info->max_memory_regions_supported, 2);
+        mrrm_fini();
+}
+
+static void
 test_errors(void **state __attribute__((unused)))
 {
         struct fixture f;
@@ -154,7 +186,9 @@ test_errors(void **state __attribute__((unused)))
 int
 main(void)
 {
-        const struct CMUnitTest tests[] = {cmocka_unit_test(test_valid),
-                                           cmocka_unit_test(test_errors)};
+        const struct CMUnitTest tests[] = {
+            cmocka_unit_test(test_valid),
+            cmocka_unit_test(test_max_memory_regions_reported),
+            cmocka_unit_test(test_errors)};
         return cmocka_run_group_tests(tests, NULL, NULL);
 }
